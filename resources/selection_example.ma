@@ -1,6 +1,6 @@
 //Maya ASCII 2014 scene
 //Name: selection_example.ma
-//Last modified: Tue, Jul 29, 2014 04:54:03 PM
+//Last modified: Wed, Jul 30, 2014 08:33:28 AM
 //Codeset: 1252
 requires maya "2014";
 currentUnit -l centimeter -a degree -t film;
@@ -11,12 +11,12 @@ fileInfo "cutIdentifier" "201307170459-880822";
 fileInfo "osv" "Microsoft Windows 8 Enterprise Edition, 64-bit  (Build 9200)\n";
 createNode transform -s -n "persp";
 	setAttr ".v" no;
-	setAttr ".t" -type "double3" 20.122216185991714 13.033873159431341 37.898798285786533 ;
-	setAttr ".r" -type "double3" -15.338352729603447 28.600000000000165 9.0564246986484348e-016 ;
+	setAttr ".t" -type "double3" -5.7537627911330596 22.150171484007743 38.280993533295593 ;
+	setAttr ".r" -type "double3" -28.538352729603993 -8.1999999999993509 0 ;
 createNode camera -s -n "perspShape" -p "persp";
 	setAttr -k off ".v" no;
 	setAttr ".fl" 34.999999999999993;
-	setAttr ".coi" 44.961229534977448;
+	setAttr ".coi" 44.053252786630651;
 	setAttr ".imn" -type "string" "persp";
 	setAttr ".den" -type "string" "persp_depth";
 	setAttr ".man" -type "string" "persp_mask";
@@ -108,7 +108,7 @@ createNode displayLayer -n "defaultLayer";
 createNode renderLayerManager -n "renderLayerManager";
 createNode renderLayer -n "defaultRenderLayer";
 	setAttr ".g" yes;
-createNode objectSet -n "publishable";
+createNode objectSet -n "animation";
 	addAttr -ci true -sn "startFrame" -ln "startFrame" -at "double";
 	addAttr -ci true -sn "endFrame" -ln "endFrame" -at "double";
 	addAttr -ci true -sn "handles" -ln "handles" -at "double";
@@ -232,8 +232,6 @@ select -ne :hardwareRenderingGlobals;
 select -ne :defaultHardwareRenderGlobals;
 	setAttr ".fn" -type "string" "im";
 	setAttr ".res" -type "string" "ntsc_4d 646 485 1.333";
-select -ne :ikSystem;
-	setAttr -s 4 ".sol";
 connectAttr "polyCube1.out" "pCubeShape1.i";
 connectAttr "polyCube2.out" "pCubeShape2.i";
 connectAttr "polySphere1.out" "pSphereShape1.i";
@@ -243,9 +241,9 @@ relationship "shadowLink" ":lightLinker1" ":initialShadingGroup.message" ":defau
 relationship "shadowLink" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
 connectAttr "layerManager.dli[0]" "defaultLayer.id";
 connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
-connectAttr "MyAsset1.iog" "publishable.dsm" -na;
-connectAttr "MyAsset2.iog" "publishable.dsm" -na;
-connectAttr "MyOtherAsset.iog" "publishable.dsm" -na;
+connectAttr "MyAsset1.iog" "animation.dsm" -na;
+connectAttr "MyAsset2.iog" "animation.dsm" -na;
+connectAttr "MyOtherAsset.iog" "animation.dsm" -na;
 connectAttr "pCubeShape1.iog" ":initialShadingGroup.dsm" -na;
 connectAttr "pCubeShape2.iog" ":initialShadingGroup.dsm" -na;
 connectAttr "pSphereShape1.iog" ":initialShadingGroup.dsm" -na;
