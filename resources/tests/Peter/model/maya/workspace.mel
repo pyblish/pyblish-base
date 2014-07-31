@@ -39,6 +39,7 @@ workspace -fr "audio" "sound";
 workspace -fr "IV_DC" "data";
 workspace -fr "scripts" "scripts";
 workspace -fr "STL_DCE" "data";
+workspace -fr "alembicCache" "cache/alembic";
 workspace -fr "furAttrMap" "renderData/fur/furAttrMap";
 workspace -fr "FBX export" "data";
 workspace -fr "JT_DC" "data";
