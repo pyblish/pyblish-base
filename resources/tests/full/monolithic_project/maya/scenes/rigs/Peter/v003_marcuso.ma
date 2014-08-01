@@ -1,6 +1,6 @@
 //Maya ASCII 2014 scene
-//Name: peter_v001.ma
-//Last modified: Fri, Aug 01, 2014 10:44:55 AM
+//Name: v003_marcuso.ma
+//Last modified: Fri, Aug 01, 2014 04:51:17 PM
 //Codeset: 1252
 file -rdi 1 -ns "model" -rfn "modelRN" "published/models/Peter/v001/v001.mb";
 file -r -ns "model" -dr 1 -rfn "modelRN" "published/models/Peter/v001/v001.mb";
@@ -13,12 +13,12 @@ fileInfo "cutIdentifier" "201307170459-880822";
 fileInfo "osv" "Microsoft Windows 8 Enterprise Edition, 64-bit  (Build 9200)\n";
 createNode transform -s -n "persp";
 	setAttr ".v" no;
-	setAttr ".t" -type "double3" -63.503934240218953 168.26881671388315 305.73825417810264 ;
-	setAttr ".r" -type "double3" -14.138352729604073 -11.400000000000098 2.0278538504223513e-016 ;
+	setAttr ".t" -type "double3" -39.104740280800996 143.64665424229133 270.64455602006836 ;
+	setAttr ".r" -type "double3" -11.138352729604087 -7.8000000000001988 0 ;
 createNode camera -s -n "perspShape" -p "persp";
 	setAttr -k off ".v" no;
 	setAttr ".fl" 34.999999999999986;
-	setAttr ".coi" 318.79062042382748;
+	setAttr ".coi" 275.63567607853543;
 	setAttr ".imn" -type "string" "persp";
 	setAttr ".den" -type "string" "persp_depth";
 	setAttr ".man" -type "string" "persp_mask";
@@ -208,14 +208,14 @@ createNode reference -n "modelRN";
 		2 "|Peter_AST|geometry_GRP|model:Peter_AST|model:geometry_GRP|model:body_GEO|model:body_GEOShape" 
 		"instObjGroups.objectGroups[3].objectGrpCompList" " -type \"componentList\" 1 \"f[0:1097]\""
 		
-		3 "model:v001:groupId4.groupId" "|Peter_AST|geometry_GRP|model:Peter_AST|model:geometry_GRP|model:body_GEO|model:body_GEOShape.instObjGroups.objectGroups[3].objectGroupId" 
-		""
-		3 "model:v001:initialShadingGroup.memberWireframeColor" "|Peter_AST|geometry_GRP|model:Peter_AST|model:geometry_GRP|model:body_GEO|model:body_GEOShape.instObjGroups.objectGroups[3].objectGrpColor" 
-		""
 		3 "|Peter_AST|geometry_GRP|model:Peter_AST|model:geometry_GRP|model:body_GEO|model:body_GEOShape.instObjGroups.objectGroups[3]" 
 		"model:v001:initialShadingGroup.dagSetMembers" "-na"
 		3 "model:v001:groupId4.message" "model:v001:initialShadingGroup.groupNodes" 
 		"-na"
+		3 "model:v001:groupId4.groupId" "|Peter_AST|geometry_GRP|model:Peter_AST|model:geometry_GRP|model:body_GEO|model:body_GEOShape.instObjGroups.objectGroups[3].objectGroupId" 
+		""
+		3 "model:v001:initialShadingGroup.memberWireframeColor" "|Peter_AST|geometry_GRP|model:Peter_AST|model:geometry_GRP|model:body_GEO|model:body_GEOShape.instObjGroups.objectGroups[3].objectGrpColor" 
+		""
 		5 3 "modelRN" "|Peter_AST|geometry_GRP|model:Peter_AST|model:geometry_GRP|model:body_GEO|model:body_GEOShape.instObjGroups" 
 		"modelRN.placeHolderList[1]" "";
 	setAttr ".ptag" -type "string" "";
@@ -228,18 +228,26 @@ createNode objectSet -n "envelope_SEL";
 	setAttr ".ihi" 0;
 	setAttr -s 4 ".dsm";
 createNode objectSet -n "controls_SEL";
+	addAttr -ci true -sn "publishable" -ln "publishable" -min 0 -max 1 -at "bool";
+	addAttr -ci true -sn "class" -ln "class" -dt "string";
 	setAttr ".ihi" 0;
+	setAttr -k on ".publishable" yes;
+	setAttr -k on ".class" -type "string" "animation";
 createNode objectSet -n "publish_SEL";
 	addAttr -ci true -sn "publishable" -ln "publishable" -min 0 -max 1 -at "bool";
 	addAttr -ci true -sn "class" -ln "class" -dt "string";
-	addAttr -ci true -sn "nts" -ln "notes" -dt "string";
+	addAttr -ci true -sn "dest" -ln "dest" -dt "string";
 	setAttr ".ihi" 0;
 	setAttr -s 3 ".dnsm";
 	setAttr -k on ".publishable" yes;
 	setAttr -k on ".class" -type "string" "rig";
-	setAttr ".nts" -type "string" "Set of publisable nodes.\n\n- Main transform node, Peter_AST\n- Along with selection sets\n- And custom, per-scene validations";
+	setAttr -k on ".dest" -type "string" "rigs/Peter";
 createNode objectSet -n "cache_SEL";
+	addAttr -ci true -sn "publishable" -ln "publishable" -min 0 -max 1 -at "bool";
+	addAttr -ci true -sn "class" -ln "class" -dt "string";
 	setAttr ".ihi" 0;
+	setAttr -k on ".publishable" yes;
+	setAttr -k on ".class" -type "string" "pointcache";
 createNode reference -n "sharedReferenceNode";
 	setAttr ".ed" -type "dataReferenceEdits" 
 		"sharedReferenceNode";
@@ -307,4 +315,4 @@ connectAttr "lambert2SG.pa" ":renderPartition.st" -na;
 connectAttr "v001:initialShadingGroup1.msg" ":defaultShaderList1.s" -na;
 connectAttr "lambert2.msg" ":defaultShaderList1.s" -na;
 connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
-// End of peter_v001.ma
+// End of v003_marcuso.ma
