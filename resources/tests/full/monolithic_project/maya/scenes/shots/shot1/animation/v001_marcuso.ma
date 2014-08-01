@@ -1,6 +1,6 @@
 //Maya ASCII 2014 scene
 //Name: v001_marcuso.ma
-//Last modified: Thu, Jul 31, 2014 04:25:03 PM
+//Last modified: Fri, Aug 01, 2014 10:48:58 AM
 //Codeset: 1252
 file -rdi 1 -ns "rig" -rfn "rigRN" "C:/Users/marcus/Dropbox/AF/development/marcus/pipi/repos/publish/resources/tests/monolithic/maya//published/rigs/Peter/v001/v001.mb";
 file -r -ns "rig" -dr 1 -rfn "rigRN" "C:/Users/marcus/Dropbox/AF/development/marcus/pipi/repos/publish/resources/tests/monolithic/maya//published/rigs/Peter/v001/v001.mb";
@@ -13,12 +13,12 @@ fileInfo "cutIdentifier" "201307170459-880822";
 fileInfo "osv" "Microsoft Windows 8 Enterprise Edition, 64-bit  (Build 9200)\n";
 createNode transform -s -n "persp";
 	setAttr ".v" no;
-	setAttr ".t" -type "double3" -70.81547841058574 198.93561783610289 326.70084714245257 ;
-	setAttr ".r" -type "double3" -17.738352729603026 -11.400000000000137 0 ;
+	setAttr ".t" -type "double3" -21.914361182708316 172.3893291575373 232.12333364725455 ;
+	setAttr ".r" -type "double3" -17.738352729602973 -5.0000000000002167 1.9954399272777765e-016 ;
 createNode camera -s -n "perspShape" -p "persp";
 	setAttr -k off ".v" no;
 	setAttr ".fl" 34.999999999999993;
-	setAttr ".coi" 363.12234327976779;
+	setAttr ".coi" 258.98545371818329;
 	setAttr ".imn" -type "string" "persp";
 	setAttr ".den" -type "string" "persp_depth";
 	setAttr ".man" -type "string" "persp_mask";
@@ -69,8 +69,8 @@ createNode transform -n "Peter" -p "Characters";
 createNode transform -n "Props";
 createNode transform -n "Vehicles";
 createNode lightLinker -s -n "lightLinker1";
-	setAttr -s 4 ".lnk";
-	setAttr -s 4 ".slnk";
+	setAttr -s 3 ".lnk";
+	setAttr -s 3 ".slnk";
 createNode displayLayerManager -n "layerManager";
 createNode displayLayer -n "defaultLayer";
 createNode renderLayerManager -n "renderLayerManager";
@@ -157,7 +157,7 @@ createNode reference -n "rigRN";
 		0 "|rig:Peter_AST" "|Characters|Peter" "-s -r ";
 	setAttr ".ptag" -type "string" "";
 lockNode -l 1 ;
-createNode objectSet -n "animation_SEL";
+createNode objectSet -n "publish_animation_SEL";
 	addAttr -ci true -sn "publishable" -ln "publishable" -min 0 -max 1 -at "bool";
 	addAttr -ci true -sn "class" -ln "class" -dt "string";
 	addAttr -ci true -sn "nts" -ln "notes" -dt "string";
@@ -169,13 +169,13 @@ createNode objectSet -n "animation_SEL";
 	setAttr ".ihi" 0;
 	setAttr -k on ".publishable" yes;
 	setAttr -k on ".class" -type "string" "animation";
-	setAttr ".nts" -type "string" "Publication of main characters from shot";
+	setAttr ".nts" -type "string" "# Publication of main characters from shot\n\nExpectations are made on the contained instances. They are expected to have a controls selection set, containing all controls from which animation is to be exported.";
 	setAttr -k on ".startFrame" 101;
 	setAttr -k on ".endFrame" 253;
 	setAttr -k on ".samples" 1;
 	setAttr -k on ".handles" 5;
 	setAttr -k on ".dest" -type "string" "shot1/animation";
-createNode objectSet -n "pointcache_SEL";
+createNode objectSet -n "publish_pointcache_SEL";
 	addAttr -ci true -sn "publishable" -ln "publishable" -min 0 -max 1 -at "bool";
 	addAttr -ci true -sn "class" -ln "class" -dt "string";
 	addAttr -ci true -sn "nts" -ln "notes" -dt "string";
@@ -187,7 +187,7 @@ createNode objectSet -n "pointcache_SEL";
 	setAttr ".ihi" 0;
 	setAttr -k on ".publishable" yes;
 	setAttr -k on ".class" -type "string" "pointcache";
-	setAttr ".nts" -type "string" "Publish of pointcaches from scene.";
+	setAttr ".nts" -type "string" "Publish of pointcaches from scene.\n\nInstances in this selection are expected to have a pointcache selection set, with all meshes to publish.";
 	setAttr -k on ".startFrame" 101;
 	setAttr -k on ".endFrame" 253;
 	setAttr -k on ".samples" 1;
@@ -226,7 +226,7 @@ relationship "shadowLink" ":lightLinker1" ":initialShadingGroup.message" ":defau
 relationship "shadowLink" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
 connectAttr "layerManager.dli[0]" "defaultLayer.id";
 connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
-connectAttr "Peter.iog" "animation_SEL.dsm" -na;
-connectAttr "Peter.iog" "pointcache_SEL.dsm" -na;
+connectAttr "Peter.iog" "publish_animation_SEL.dsm" -na;
+connectAttr "Peter.iog" "publish_pointcache_SEL.dsm" -na;
 connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
 // End of v001_marcuso.ma
