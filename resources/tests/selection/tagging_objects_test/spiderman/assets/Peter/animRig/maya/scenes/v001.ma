@@ -1,6 +1,6 @@
 //Maya ASCII 2014 scene
 //Name: v001.ma
-//Last modified: Sat, Aug 02, 2014 06:14:00 PM
+//Last modified: Tue, Aug 05, 2014 09:18:52 AM
 //Codeset: 1252
 requires maya "2014";
 currentUnit -l centimeter -a degree -t film;
@@ -11,12 +11,12 @@ fileInfo "cutIdentifier" "201307170459-880822";
 fileInfo "osv" "Microsoft Windows 8 Enterprise Edition, 64-bit  (Build 9200)\n";
 createNode transform -s -n "persp";
 	setAttr ".v" no;
-	setAttr ".t" -type "double3" 32.87100680755583 163.50344205621226 193.17115937602807 ;
-	setAttr ".r" -type "double3" -17.738352729606301 9.800000000000308 2.0172830753375631e-016 ;
+	setAttr ".t" -type "double3" 68.360442260549775 167.55186578667428 250.02952959416683 ;
+	setAttr ".r" -type "double3" -15.938352729606352 15.000000000000508 0 ;
 createNode camera -s -n "perspShape" -p "persp";
 	setAttr -k off ".v" no;
 	setAttr ".fl" 34.999999999999986;
-	setAttr ".coi" 211.54880047162627;
+	setAttr ".coi" 277.94091650892506;
 	setAttr ".imn" -type "string" "persp";
 	setAttr ".den" -type "string" "persp_depth";
 	setAttr ".man" -type "string" "persp_mask";
@@ -137,7 +137,7 @@ createNode parentConstraint -n "joint6_parentConstraint1" -p "joint6";
 	setAttr ".erp" yes;
 	setAttr ".tg[0].tot" -type "double3" -2.8421709430404007e-014 0 1.7763568394002505e-015 ;
 	setAttr ".tg[0].tor" -type "double3" 0.20965303869756571 9.4758197822693813 87.506457229844571 ;
-	setAttr ".lr" -type "double3" 5.4713713589094094e-015 2.2350972261404228e-015 1.4312496066585827e-014 ;
+	setAttr ".lr" -type "double3" 5.4713713589094102e-015 2.2350972261404224e-015 7.9513867036587919e-015 ;
 	setAttr ".rst" -type "double3" 31.936144941173431 0 -8.0771157887545151 ;
 	setAttr ".rsrr" -type "double3" 5.5377154968737912e-015 2.1610885011471766e-015 
 		7.9513867036587919e-015 ;
@@ -159,7 +159,7 @@ createNode parentConstraint -n "joint5_parentConstraint1" -p "joint5";
 	setAttr ".tg[0].tot" -type "double3" -2.8421709430404007e-014 -1.4210854715202004e-014 
 		0 ;
 	setAttr ".tg[0].tor" -type "double3" 0 0 88.78341847021656 ;
-	setAttr ".lr" -type "double3" -0.99899261356951119 -4.1831030172635186 3.1811663321049912 ;
+	setAttr ".lr" -type "double3" -0.99899261356951319 -4.1831030172635195 3.1811663321050134 ;
 	setAttr ".rst" -type "double3" 13.009364854009966 2.8421709430404007e-014 0 ;
 	setAttr ".rsrr" -type "double3" 0 0 -2.5444437451708134e-014 ;
 	setAttr -k on ".w0";
@@ -3245,11 +3245,11 @@ createNode objectSet -n "controls_SEL";
 	setAttr -s 3 ".dsm";
 createNode objectSet -n "publish_SEL";
 	addAttr -ci true -sn "publishable" -ln "publishable" -min 0 -max 1 -at "bool";
-	addAttr -ci true -sn "class" -ln "class" -dt "string";
+	addAttr -ci true -sn "family" -ln "family" -dt "string";
 	setAttr ".ihi" 0;
 	setAttr -s 3 ".dnsm";
 	setAttr -k on ".publishable" yes;
-	setAttr -k on ".class" -type "string" "animRig";
+	setAttr -k on ".family" -type "string" "animRig";
 createNode objectSet -n "cache_SEL";
 	setAttr ".ihi" 0;
 select -ne :time1;
