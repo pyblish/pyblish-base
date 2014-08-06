@@ -1,12 +1,23 @@
+"""Plug-in system
+
+"""
 
 import os
 import imp
 import sys
 
 
-MODULE_DIR = os.path.dirname(__file__)
-VALIDATOR_DIRS = [MODULE_DIR]
 SUFFIX = "_validator.py"
+
+validator_dirs = []
+
+
+def register_plugin_path(path):
+    validator_dirs.append(path)
+
+
+def deregister_plugin_path(path):
+    validator_dirs.remove(path)
 
 
 class Validator(object):
@@ -37,7 +48,7 @@ class Validator(object):
         self.plugin.process()
 
 
-def find_validators():
+def collect_validators():
     """Find and return validators
 
     This assumes that each test is importable within an environment.
@@ -46,37 +57,40 @@ def find_validators():
     """
 
     validators = dict()
-    for directory in VALIDATOR_DIRS:
-        for root, dirs, files in os.walk(MODULE_DIR):
-            for fname in files:
-                name, suffix = os.path.splitext(fname)
+    for dname in validator_dirs:
+        for fname in os.listdir(dname):
+            abspath = os.path.join(dname, fname)
 
-                if fname.endswith(SUFFIX):
-                    abspath = os.path.join(root, fname)
-                    plugin = imp.load_source(name, abspath)
+            if not os.path.isfile(abspath):
+                continue
 
-                    # Ensure valid plugin
-                    if not validate_plugin(plugin):
-                        sys.stderr.write(
-                            "Invalid plugin: {0}".format(abspath))
-                        continue
+            name, suffix = os.path.splitext(fname)
 
-                    # Construct validator
-                    families = plugin.__families__
-                    hosts = plugin.__hosts__
-                    version = plugin.__version__
+            if fname.endswith(SUFFIX):
+                plugin = imp.load_source(name, abspath)
 
-                    validator = Validator(
-                        version=version,
-                        hosts=hosts,
-                        families=families,
-                        plugin=plugin)
+                # Ensure valid plugin
+                if not validate_plugin(plugin):
+                    sys.stderr.write(
+                        "Invalid plugin: {0}".format(abspath))
+                    continue
 
-                    for family in families:
-                        if not family in validators:
-                            validators[family] = list()
+                # Construct validator
+                families = plugin.__families__
+                hosts = plugin.__hosts__
+                version = plugin.__version__
 
-                        validators[family].append(validator)
+                validator = Validator(
+                    version=version,
+                    hosts=hosts,
+                    families=families,
+                    plugin=plugin)
+
+                for family in families:
+                    if not family in validators:
+                        validators[family] = list()
+
+                    validators[family].append(validator)
 
     return validators
 
@@ -100,4 +114,14 @@ def validate_plugin(module):
 
 
 if __name__ == '__main__':
-    print find_validators()
+    # Register validators
+    module_dir = os.path.dirname(__file__)
+    validators_path = os.path.join(module_dir, 'validators')
+
+    register_plugin_path(validators_path)
+
+    # List available validators
+    for family, plugins in collect_validators().iteritems():
+        print family
+        for plugin in plugins:
+            print "\t%s" % plugin
