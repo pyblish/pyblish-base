@@ -1,36 +1,40 @@
 """Publish mock-up for Autodesk Maya 2014-2015
 
-A `Selection` contains one or more `Instance` objects. An `Instance`
-represents a publishable unit and will result in one or more related
-files on disk - e.g. a Maya scene-file or sequence of images.
+A `Context` defines a set of data that can be used to direct and instruct an Action how to operate and/or on what to
+operate.
 
-Interface:
-    - SELECTION using objectSet
-    - VALIDATION using mock functions, see `_available_validators` below
-    - EXTRACTION via File-->Export selection..
-    - No CONFORM
+An `Action` performs a functionality within/upon a Context and returns the result of that process.
+Even though an `Action` always operates upon a `Context` in some cases the `Context` does not have to be clearly
+defined. As in, it doesn't require to contain any data (except for the object Context object to be instantiated).
+
+By our current schema this is the proposed workflow:
+1. A `Selector` creates/alters the Context.
+2. A `Validator` validates the Context.
+3. An `Extractor` assumes the Context and the data it points to is valid and uses the information to Extra a new
+   `Resource`.
+
+A `Resource` could be anything that is created as new (outside of the scope of the Context). In theory it could create
+a single or multiple file on disk, assign a value to a database and/or import data into the application. In practice
+it's primary focus is on writing to a file format on disk.
+
+Because of the above workflow a `Selector` seems to be the only type that could possibly operate without any defined
+Context, because it creates/alters it. Yet at this point no checks are made whether the different Action types stay
+true to this schema. Currently it is possible to write an Action that simply exports a whole scene another file format
+without performing any validation and/or context selection.
 
 Features:
-    - PEP08 and Google Docstring formatted
-    - Integration with File-menu
-    - Changed "class" --> "family" for better readability in code
-    - Testing support for multiple publishes from single scene (model + review)
-    - Full interface utilised, including `conform` which currently does nothing
-    - Validations, per family
+    - Testing "__inputs__" and "__outputs__" for Actions.
+    - Modular workflow
+    - Remove integration in menu as it didn't appear useful to have a single test button for this modular workflow.
 
 Usage:
-    1. Add publish/integration to PYTHONPATH, a menu will appear
-        in Maya under File-->Publish
-    2. Run File-->Publish or
-    3. publish.publish()
+    - ***
+    Currently still a work in progress and contains no working example.
+    Nevertheless it already shows a clear overview of the schema.
 
 Attributes:
-    _available_validators: Each family contains zero or more validators.
-                           These could potentially be split into its own
-                           module/package.
+    _available_actions: A dictionary mapping of all Actions by Action type according to the proposed schema.
     log: Current logger
-    IDENTIFIER: Which attribute identifies an objectset as being publishable
-    PREFIX: Initial output directory, relative the working file, before conform
 
 """
 
@@ -42,25 +46,7 @@ import sys
 import time
 import logging
 
-from maya import mel
-from maya import cmds
-
-
-__all__ = [
-    'selection',
-    'validate',
-    'extract',
-    'conform'
-]
-
-
-# Validators categorised by family.
-_available_validators = {
-    'animRig': [lambda inst: True],
-    'animation': [lambda inst: True],
-    'model': [lambda inst: True],
-    'review': []
-}
+import publish.core
 
 log = logging.getLogger('publish.maya')
 log.setLevel(logging.INFO)
@@ -71,245 +57,152 @@ _stream_handler = logging.StreamHandler()
 _stream_handler.setFormatter(_formatter)
 log.addHandler(_stream_handler)
 
-IDENTIFIER = 'publishable'
-PREFIX = 'published'
+
+# =======
+# Context
+# =======
+class MayaContext(publish.core.Context):
+    def __init__(self):
+        # TODO: Define whether predefining Context attributes is the way to go.
+        # TODO: Discuss what other ways to keep this dynamic/modular yet SAFE and consistent!
+        # Pros:
+        # 1. It'll give you autocomplete
+        # 2. Know what to expect.
+        # 3. Can add checks ensuring the data stays in the correct format (properties and setters)
+        # 4. Having a single Context define it sets an 'industry standard' for how it should be formatted.
+        #    This ensure compatibility between Actions designed by others.
+        # Cons:
+        # 1. Hard to design for all possibilities of the context.
+        # 2. Custom methods for the Context won't be available using Publish within another Context Family and may come
+        #    over as confusing.
+        self.nodes = set()
+        self.range = [0, 0]
 
 
-class Selection(set):
-    """Store selected instances from currently active scene"""
+# =======
+# Actions
+# =======
+# Selectors: nodes
+# ----------------
+class MayaNodesSelector(publish.core.Selector):
+    __context__ = MayaContext
+    __outputs__ = ["nodes"]
 
 
-class Instance(object):
-    """An individually publishable component within scene
-
-    Examples include rigs, models.
-
-    .. note:: This class isn't meant for use directly.
-        See :meth:selection() below.
-
-    Attributes:
-        path (str): Absolute path to instance (i.e. objectSet in this case)
-        config (dict): Full configuration, as recorded onto objectSet.
-
-    """
-
-    def __repr__(self):
-        """E.g. Instance('publish_model_SEL')"""
-        return u"%s(%r)" % (type(self).__name__, self.__str__())
-
-    def __str__(self):
-        """E.g. 'publish_model_SEL'"""
-        return str(self.path)
-
-    def __init__(self, path):
-        self.path = path
-        self.config = dict()
+class MayaCurrentSelectionSelector(MayaNodesSelector):
+    """ Adds the current selection to Context.nodes """
+    def process(self, context):
+        import maya.cmds as mc
+        selection = mc.ls(sl=1, long=True)
+        context.nodes.update(selection)
+        return context
 
 
-def select():
-    """Parse currently active scene and return selection object.
-
-    The selection includes which nodes to extract along
-    with their configuration.
-
-    Returns:
-        Selection: Fully qualified selection object.
-
-    """
-
-    selection = Selection()
-
-    for path in cmds.ls("*." + IDENTIFIER,
-                        objectsOnly=True,
-                        type='objectSet'):
-        instance = Instance(path=path)
-
-        attrs = cmds.listAttr(path, userDefined=True)
-        for attr in attrs:
-            if attr == IDENTIFIER:
-                continue
-
-            try:
-                value = cmds.getAttr(path + "." + attr)
-            except:
-                continue
-
-            instance.config[attr] = value
-
-        selection.add(instance)
-
-    return selection
+class MayaMeshSelector(MayaNodesSelector):
+    """ Adds all mesh shape nodes to Context.nodes """
+    def process(self, context):
+        import maya.cmds as mc
+        selection = mc.ls(type="mesh", long=True)
+        context.nodes.update(selection)
+        return context
 
 
-def validate(selection):
-    """Validate selection `selection`
+# Selectors: timerange
+# ----------------------
+class MayaTimeRangeSelector(publish.core.Selector):
+    __context__ = MayaContext
+    __outputs__ = ["timerange"]
 
-    Arguments:
-        selection (Selection): Parsed selection
 
-    Returns:
-        True is successful, False otherwise
+class MayaSceneAnimationRangeSelector(MayaTimeRangeSelector):
+    """ Gets the time range based on all animation in the scene. """
+    def process(self, context):
+        import maya.cmds as mc
+        anim_curves = mc.ls(type="animCurve")
+        times = mc.keyframe(anim_curves, q=1, tc=1)
+        start = min(times)
+        end = max(times)
+        context.timerange = [start, end]
 
-    """
+        return context
 
-    assert isinstance(selection, Selection)
 
-    failures = list()
+class MayaNodesAnimationRangeSelector(MayaTimeRangeSelector):
+    """ Gets the used time range based on animation off the nodes already in the Context. """
+    __inputs__ = ["nodes"]
 
-    for instance in selection:
-        family = instance.config.get('family')
+    def process(self, context):
+        import maya.cmds as mc
+        nodes = context.nodes
+        times = mc.keyframe(nodes, q=1, tc=1)
+        start = min(times)
+        end = max(times)
+        context.timerange = [start, end]
+        return context
 
-        try:
-            validators = _available_validators[family]
-        except KeyError:
-            exc = Warning("No validators found for family: {0}".format(family))
-            failures.append(exc)
+
+class MayaLimitTimeRangeSelector(MayaTimeRangeSelector):
+    """ Clamps the Context's current timerange between (-1000, 1000) """
+    __inputs__ = ["timerange"]
+
+    def process(self, context):
+        timerange = context.timerange
+        if timerange[0] < -1000:
+            timerange[0] = -1000
+        if timerange[1] > 1000:
+            timerange[1] = 1000
+        context.timerange = timerange
+        return context
+
+
+class MayaLimitTimeRangeSelector(MayaTimeRangeSelector):
+    """ Extends the time range with -10, 10. This could emulate automatically adding handles to your exports """
+    __context__ = MayaContext
+    __inputs__ = ["timerange"]
+    __outputs__ = ["timerange"]
+
+    def process(self, context):
+        context.timerange[0] -= 10
+        context.timerange[1] += 10
+        return context
+
+
+# Validators: Random
+# ------------------
+class MayaMinimumTenNodesValidator(publish.core.Validator):
+    __context__ = MayaContext
+    __inputs__ = ["nodes"]
+
+    def process(self, context):
+        nodes = context.nodes
+        if len(nodes) >= 10:
+            return 1
         else:
-            for validator in validators:
-                if not validator(instance):
-                    exc = Warning("Validator failed")
-                    failures.append(exc)
-
-    return failures
+            return 0
 
 
-def extract(instance):
-    """Physically export data from host
 
-    .. note:: Type of extraction depends on instance family.
+# Extractors: Random
+# ------------------
+class MayaExportNodesExtractor(publish.core.Extractor):
+    __context__ = MayaContext
+    __inputs__ = ["nodes"]
 
-    Arguments:
-        instance (Instance): Instance from which to export data
-
-    """
-
-    assert isinstance(instance, Instance)
-
-    family = instance.config.get('family')
-
-    if family == 'model':
-        return _extract_model(instance)
-
-    if family == 'review':
-        return _extract_review(instance)
-
-    if family == 'pointcache':
-        return _extract_pointcache(instance)
-
-    if family == 'shader':
-        return _extract_shader(instance)
-
-    raise Warning("Unrecognised family: {0}".format(family))
+    def process(self, context):
+        import maya.cmds as mc
+        nodes = context.nodes
+        mc.select(nodes, r=1) # select so we can quickly do export selection
+        mc.file(es=True, pr=True, type="mayaBinary") # untested, consider as pseudocode
 
 
-def _extract_model(instance):
-    """Export geometry as .mb"""
-
-    date = time.strftime("%Y%m%d_%H%M%S")
-    family = instance.config.get('family')
-
-    nodes = cmds.sets(instance.path, query=True)
-    workspace_dir = cmds.workspace(rootDirectory=True, query=True)
-    if not workspace_dir:
-        # Project has not been set. Files will
-        # instead end up next to the working file.
-        workspace_dir = cmds.workspace(dir=True, query=True)
-    published_dir = os.path.join(workspace_dir, PREFIX, family)
-    extract_dir = os.path.join(published_dir, date)
-
-    output = os.path.join(extract_dir, date)
-
-    if os.path.exists(output):
-        raise ValueError("Destination already exists, make sure to allow "
-                         "at least 1 second between publishes.")
-    if not os.path.isdir(extract_dir):
-        os.makedirs(extract_dir)
-
-    previous_selection = cmds.ls(selection=True)
-    cmds.select(nodes, replace=True)
-    cmds.file(output, type='mayaBinary', exportSelected=True)
-
-    if previous_selection:
-        cmds.select(previous_selection, replace=True)
-    else:
-        cmds.select(deselect=True)
-
-    return extract_dir
-
-
-def _extract_review(instance):
-    """Create playblast"""
-
-
-def _extract_pointcache(instance):
-    """Export alembic pointcache"""
-
-
-def _extract_shader(instance):
-    """Export shaders as .mb"""
-
-
-def conform(path):
-    log.info("Moving %s to new home" % path)
-
-
-def publish():
-    """Convenience method of the above"""
-
-    # parse selection
-    selection = select()
-
-    # validate
-    failures = validate(selection)
-
-    # extract
-    if not failures:
-        for instance in selection:
-            path = extract(instance)
-            log.info("Extracted {0}".format(path))
-
-            # conform
-            conform(path)
-
-    else:
-        log.info("There were errors:")
-        for failure in failures:
-            log.info("\t{0}".format(failure))
-
-    log.info("Successfully published scene")
-
-
-def append_to_filemenu():
-    """Add Publish to file-menu
-
-    As Maya builds its menus upon first being accessed,
-    you'll have to use eval_append_to_filemenu() below
-    if triggered automatically at startup; such as in
-    your userSetup.py
-
-    """
-
-    cmds.menuItem('publishOpeningDivider',
-                  divider=True,
-                  insertAfter='saveAsOptions',
-                  parent='mainFileMenu')
-    cmds.menuItem('publishScene',
-                  label='Publish',
-                  insertAfter='publishOpeningDivider',
-                  command=lambda _: publish())
-    cmds.menuItem('publishCloseDivider',
-                  divider=True,
-                  insertAfter='publishScene')
-    sys.stdout.write("Success")
-
-
-def eval_append_to_filemenu():
-    """Add Publish to file-menu"""
-    mel.eval("evalDeferred buildFileMenu")
-
-    script = """
-import publish.maya
-publish.maya.append_to_filemenu()
-    """
-
-    cmds.evalDeferred(script)
+# =================
+# Set up 'plug-ins'
+# =================
+# This is just for testing purposes
+_available_actions = {
+    "select": [MayaCurrentSelectionSelector, MayaLimitTimeRangeSelector, MayaNodesAnimationRangeSelector,
+                 MayaSceneAnimationRangeSelector, MayaTimeRangeSelector],
+    "validate": [MayaMinimumTenNodesValidator],
+    "extract": [MayaExportNodesExtractor],
+    "conform": []
+}
