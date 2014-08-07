@@ -1,91 +1,64 @@
-"""Publish mock-up for Autodesk Maya 2014-2015
-
-A `Selection` contains one or more `Instance` objects. An `Instance`
-represents a publishable unit and will result in one or more related
-files on disk - e.g. a Maya scene-file or sequence of images.
-
-Interface:
-    - SELECTION using objectSet
-    - VALIDATION using mock functions, see `_available_validators` below
-    - EXTRACTION via File-->Export selection..
-    - No CONFORM
-
-Features:
-    - PEP08 and Google Docstring formatted
-    - Integration with File-menu
-    - Changed "class" --> "family" for better readability in code
-    - Testing support for multiple publishes from single scene (model + review)
-    - Full interface utilised, including `conform` which currently does nothing
-    - Validations, per family
-
-Usage:
-    1. Add publish/integration to PYTHONPATH, a menu will appear
-        in Maya under File-->Publish
-    2. Run File-->Publish or
-    3. publish.publish()
-
-Attributes:
-    _available_validators: Each family contains zero or more validators.
-                           These could potentially be split into its own
-                           module/package.
-    log: Current logger
-    IDENTIFIER: Which attribute identifies an objectset as being publishable
-    PREFIX: Initial output directory, relative the working file, before conform
-
-"""
-
-
 from __future__ import absolute_import
 
+# Standard library
 import os
-import sys
 import time
+import json
+import shutil
 import logging
+import tempfile
 
-from maya import mel
-from maya import cmds
+# Local library
+import publish.plugin
+import publish.abstract
+
+log = logging.getLogger('publish.maya')
+
+try:
+    # Running from within Maya
+    from maya import mel
+    from maya import cmds
+
+except ImportError:
+    # Running from outside Maya
+    from publish.mock.maya import mel
+    from publish.mock.maya import cmds
+
+    formatter = logging.Formatter(
+        '%(message)s',
+        '%(asctime)s - '
+        '%(levelname)s - '
+        '%(name)s - ')
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    log.addHandler(stream_handler)
 
 
 __all__ = [
-    'selection',
+    'select',
     'validate',
     'extract',
     'conform'
 ]
 
 
-# Validators categorised by family.
-_available_validators = {
-    'animRig': [lambda inst: True],
-    'animation': [lambda inst: True],
-    'model': [lambda inst: True],
-    'review': []
-}
-
-log = logging.getLogger('publish.maya')
-log.setLevel(logging.INFO)
-
-_formatter = logging.Formatter('%(message)s')
-
-_stream_handler = logging.StreamHandler()
-_stream_handler.setFormatter(_formatter)
-log.addHandler(_stream_handler)
-
-IDENTIFIER = 'publishable'
-PREFIX = 'published'
+_module_dir = os.path.dirname(__file__)
+_config_path = os.path.join(_module_dir, 'config.json')
+with open(_config_path, 'r') as f:
+    config = json.load(f)
 
 
-class Selection(set):
+class Context(publish.abstract.Context):
     """Store selected instances from currently active scene"""
 
 
-class Instance(object):
+class Instance(publish.abstract.Instance):
     """An individually publishable component within scene
 
     Examples include rigs, models.
 
     .. note:: This class isn't meant for use directly.
-        See :meth:selection() below.
+        See :func:context() below.
 
     Attributes:
         path (str): Absolute path to instance (i.e. objectSet in this case)
@@ -102,31 +75,39 @@ class Instance(object):
         return str(self.path)
 
     def __init__(self, path):
-        self.path = path
-        self.config = dict()
+        self._path = path
+        self._config = dict()
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def config(self):
+        return self._config
 
 
 def select():
-    """Parse currently active scene and return selection object.
+    """Parse currently active scene and return context object.
 
-    The selection includes which nodes to extract along
+    The context includes which nodes to extract along
     with their configuration.
 
     Returns:
-        Selection: Fully qualified selection object.
+        Context: Fully qualified context object.
 
     """
 
-    selection = Selection()
+    context = Context()
 
-    for path in cmds.ls("*." + IDENTIFIER,
+    for path in cmds.ls("*." + config['identifier'],
                         objectsOnly=True,
                         type='objectSet'):
         instance = Instance(path=path)
 
         attrs = cmds.listAttr(path, userDefined=True)
         for attr in attrs:
-            if attr == IDENTIFIER:
+            if attr == config['identifier']:
                 continue
 
             try:
@@ -136,39 +117,45 @@ def select():
 
             instance.config[attr] = value
 
-        selection.add(instance)
+        context.add(instance)
 
-    return selection
+    return context
 
 
-def validate(selection):
-    """Validate selection `selection`
+def validate(context):
+    """Validate context `context`
 
     Arguments:
-        selection (Selection): Parsed selection
+        context (Context): Parsed context
 
     Returns:
         True is successful, False otherwise
 
     """
 
-    assert isinstance(selection, Selection)
+    assert isinstance(context, Context)
+
+    plugins = publish.plugin.collect_validators()
 
     failures = list()
 
-    for instance in selection:
+    for instance in context:
         family = instance.config.get('family')
 
-        try:
-            validators = _available_validators[family]
-        except KeyError:
-            exc = Warning("No validators found for family: {0}".format(family))
-            failures.append(exc)
-        else:
-            for validator in validators:
-                if not validator(instance):
-                    exc = Warning("Validator failed")
-                    failures.append(exc)
+        # Run tests for pre-defined host and family
+        for Validator in plugins:
+            if not 'maya' in Validator.hosts:
+                continue
+
+            if not family in Validator.families:
+                continue
+
+            try:
+                log.info("Validating {instance} with {plugin}".format(
+                    instance=instance, plugin=Validator.__name__))
+                Validator(instance).process()
+            except Exception as exc:
+                failures.append(exc)
 
     return failures
 
@@ -205,36 +192,32 @@ def extract(instance):
 def _extract_model(instance):
     """Export geometry as .mb"""
 
-    date = time.strftime("%Y%m%d_%H%M%S")
+    # date = time.strftime("%Y%m%d_%H%M%S")
     family = instance.config.get('family')
 
     nodes = cmds.sets(instance.path, query=True)
-    workspace_dir = cmds.workspace(rootDirectory=True, query=True)
-    if not workspace_dir:
-        # Project has not been set. Files will
-        # instead end up next to the working file.
-        workspace_dir = cmds.workspace(dir=True, query=True)
-    published_dir = os.path.join(workspace_dir, PREFIX, family)
-    extract_dir = os.path.join(published_dir, date)
+    temp_dir = tempfile.mkdtemp()
+    temp_file = os.path.join(temp_dir, 'temp_publish')
 
-    output = os.path.join(extract_dir, date)
-
-    if os.path.exists(output):
-        raise ValueError("Destination already exists, make sure to allow "
-                         "at least 1 second between publishes.")
-    if not os.path.isdir(extract_dir):
-        os.makedirs(extract_dir)
-
+    log.info("_extract_model: Extracting locally..")
     previous_selection = cmds.ls(selection=True)
     cmds.select(nodes, replace=True)
-    cmds.file(output, type='mayaBinary', exportSelected=True)
+    cmds.file(temp_file, type='mayaBinary', exportSelected=True)
+
+    log.info("_extract_model: Moving extraction "
+             "relative working file..")
+    output = _commit(temp_dir, family)
+
+    log.info("_extract_model: Clearing local cache..")
+    shutil.rmtree(temp_dir)
 
     if previous_selection:
         cmds.select(previous_selection, replace=True)
     else:
         cmds.select(deselect=True)
 
-    return extract_dir
+    log.info("_extract_model: Extraction successful!")
+    return output
 
 
 def _extract_review(instance):
@@ -249,27 +232,49 @@ def _extract_shader(instance):
     """Export shaders as .mb"""
 
 
+def _commit(path, family):
+    date = time.strftime(config['dateFormat'])
+
+    workspace_dir = cmds.workspace(rootDirectory=True, query=True)
+    if not workspace_dir:
+        # Project has not been set. Files will
+        # instead end up next to the working file.
+        workspace_dir = cmds.workspace(dir=True, query=True)
+    published_dir = os.path.join(workspace_dir, config['prefix'], family)
+
+    extract_dir = os.path.join(published_dir, date)
+    output = os.path.join(extract_dir, date)
+
+    shutil.copytree(path, output)
+
+    return output
+
+
 def conform(path):
     log.info("Moving %s to new home" % path)
+    return path
 
 
-def publish():
+def publish_all():
     """Convenience method of the above"""
 
-    # parse selection
-    selection = select()
+    # parse context
+    context = select()
 
     # validate
-    failures = validate(selection)
+    failures = validate(context)
 
     # extract
+    paths = list()
     if not failures:
-        for instance in selection:
+        for instance in context:
             path = extract(instance)
             log.info("Extracted {0}".format(path))
 
             # conform
-            conform(path)
+            path = conform(path)
+
+            paths.append(path)
 
     else:
         log.info("There were errors:")
@@ -277,6 +282,8 @@ def publish():
             log.info("\t{0}".format(failure))
 
     log.info("Successfully published scene")
+
+    return paths
 
 
 def append_to_filemenu():
@@ -296,11 +303,11 @@ def append_to_filemenu():
     cmds.menuItem('publishScene',
                   label='Publish',
                   insertAfter='publishOpeningDivider',
-                  command=lambda _: publish())
+                  command=lambda _: publish_all())
     cmds.menuItem('publishCloseDivider',
                   divider=True,
                   insertAfter='publishScene')
-    sys.stdout.write("Success")
+    log.info("Success")
 
 
 def eval_append_to_filemenu():

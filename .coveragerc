@@ -1,0 +1,7 @@
+[run]
+source = publish
+
+[report]
+include = *publish*
+omit = 
+    */vendor*

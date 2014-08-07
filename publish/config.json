@@ -1,0 +1,5 @@
+{
+    "prefix": "published",
+    "identifier": "publishable",
+    "dateFormat": "%Y%m%d_%H%M%S"
+}
