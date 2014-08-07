@@ -20,18 +20,18 @@ try:
     from maya import cmds
 
 except ImportError:
-    # Running from outside Maya
     from publish.mock.maya import mel
     from publish.mock.maya import cmds
 
     formatter = logging.Formatter(
-        '%(message)s',
-        '%(asctime)s - '
-        '%(levelname)s - '
-        '%(name)s - ')
+        '%(asctime)s - ',
+        '%(levelname)s - ',
+        '%(name)s - ',
+        '%(message)s')
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
     log.addHandler(stream_handler)
+    log.setLevel(logging.INFO)
 
 
 __all__ = [
