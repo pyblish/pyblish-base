@@ -1,14 +1,12 @@
-#!mayapy
-
 # Standard library
 import os
 
 # Local library
-import publish.plugin
 import publish.tests
+import publish.plugin
 
 
-class TestRegisterValidators(publish.tests.DefaultTestCase):
+class TestRegisterValidators(publish.tests.BaseTestCase):
     def test_register_validators(self):
         """Paths of where validators may reside are stored in plugin-module
 
@@ -39,28 +37,23 @@ class TestRegisterValidators(publish.tests.DefaultTestCase):
 
         Example:
             {
-                'model': [Validator('muted_channels_validator'),
-                          Validator('unique_names_validator')],
-                'pointcache': [Validator('blank2_validator')]
+                'model': [ValidateMutedChannels,
+                          ValidateUniqueNames],
+                'pointcache': [ValidateBlank2]
             }
 
         """
 
-        expected_families = ['model', 'animation', 'animRig', 'pointcache']
+        expected_validators = ['ValidateMutedChannels',
+                               'ValidateUniqueNames',
+                               'ValidateBlank1',
+                               'ValidateBlank2']
 
         # List available validators
         plugins = publish.plugin.collect_validators()
 
-        families = plugins.keys()
-        for family in families:
-            self.assertIn(family, expected_families)
-
-        expected_validators = ['muted_channels_validator',
-                               'unique_names_validator']
-
-        validators = plugins['model']
-        for validator in validators:
-            validator_name = str(validator)
+        for plugin in plugins:
+            validator_name = plugin.__name__
             self.assertIn(validator_name, expected_validators)
 
 

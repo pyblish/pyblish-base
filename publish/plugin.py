@@ -1,14 +1,31 @@
 """Plug-in system
 
+Works similar to how OSs look for executables; i.e. a number of
+absolute paths are searched for a given match. The predicate for
+executables is whether or not an extension matches a number of
+options, such as ".exe" or ".bat".
+
+In this system, the predicate is whether or not a fname starts
+with "validate_" and ends with ".py"
+
+Attributes:
+    validator_pattern: Predicate for w
+
 """
 
+# Standard library
 import os
+import re
 import imp
 import sys
+import inspect
 
+# Local library
+import publish.abstract
 
-SUFFIX = "_validator.py"
+__all__ = ['collect_validators']
 
+validator_pattern = re.compile(r'^validate_.*\.py$')
 validator_dirs = []
 
 
@@ -20,43 +37,10 @@ def deregister_plugin_path(path):
     validator_dirs.remove(path)
 
 
-class Validator(object):
-    """Wraps plugin and forwards interface
-
-    Usage:
-        >>> validator = Validator(version=(0, 0, 1),
-        ...                       hosts=['maya'],
-        ...                       families=['model', 'animation'],
-        ...                       plugin="module here")
-        >>> validator.process()
-
-    """
-
-    def __str__(self):
-        return self.plugin.__name__
-
-    def __repr__(self):
-        return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
-
-    def __init__(self, version, hosts, families, plugin):
-        self.version = version
-        self.hosts = hosts
-        self.families = families
-        self.plugin = plugin
-
-    def process(self):
-        self.plugin.process()
-
-
 def collect_validators():
-    """Find and return validators
+    """Find and return validators"""
 
-    This assumes that each test is importable within an environment.
-    E.g. any host-specific imports are within function closure.
-
-    """
-
-    validators = dict()
+    plugins = list()
     for dname in validator_dirs:
         for fname in os.listdir(dname):
             abspath = os.path.join(dname, fname)
@@ -66,46 +50,36 @@ def collect_validators():
 
             name, suffix = os.path.splitext(fname)
 
-            if fname.endswith(SUFFIX):
-                plugin = imp.load_source(name, abspath)
+            if validator_pattern.match(fname):
+                module = imp.load_source(name, abspath)
+                for name, obj in inspect.getmembers(module):
+                    if inspect.isclass(obj):
+                        if issubclass(obj, publish.abstract.Validator):
+                            plugins.append(obj)
 
-                # Ensure valid plugin
-                if not validate_plugin(plugin):
-                    sys.stderr.write(
-                        "Invalid plugin: {0}".format(abspath))
-                    continue
+    validated = list()
+    while plugins:
+        plugin = plugins.pop()
+        if _is_valid(plugin):
+            validated.append(plugin)
+        else:
+            sys.stderr.write(
+                "Invalid plugin: {0}\n".format(plugin))
 
-                # Construct validator
-                families = plugin.__families__
-                hosts = plugin.__hosts__
-                version = plugin.__version__
-
-                validator = Validator(
-                    version=version,
-                    hosts=hosts,
-                    families=families,
-                    plugin=plugin)
-
-                for family in families:
-                    if not family in validators:
-                        validators[family] = list()
-
-                    validators[family].append(validator)
-
-    return validators
+    return validated
 
 
-def validate_plugin(module):
+def _is_valid(plugin):
     try:
         attrs = [
-            '__families__',
-            '__hosts__',
-            '__version__',
+            'families',
+            'hosts',
+            'version',
             'process',
             'fix']
 
         for attr in attrs:
-            assert attr in dir(module)
+            assert attr in dir(plugin)
 
     except AssertionError:
         return False
@@ -120,8 +94,6 @@ if __name__ == '__main__':
 
     register_plugin_path(validators_path)
 
-    # List available validators
-    for family, plugins in collect_validators().iteritems():
-        print family
-        for plugin in plugins:
-            print "\t%s" % plugin
+    # # List available validators
+    for plugin in collect_validators():
+        print "%s" % plugin
