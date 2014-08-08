@@ -3,16 +3,17 @@ from __future__ import absolute_import
 # Standard library
 import os
 import time
-import json
 import shutil
 import logging
 import tempfile
 
 # Local library
+import publish
 import publish.plugin
+import publish.config
 import publish.abstract
 
-log = logging.getLogger('publish.maya')
+log = logging.getLogger('publish')
 
 try:
     # Running from within Maya
@@ -24,14 +25,15 @@ except ImportError:
     from publish.mock.maya import cmds
 
     formatter = logging.Formatter(
-        '%(asctime)s - ',
-        '%(levelname)s - ',
-        '%(name)s - ',
+        '%(asctime)s - '
+        '%(levelname)s - '
+        '%(name)s - '
         '%(message)s')
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
     log.addHandler(stream_handler)
     log.setLevel(logging.INFO)
+    # log.setLevel(logging.DEBUG)
 
 
 __all__ = [
@@ -42,10 +44,11 @@ __all__ = [
 ]
 
 
-_module_dir = os.path.dirname(__file__)
-_config_path = os.path.join(_module_dir, 'config.json')
-with open(_config_path, 'r') as f:
-    config = json.load(f)
+# Register plugin paths
+_package_dir = os.path.dirname(publish.__file__)
+_validators_path = os.path.join(_package_dir, 'validators')
+_validators_path = os.path.abspath(_validators_path)
+publish.plugin.register_plugin_path(_validators_path)
 
 
 class Context(publish.abstract.Context):
@@ -66,26 +69,6 @@ class Instance(publish.abstract.Instance):
 
     """
 
-    def __repr__(self):
-        """E.g. Instance('publish_model_SEL')"""
-        return u"%s(%r)" % (type(self).__name__, self.__str__())
-
-    def __str__(self):
-        """E.g. 'publish_model_SEL'"""
-        return str(self.path)
-
-    def __init__(self, path):
-        self._path = path
-        self._config = dict()
-
-    @property
-    def path(self):
-        return self._path
-
-    @property
-    def config(self):
-        return self._config
-
 
 def select():
     """Parse currently active scene and return context object.
@@ -100,18 +83,22 @@ def select():
 
     context = Context()
 
-    for path in cmds.ls("*." + config['identifier'],
-                        objectsOnly=True,
-                        type='objectSet'):
-        instance = Instance(path=path)
+    for objset in cmds.ls("*." + publish.config.identifier,
+                          objectsOnly=True,
+                          type='objectSet'):
 
-        attrs = cmds.listAttr(path, userDefined=True)
+        instance = Instance(name=objset)
+
+        for node in cmds.sets(objset, query=True):
+            instance.add(node)
+
+        attrs = cmds.listAttr(objset, userDefined=True)
         for attr in attrs:
-            if attr == config['identifier']:
+            if attr == publish.config.identifier:
                 continue
 
             try:
-                value = cmds.getAttr(path + "." + attr)
+                value = cmds.getAttr(objset + "." + attr)
             except:
                 continue
 
@@ -135,19 +122,19 @@ def validate(context):
 
     assert isinstance(context, Context)
 
-    plugins = publish.plugin.discover_validators()
+    plugins = publish.plugin.discover(type='validators')
 
-    failures = list()
+    errors = list()
 
     for instance in context:
         family = instance.config.get('family')
 
         # Run tests for pre-defined host and family
         for Validator in plugins:
-            if not 'maya' in Validator.hosts:
+            if not 'maya' in Validator.__hosts__:
                 continue
 
-            if not family in Validator.families:
+            if not family in Validator.__families__:
                 continue
 
             try:
@@ -155,9 +142,9 @@ def validate(context):
                     instance=instance, plugin=Validator.__name__))
                 Validator(instance).process()
             except Exception as exc:
-                failures.append(exc)
+                errors.append(exc)
 
-    return failures
+    return errors
 
 
 def extract(instance):
@@ -194,13 +181,12 @@ def _extract_model(instance):
 
     family = instance.config.get('family')
 
-    nodes = cmds.sets(instance.path, query=True)
     temp_dir = tempfile.mkdtemp()
     temp_file = os.path.join(temp_dir, 'publish')
 
     log.info("_extract_model: Extracting locally..")
     previous_selection = cmds.ls(selection=True)
-    cmds.select(nodes, replace=True)
+    cmds.select(list(instance), replace=True)
     cmds.file(temp_file, type='mayaBinary', exportSelected=True)
 
     log.info("_extract_model: Moving extraction "
@@ -232,14 +218,14 @@ def _extract_shader(instance):
 
 
 def _commit(path, family):
-    date = time.strftime(config['dateFormat'])
+    date = time.strftime(publish.config.dateFormat)
 
     workspace_dir = cmds.workspace(rootDirectory=True, query=True)
     if not workspace_dir:
         # Project has not been set. Files will
         # instead end up next to the working file.
         workspace_dir = cmds.workspace(dir=True, query=True)
-    published_dir = os.path.join(workspace_dir, config['prefix'], family)
+    published_dir = os.path.join(workspace_dir, publish.config.prefix, family)
 
     commit_dir = os.path.join(published_dir, date)
 
@@ -257,15 +243,22 @@ def publish_all():
     """Convenience method of the above"""
 
     # parse context
+    log.debug("Selecting..")
     context = select()
 
+    if not context:
+        log.info("No instances found")
+        return
+
     # validate
-    failures = validate(context)
+    log.debug("Validating..")
+    errors = validate(context)
 
     # extract
     paths = list()
-    if not failures:
+    if not errors:
         for instance in context:
+            log.debug("Extracting..")
             path = extract(instance)
             log.info("Extracted {0}".format(path))
 
@@ -274,12 +267,13 @@ def publish_all():
 
             paths.append(path)
 
-    else:
-        log.info("There were errors:")
-        for failure in failures:
-            log.info("\t{0}".format(failure))
+            log.info("Successfully published scene")
 
-    log.info("Successfully published scene")
+    else:
+        log.error("There were ({n}) errors:".format(n=len(errors)))
+        for error in errors:
+            log.error("({n}): {error}".format(n=errors.index(error) + 1,
+                                              error=error))
 
     return paths
 
@@ -318,3 +312,17 @@ publish.maya.append_to_filemenu()
     """
 
     cmds.evalDeferred(script)
+
+
+if __name__ == '__main__':
+    import publish.plugin
+
+    # Register validators
+    module_dir = os.path.dirname(__file__)
+    validators_path = os.path.join(module_dir, 'validators')
+
+    publish.plugin.register_plugin_path(validators_path)
+
+    # List available validators
+    for plugin in publish.plugin.discover('validators'):
+        print "%s" % plugin

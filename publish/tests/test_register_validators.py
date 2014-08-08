@@ -2,6 +2,7 @@
 import os
 
 # Local library
+import publish
 import publish.tests
 import publish.plugin
 
@@ -18,19 +19,15 @@ class TestRegisterValidators(publish.tests.BaseTestCase):
         """
 
         # There are included validators with this package
-        module_dir = os.path.dirname(__file__)
-        validators_path = os.path.join(module_dir, '..', 'test_directory')
+        package_dir = os.path.dirname(publish.__file__)
+        validators_path = os.path.join(package_dir, 'test_directory')
         validators_path = os.path.abspath(validators_path)
 
         publish.plugin.register_plugin_path(validators_path)
-
-        self.assertEquals(publish.plugin.validator_dirs[-1],
-                          validators_path)
+        self.assertIn(validators_path, publish.plugin.validator_dirs)
 
         publish.plugin.deregister_plugin_path(validators_path)
-
-        self.assertNotEquals(publish.plugin.validator_dirs[-1],
-                             validators_path)
+        self.assertNotIn(validators_path, publish.plugin.validator_dirs)
 
     def test_list_validators(self):
         """Validator objects are returned by which family they belong
@@ -50,7 +47,7 @@ class TestRegisterValidators(publish.tests.BaseTestCase):
                                'ValidateBlank2']
 
         # List available validators
-        plugins = publish.plugin.discover_validators()
+        plugins = publish.plugin.discover(type='validators')
 
         for plugin in plugins:
             validator_name = plugin.__name__
