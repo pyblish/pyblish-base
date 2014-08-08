@@ -94,6 +94,6 @@ if __name__ == '__main__':
 
     register_plugin_path(validators_path)
 
-    # # List available validators
+    # List available validators
     for plugin in collect_validators():
         print "%s" % plugin

@@ -192,12 +192,11 @@ def extract(instance):
 def _extract_model(instance):
     """Export geometry as .mb"""
 
-    # date = time.strftime("%Y%m%d_%H%M%S")
     family = instance.config.get('family')
 
     nodes = cmds.sets(instance.path, query=True)
     temp_dir = tempfile.mkdtemp()
-    temp_file = os.path.join(temp_dir, 'temp_publish')
+    temp_file = os.path.join(temp_dir, 'publish')
 
     log.info("_extract_model: Extracting locally..")
     previous_selection = cmds.ls(selection=True)
@@ -242,12 +241,11 @@ def _commit(path, family):
         workspace_dir = cmds.workspace(dir=True, query=True)
     published_dir = os.path.join(workspace_dir, config['prefix'], family)
 
-    extract_dir = os.path.join(published_dir, date)
-    output = os.path.join(extract_dir, date)
+    commit_dir = os.path.join(published_dir, date)
 
-    shutil.copytree(path, output)
+    shutil.copytree(path, commit_dir)
 
-    return output
+    return commit_dir
 
 
 def conform(path):
