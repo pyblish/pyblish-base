@@ -2,9 +2,9 @@ import publish.abstract
 
 
 class ValidateBlank2(publish.abstract.Validator):
-    families = ['pointcache']
-    version = (0, 1)
-    hosts = ['maya']
+    __families__ = ['pointcache']
+    __version__ = (0, 1, 0)
+    __hosts__ = ['maya']
 
     def process(self):
         pass

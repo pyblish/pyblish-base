@@ -14,7 +14,7 @@ __all__ = ['cmds',
            'mel',
            'standalone']
 
-root = dict()
+graph = dict()
 selection = list()
 
 default_nodes = {'defaultLightSet': 'objectSet', 'characterPartition': 'partition', 'globalCacheControl': 'globalCacheControl', 'brush1': 'brush', 'defaultRenderLayerFilter': 'objectMultiFilter', 'renderLayerFilter': 'objectMultiFilter', 'strokeGlobals': 'strokeGlobals', 'postProcessList1': 'postProcessList', 'layersFilter': 'objectMultiFilter', 'ikSystem': 'ikSystem', 'lambert1': 'lambert', 'sequenceManager1': 'sequenceManager', 'defaultRenderQuality': 'renderQuality', 'defaultRenderingList1': 'defaultRenderingList', 'defaultRenderGlobals': 'renderGlobals', 'defaultResolution': 'resolution', 'topShape': 'camera', 'defaultTextureList1': 'defaultTextureList', 'initialShadingGroup': 'shadingEngine', 'perspShape': 'camera', 'top': 'transform', 'initialMaterialInfo': 'materialInfo', 'time1': 'time', 'objectTypeFilter81': 'objectTypeFilter', 'objectTypeFilter80': 'objectTypeFilter', 'renderingSetsFilter': 'objectMultiFilter', 'objectTypeFilter76': 'objectTypeFilter', 'defaultObjectSet': 'objectSet', 'renderGlobalsList1': 'renderGlobalsList', 'dof1': 'dof', 'objectTypeFilter77': 'objectTypeFilter', 'dynController1': 'dynController', 'renderLayerManager': 'renderLayerManager', 'defaultViewColorManager': 'viewColorManager', 'lightList1': 'lightList', 'hardwareRenderGlobals': 'hardwareRenderGlobals', 'CustomGPUCacheFilter': 'objectMultiFilter', 'hyperGraphLayout': 'hyperLayout', 'renderPartition': 'partition', 'defaultLightList1': 'defaultLightList', 'particleCloud1': 'particleCloud', 'hyperGraphInfo': 'hyperGraphInfo', 'objectScriptFilter10': 'objectScriptFilter', 'animLayersFilter': 'objectMultiFilter', 'defaultRenderLayer': 'renderLayer', 'defaultLayer': 'displayLayer', 'front': 'transform', 'relationshipPanel1RightAttrFilter': 'objectMultiFilter', 'lightLinker1': 'lightLinker', 'defaultRenderUtilityList1': 'defaultRenderUtilityList', 'objectTypeFilter78': 'objectTypeFilter', 'shaderGlow1': 'shaderGlow', 'notAnimLayersFilter': 'objectMultiFilter', 'objectTypeFilter79': 'objectTypeFilter', 'persp': 'transform', 'initialParticleSE': 'shadingEngine', 'defaultHardwareRenderGlobals': 'hwRenderGlobals', 'side': 'transform', 'layerManager': 'displayLayerManager', 'objectNameFilter4': 'objectNameFilter', 'relationshipPanel1LeftAttrFilter': 'objectMultiFilter', 'defaultShaderList1': 'defaultShaderList', 'hardwareRenderingGlobals': 'hardwareRenderingGlobals', 'frontShape': 'camera', 'sideShape': 'camera'}
@@ -79,17 +79,18 @@ class Cmds(AbstractMock):
         """Mock of maya.cmds.ls
 
         Example:
-            >>>
+            >>> cmds.ls('defaultLightSet')
+            ['defaultLightSet']
 
         """
 
         matches = list()
 
         if not objs:
-            return root.keys()
+            return graph.keys()
 
         for obj in objs:
-            if obj in root:
+            if obj in graph:
                 matches.append(obj)
 
         return matches
@@ -117,9 +118,25 @@ class Cmds(AbstractMock):
 
         name = kwargs.get('name') or "{}1".format(type)
         node = MockNode(name, type)
-        root[name] = node
+        graph[name] = node
 
         return name
+
+    def nodeType(self, name):
+        """Mock of maya.cmds.nodeType
+
+        Example:
+            >>> node = cmds.createNode('mesh')
+            >>> assert cmds.nodeType(node) == 'mesh'
+
+        """
+
+        try:
+            node = graph[name]
+        except KeyError:
+            raise RuntimeError("No object matches name: {0}".format(name))
+
+        return node.type
 
 
 class Mel(AbstractMock):
@@ -127,9 +144,9 @@ class Mel(AbstractMock):
 
 
 def initialise():
-    """Populate root with default nodes"""
+    """Populate graph with default nodes"""
     for node, type in default_nodes.iteritems():
-        root[node] = MockNode(node, type)
+        graph[node] = MockNode(node, type)
 
 
 initialise()

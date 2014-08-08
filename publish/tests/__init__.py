@@ -11,26 +11,28 @@ import publish.plugin
 
 
 class BaseTestCase(unittest.TestCase):
-        def setUp(self):
-            """Include basic validations"""
+    def setUp(self):
+        """Include basic validations"""
 
-            module_dir = os.path.dirname(__file__)
-            validators_path = os.path.join(module_dir, '..', 'validators')
-            validators_path = os.path.abspath(validators_path)
+        publish.plugin.deregister_all()
 
-            publish.plugin.register_plugin_path(validators_path)
+        package_dir = os.path.dirname(publish.__file__)
+        validators_path = os.path.join(package_dir, 'tests', 'plugins')
+        validators_path = os.path.abspath(validators_path)
 
-            package_dir = os.path.dirname(publish.__file__)
-            config_path = os.path.join(package_dir, 'config.json')
+        publish.plugin.register_plugin_path(validators_path)
 
-            self.config_path = config_path
+        config_path = os.path.join(package_dir, 'config.json')
 
-        def tearDown(self):
-            pass
+        self.config_path = config_path
+        self.validators_path = validators_path
+
+    def tearDown(self):
+        publish.plugin.deregister_plugin_path(self.validators_path)
 
 
 class ModelPublishTestCase(BaseTestCase):
-    """Baseclass for tests using a plain scene"""
+    """Baseclass for tests using a plain scene with one publishable instance"""
 
     def setUp(self):
         """Construct simple Maya scene"""
@@ -59,7 +61,10 @@ class ModelPublishTestCase(BaseTestCase):
         self.create_scene()
 
     def tearDown(self):
+        super(ModelPublishTestCase, self).tearDown()
+
         shutil.rmtree(self.root_path)
+        self.cmds.file(new=True)
 
     def create_scene(self):
         """Create basic scene
@@ -90,7 +95,6 @@ class ModelPublishTestCase(BaseTestCase):
         // End of test.ma
         """
 
-        self.cmds.file(new=True)
         self.mel.eval(description)
         self.cmds.file(rename=self.fname)
         self.cmds.file(save=True, type='mayaAscii')

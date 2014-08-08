@@ -3,7 +3,17 @@
 import abc
 
 
-class Validator(object):
+class Filter(object):
+    @abc.abstractmethod
+    def process(self, instance):
+        pass
+
+
+class Validator(Filter):
+    __families__ = []
+    __hosts__ = []
+    __version__ = (0, 0, 0)
+
     def __str__(self):
         return type(self).__name__
 
@@ -14,23 +24,35 @@ class Validator(object):
         self.instance = instance
 
     @abc.abstractmethod
-    def process(self, instance):
-        pass
-
-    @abc.abstractmethod
     def fix(self, instance):
         pass
+
+
+class Selector(Filter):
+    pass
+
+
+class Extractor(Filter):
+    pass
 
 
 class Context(set):
     pass
 
 
-class Instance(object):
-    @abc.abstractproperty
-    def path(self):
-        pass
+class Instance(set):
+    def __hash__(self):
+        return hash(self.name)
 
-    @abc.abstractproperty
-    def config(self):
-        pass
+    def __repr__(self):
+        """E.g. Instance('publish_model_SEL')"""
+        return u"%s(%r)" % (type(self).__name__, self.__str__())
+
+    def __str__(self):
+        """E.g. 'publish_model_SEL'"""
+        return str(self.name)
+
+    def __init__(self, name):
+        super(Instance, self).__init__()
+        self.name = name
+        self.config = dict()

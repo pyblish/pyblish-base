@@ -17,7 +17,7 @@ Attributes:
 import os
 import re
 import imp
-import sys
+import logging
 import inspect
 
 # Local library
@@ -25,18 +25,25 @@ import publish.abstract
 
 __all__ = ['discover',
            'register_plugin_path',
-           'deregister_plugin_path']
+           'deregister_plugin_path',
+           'deregister_all']
 
 validator_pattern = re.compile(r'^validate_.*\.py$')
-validator_dirs = []
+validator_dirs = set()
+
+log = logging.getLogger('publish.plugin')
 
 
 def register_plugin_path(path):
-    validator_dirs.append(path)
+    validator_dirs.add(path)
 
 
 def deregister_plugin_path(path):
     validator_dirs.remove(path)
+
+
+def deregister_all():
+    validator_dirs.clear()
 
 
 def discover(type):
@@ -49,10 +56,10 @@ def discover(type):
 def _discover_validators():
     """Find and return validators"""
 
-    plugins = list()
-    for dname in validator_dirs:
-        for fname in os.listdir(dname):
-            abspath = os.path.join(dname, fname)
+    plugins = set()
+    for path in validator_dirs:
+        for fname in os.listdir(path):
+            abspath = os.path.join(path, fname)
 
             if not os.path.isfile(abspath):
                 continue
@@ -60,20 +67,24 @@ def _discover_validators():
             name, suffix = os.path.splitext(fname)
 
             if validator_pattern.match(fname):
-                module = imp.load_source(name, abspath)
+                try:
+                    module = imp.load_source(name, abspath)
+                except ImportError:
+                    log.warning("Skipping {0}".format(fname))
+                    continue
+
                 for name, obj in inspect.getmembers(module):
                     if inspect.isclass(obj):
-                        if issubclass(obj, publish.abstract.Validator):
-                            plugins.append(obj)
+                        if issubclass(obj, publish.abstract.Filter):
+                            plugins.add(obj)
 
-    validated = list()
+    validated = set()
     while plugins:
         plugin = plugins.pop()
         if _is_valid(plugin):
-            validated.append(plugin)
+            validated.add(plugin)
         else:
-            sys.stderr.write(
-                "Invalid plugin: {0}\n".format(plugin))
+            log.warning("Invalid plugin: {0}".format(plugin))
 
     return validated
 
@@ -81,9 +92,9 @@ def _discover_validators():
 def _is_valid(plugin):
     try:
         attrs = [
-            'families',
-            'hosts',
-            'version',
+            '__families__',
+            '__hosts__',
+            '__version__',
             'process',
             'fix']
 
@@ -94,15 +105,3 @@ def _is_valid(plugin):
         return False
 
     return True
-
-
-if __name__ == '__main__':
-    # Register validators
-    module_dir = os.path.dirname(__file__)
-    validators_path = os.path.join(module_dir, 'validators')
-
-    register_plugin_path(validators_path)
-
-    # List available validators
-    for plugin in discover('validators'):
-        print "%s" % plugin
