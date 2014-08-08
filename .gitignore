@@ -1,1 +1,4 @@
 *.swatches
+.idea
+published/*
+*.mb
