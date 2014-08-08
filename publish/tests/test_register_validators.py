@@ -50,7 +50,7 @@ class TestRegisterValidators(publish.tests.BaseTestCase):
                                'ValidateBlank2']
 
         # List available validators
-        plugins = publish.plugin.collect_validators()
+        plugins = publish.plugin.discover_validators()
 
         for plugin in plugins:
             validator_name = plugin.__name__

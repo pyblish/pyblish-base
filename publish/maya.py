@@ -135,7 +135,7 @@ def validate(context):
 
     assert isinstance(context, Context)
 
-    plugins = publish.plugin.collect_validators()
+    plugins = publish.plugin.discover_validators()
 
     failures = list()
 

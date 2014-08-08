@@ -23,7 +23,9 @@ import inspect
 # Local library
 import publish.abstract
 
-__all__ = ['collect_validators']
+__all__ = ['discover',
+           'register_plugin_path',
+           'deregister_plugin_path']
 
 validator_pattern = re.compile(r'^validate_.*\.py$')
 validator_dirs = []
@@ -37,7 +39,14 @@ def deregister_plugin_path(path):
     validator_dirs.remove(path)
 
 
-def collect_validators():
+def discover(type):
+    if type == 'validators':
+        return _discover_validators()
+
+    raise ValueError("type not recognised: {0}".format(type))
+
+
+def _discover_validators():
     """Find and return validators"""
 
     plugins = list()
@@ -95,5 +104,5 @@ if __name__ == '__main__':
     register_plugin_path(validators_path)
 
     # List available validators
-    for plugin in collect_validators():
+    for plugin in discover('validators'):
         print "%s" % plugin
