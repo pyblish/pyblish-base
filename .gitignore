@@ -2,3 +2,5 @@
 .idea
 published/*
 *.mb
+*.egg-info
+dist

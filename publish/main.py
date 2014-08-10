@@ -15,36 +15,20 @@ import publish.abstract
 
 log = logging.getLogger('publish')
 
-try:
-    # Running from within Maya
-    from maya import mel
-    from maya import cmds
-
-except ImportError:
-    from publish.mock.maya import mel
-    from publish.mock.maya import cmds
-
-    formatter = logging.Formatter(
-        '%(asctime)s - '
-        '%(levelname)s - '
-        '%(name)s - '
-        '%(message)s')
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    log.addHandler(stream_handler)
-    log.setLevel(logging.INFO)
-    # log.setLevel(logging.DEBUG)
-
+# Running from within Maya
+from maya import mel
+from maya import cmds
 
 __all__ = [
     'select',
     'validate',
     'extract',
-    'conform'
+    'conform',
+    'publish_all'
 ]
 
 
-# Register plugin paths
+# Register included plugin path
 _package_dir = os.path.dirname(publish.__file__)
 _validators_path = os.path.join(_package_dir, 'validators')
 _validators_path = os.path.abspath(_validators_path)
@@ -218,6 +202,8 @@ def _extract_shader(instance):
 
 
 def _commit(path, family):
+    """Move to timestamped destination relative workspace"""
+
     date = time.strftime(publish.config.dateFormat)
 
     workspace_dir = cmds.workspace(rootDirectory=True, query=True)
@@ -307,8 +293,8 @@ def eval_append_to_filemenu():
     mel.eval("evalDeferred buildFileMenu")
 
     script = """
-import publish.maya
-publish.maya.append_to_filemenu()
+import publish.main
+publish.main.append_to_filemenu()
     """
 
     cmds.evalDeferred(script)

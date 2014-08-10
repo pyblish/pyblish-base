@@ -1,13 +1,16 @@
+from __future__ import absolute_import
 
 # Standard library
 import os
-import sys
+# import sys
 import shutil
 import unittest
 import tempfile
 
 import publish
 import publish.plugin
+
+from maya import (cmds, mel, standalone)
 
 
 class BaseTestCase(unittest.TestCase):
@@ -37,14 +40,6 @@ class ModelPublishTestCase(BaseTestCase):
     def setUp(self):
         """Construct simple Maya scene"""
         super(ModelPublishTestCase, self).setUp()
-
-        if not "maya" in sys.executable.lower():
-            raise Warning("This should only be run from within mayapy")
-
-        from maya import cmds
-        from maya import mel
-        from maya import standalone
-
         standalone.initialize(name='python')
 
         root_path = tempfile.mkdtemp()

@@ -66,12 +66,13 @@ class AbstractMock(object):
         return self.mock_function
 
     @staticmethod
-    def mock_function(attr, *args, **kwargs):
+    def mock_function(*args, **kwargs):
         return None
 
 
 class Standalone(AbstractMock):
-    pass
+    def initialize(self, *args, **kwargs):
+        pass
 
 
 class Cmds(AbstractMock):
@@ -121,6 +122,9 @@ class Cmds(AbstractMock):
         graph[name] = node
 
         return name
+
+    def objExists(self, name):
+        return True if name in graph else False
 
     def nodeType(self, name):
         """Mock of maya.cmds.nodeType

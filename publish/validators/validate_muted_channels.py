@@ -1,9 +1,6 @@
 import publish.abstract
 
-try:
-    from maya import cmds
-except ImportError:
-    from publish.mock.maya import cmds
+from maya import cmds
 
 
 class ValidateMutedChannels(publish.abstract.Validator):
@@ -19,20 +16,7 @@ class ValidateMutedChannels(publish.abstract.Validator):
     __hosts__ = ['maya']
 
     def process(self):
-        """Look for nodes of type 'mute'
-
-        Example:
-            >>> node = cmds.createNode('mute')
-            >>> instance = set()
-            >>> validator = ValidateMutedChannels(instance)
-            >>> try:
-            ...     validator.process()
-            ... except ValueError:
-            ...    print "Expected"
-            Expected
-
-        """
-
+        """Look for nodes of type 'mute'"""
         mutes = cmds.ls(type='mute')
         if mutes:
             raise ValueError("Muted nodes found")

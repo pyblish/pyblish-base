@@ -13,9 +13,9 @@ classifiers = [
 ]
 
 setup(
-    name='Publish',
+    name='pyPublish',
     version=publish.version,
-    description='Decentralised content queries',
+    description='quality assurance for content',
     long_description=open('README.txt').read(),
     author='Marcus Ottosson',
     author_email='marcus@abstractfactory.com',
@@ -26,6 +26,7 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'publish': ['*.json'],
+        'publish': ['*.json',
+                    'integration/maya/*']
     },
 )

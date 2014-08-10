@@ -3,7 +3,7 @@
 import os
 
 import publish
-import publish.maya
+import publish.main
 import publish.tests
 import publish.config
 import publish.abstract
@@ -29,7 +29,7 @@ class TestMayaPy(publish.tests.ModelPublishTestCase):
 
         """
 
-        path = publish.maya.publish_all()[0]
+        path = publish.main.publish_all()[0]
         path = os.path.normpath(path)
         expected_path = os.path.join(self.root_path,
                                      publish.config.prefix,
@@ -40,16 +40,16 @@ class TestMayaPy(publish.tests.ModelPublishTestCase):
         """Test full interface for Publish"""
 
         # parse selection
-        context = publish.maya.select()
+        context = publish.main.select()
         self.assertIsInstance(context, publish.abstract.Context)
 
         # validate
-        failures = publish.maya.validate(context)
+        failures = publish.main.validate(context)
         self.assertEquals(failures, [])
 
         # extract
         instance = context.pop()
-        path = publish.maya.extract(instance)
+        path = publish.main.extract(instance)
         path = os.path.normpath(path)
         expected_path = os.path.join(self.root_path,
                                      publish.config.prefix,
@@ -57,7 +57,7 @@ class TestMayaPy(publish.tests.ModelPublishTestCase):
         self.assertIn(expected_path, path)
 
         # Conform isn't doing anything currently
-        self.assertEquals(publish.maya.conform(path), path)
+        self.assertEquals(publish.main.conform(path), path)
 
 
 if __name__ == '__main__':
