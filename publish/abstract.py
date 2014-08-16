@@ -4,12 +4,6 @@ import abc
 
 
 class Filter(object):
-    @abc.abstractmethod
-    def process(self, instance):
-        pass
-
-
-class Validator(Filter):
     __families__ = []
     __hosts__ = []
     __version__ = (0, 0, 0)
@@ -22,6 +16,13 @@ class Validator(Filter):
 
     def __init__(self, instance):
         self.instance = instance
+
+    @abc.abstractmethod
+    def process(self, instance):
+        pass
+
+
+class Validator(Filter):
 
     @abc.abstractmethod
     def fix(self, instance):

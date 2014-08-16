@@ -2,7 +2,6 @@
 
 import os
 
-import publish
 import publish.main
 import publish.tests
 import publish.config

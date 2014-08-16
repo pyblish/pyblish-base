@@ -2,13 +2,9 @@ from __future__ import absolute_import
 
 # Standard library
 import os
-import time
-import shutil
 import logging
-import tempfile
 
 # Local library
-import publish
 import publish.plugin
 import publish.config
 import publish.abstract
@@ -29,8 +25,8 @@ __all__ = [
 
 
 # Register included plugin path
-_package_dir = os.path.dirname(publish.__file__)
-_validators_path = os.path.join(_package_dir, 'validators')
+_package_dir = os.path.dirname(__file__)
+_validators_path = os.path.join(_package_dir, 'plugins')
 _validators_path = os.path.abspath(_validators_path)
 publish.plugin.register_plugin_path(_validators_path)
 
@@ -131,93 +127,32 @@ def validate(context):
     return errors
 
 
-def extract(instance):
-    """Physically export data from host
+def extract(context):
+    assert isinstance(context, Context)
 
-    .. note:: Type of extraction depends on instance family.
+    plugins = publish.plugin.discover(type='extractors')
 
-    Arguments:
-        instance (Instance): Instance from which to export data
+    errors = list()
 
-    """
+    for instance in context:
+        family = instance.config.get('family')
 
-    assert isinstance(instance, Instance)
+        # Run tests for pre-defined host and family
+        for Validator in plugins:
+            if not 'maya' in Validator.__hosts__:
+                continue
 
-    family = instance.config.get('family')
+            if not family in Validator.__families__:
+                continue
 
-    if family == 'model':
-        return _extract_model(instance)
+            try:
+                log.info("Extracting {instance} with {plugin}".format(
+                    instance=instance, plugin=Validator.__name__))
+                Validator(instance).process()
+            except Exception as exc:
+                errors.append(exc)
 
-    if family == 'review':
-        return _extract_review(instance)
-
-    if family == 'pointcache':
-        return _extract_pointcache(instance)
-
-    if family == 'shader':
-        return _extract_shader(instance)
-
-    raise Warning("Unrecognised family: {0}".format(family))
-
-
-def _extract_model(instance):
-    """Export geometry as .mb"""
-
-    family = instance.config.get('family')
-
-    temp_dir = tempfile.mkdtemp()
-    temp_file = os.path.join(temp_dir, 'publish')
-
-    log.info("_extract_model: Extracting locally..")
-    previous_selection = cmds.ls(selection=True)
-    cmds.select(list(instance), replace=True)
-    cmds.file(temp_file, type='mayaBinary', exportSelected=True)
-
-    log.info("_extract_model: Moving extraction "
-             "relative working file..")
-    output = _commit(temp_dir, family)
-
-    log.info("_extract_model: Clearing local cache..")
-    shutil.rmtree(temp_dir)
-
-    if previous_selection:
-        cmds.select(previous_selection, replace=True)
-    else:
-        cmds.select(deselect=True)
-
-    log.info("_extract_model: Extraction successful!")
-    return output
-
-
-def _extract_review(instance):
-    """Create playblast"""
-
-
-def _extract_pointcache(instance):
-    """Export alembic pointcache"""
-
-
-def _extract_shader(instance):
-    """Export shaders as .mb"""
-
-
-def _commit(path, family):
-    """Move to timestamped destination relative workspace"""
-
-    date = time.strftime(publish.config.dateFormat)
-
-    workspace_dir = cmds.workspace(rootDirectory=True, query=True)
-    if not workspace_dir:
-        # Project has not been set. Files will
-        # instead end up next to the working file.
-        workspace_dir = cmds.workspace(dir=True, query=True)
-    published_dir = os.path.join(workspace_dir, publish.config.prefix, family)
-
-    commit_dir = os.path.join(published_dir, date)
-
-    shutil.copytree(path, commit_dir)
-
-    return commit_dir
+    return errors
 
 
 def conform(path):
@@ -243,17 +178,9 @@ def publish_all():
     # extract
     paths = list()
     if not errors:
-        for instance in context:
-            log.debug("Extracting..")
-            path = extract(instance)
-            log.info("Extracted {0}".format(path))
-
-            # conform
-            path = conform(path)
-
-            paths.append(path)
-
-            log.info("Successfully published scene")
+        log.debug("Extracting..")
+        extract(context)
+        conform(context)
 
     else:
         log.error("There were ({n}) errors:".format(n=len(errors)))
