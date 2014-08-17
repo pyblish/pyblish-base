@@ -64,6 +64,19 @@ def select():
 
 
 def process(process, context):
+    """Perform process step `process` upon context `context`
+
+    Arguments:
+        process (str): Type of process to apply
+        context (Context): Context upon which to appy process
+
+    Example:
+        >>> ctx = publish.domain.Context()
+        >>> process('validators', ctx)
+        Context([])
+
+    """
+
     assert isinstance(context, publish.domain.Context)
 
     plugins = publish.plugin.discover(type=process)
