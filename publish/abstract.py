@@ -16,6 +16,7 @@ class Filter(object):
 
     def __init__(self, instance):
         self.instance = instance
+        self.errors = list()
 
     @abc.abstractmethod
     def process(self, instance):
@@ -38,7 +39,20 @@ class Extractor(Filter):
 
 
 class Context(set):
-    pass
+    @property
+    def errors(self):
+        """Return errors occured in contained instances"""
+        errors = list()
+        for instance in self:
+            errors.extend(instance.errors)
+        return errors
+
+    @property
+    def has_errors(self):
+        """Return True if Context contains errors, False otherwise"""
+        for error in self.errors:
+            return True
+        return False
 
 
 class Instance(set):
@@ -57,3 +71,4 @@ class Instance(set):
         super(Instance, self).__init__()
         self.name = name
         self.config = dict()
+        self.errors = list()

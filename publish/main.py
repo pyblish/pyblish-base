@@ -3,25 +3,18 @@ from __future__ import absolute_import
 # Standard library
 import os
 import logging
+import traceback
 
 # Local library
 import publish.plugin
 import publish.config
-import publish.abstract
+import publish.domain
 
 log = logging.getLogger('publish')
 
 # Running from within Maya
 from maya import mel
 from maya import cmds
-
-__all__ = [
-    'select',
-    'validate',
-    'extract',
-    'conform',
-    'publish_all'
-]
 
 
 # Register included plugin path
@@ -31,27 +24,8 @@ _validators_path = os.path.abspath(_validators_path)
 publish.plugin.register_plugin_path(_validators_path)
 
 
-class Context(publish.abstract.Context):
-    """Store selected instances from currently active scene"""
-
-
-class Instance(publish.abstract.Instance):
-    """An individually publishable component within scene
-
-    Examples include rigs, models.
-
-    .. note:: This class isn't meant for use directly.
-        See :func:context() below.
-
-    Attributes:
-        path (str): Absolute path to instance (i.e. objectSet in this case)
-        config (dict): Full configuration, as recorded onto objectSet.
-
-    """
-
-
 def select():
-    """Parse currently active scene and return context object.
+    """Parse currently active scene and return Context
 
     The context includes which nodes to extract along
     with their configuration.
@@ -61,13 +35,13 @@ def select():
 
     """
 
-    context = Context()
+    context = publish.domain.Context()
 
     for objset in cmds.ls("*." + publish.config.identifier,
                           objectsOnly=True,
                           type='objectSet'):
 
-        instance = Instance(name=objset)
+        instance = publish.domain.Instance(name=objset)
 
         for node in cmds.sets(objset, query=True):
             instance.add(node)
@@ -89,106 +63,76 @@ def select():
     return context
 
 
-def validate(context):
-    """Validate context `context`
+def process(process, context):
+    assert isinstance(context, publish.domain.Context)
 
-    Arguments:
-        context (Context): Parsed context
-
-    Returns:
-        True is successful, False otherwise
-
-    """
-
-    assert isinstance(context, Context)
-
-    plugins = publish.plugin.discover(type='validators')
-
-    errors = list()
+    plugins = publish.plugin.discover(type=process)
 
     for instance in context:
         family = instance.config.get('family')
 
+        log.info("Processing {inst} ({family})".format(
+            inst=instance, family=family))
+
         # Run tests for pre-defined host and family
-        for Validator in plugins:
-            if not 'maya' in Validator.__hosts__:
+        for plugin in plugins:
+            if not 'maya' in plugin.__hosts__:
                 continue
 
-            if not family in Validator.__families__:
+            if not family in plugin.__families__:
                 continue
 
             try:
-                log.info("Validating {instance} with {plugin}".format(
-                    instance=instance, plugin=Validator.__name__))
-                Validator(instance).process()
+                log.info("{process} {instance} with {plugin}".format(
+                    process=process,
+                    instance=instance,
+                    plugin=plugin.__name__))
+                plugin(instance).process()
             except Exception as exc:
-                errors.append(exc)
+                log.error(traceback.format_exc())
+                log.error('An exception occured during the '
+                          'execution of plugin: {0}'.format(plugin))
+                exc.parent = instance
+                exc.traceback = traceback.format_exc()
+                instance.errors.append(exc)
 
-    return errors
-
-
-def extract(context):
-    assert isinstance(context, Context)
-
-    plugins = publish.plugin.discover(type='extractors')
-
-    errors = list()
-
-    for instance in context:
-        family = instance.config.get('family')
-
-        # Run tests for pre-defined host and family
-        for Validator in plugins:
-            if not 'maya' in Validator.__hosts__:
-                continue
-
-            if not family in Validator.__families__:
-                continue
-
-            try:
-                log.info("Extracting {instance} with {plugin}".format(
-                    instance=instance, plugin=Validator.__name__))
-                Validator(instance).process()
-            except Exception as exc:
-                errors.append(exc)
-
-    return errors
-
-
-def conform(path):
-    log.info("Moving %s to new home" % path)
-    return path
+    return context
 
 
 def publish_all():
     """Convenience method of the above"""
 
     # parse context
-    log.debug("Selecting..")
     context = select()
 
     if not context:
         log.info("No instances found")
         return
 
-    # validate
-    log.debug("Validating..")
-    errors = validate(context)
+    # Validate
+    process('validators', context)
 
-    # extract
-    paths = list()
-    if not errors:
-        log.debug("Extracting..")
-        extract(context)
-        conform(context)
+    if context.has_errors:
+        log.error("There were ({n}) errors "
+                  "during validation:".format(n=len(context.errors)))
 
-    else:
-        log.error("There were ({n}) errors:".format(n=len(errors)))
-        for error in errors:
-            log.error("({n}): {error}".format(n=errors.index(error) + 1,
-                                              error=error))
+        for error in context.errors:
+            log.error("({n}): {error}".format(
+                n=context.errors.index(error) + 1,
+                error=error))
+        return
 
-    return paths
+    # Extract
+    process('extractors', context)
+
+    if context.has_errors:
+        log.error("There were ({n}) errors "
+                  "during extraction:".format(n=len(context.errors)))
+
+        for error in context.errors:
+            log.error("({n}): {error}".format(
+                n=context.errors.index(error) + 1,
+                error=error))
 
 
 def append_to_filemenu():

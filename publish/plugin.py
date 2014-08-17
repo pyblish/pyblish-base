@@ -71,7 +71,32 @@ def deregister_all():
     registered.clear()
 
 
-def discover(type):
+def discover(type=None):
+    """Find plugins within registered plugin-paths
+
+    Arguments:
+        type (str): Only return plugins of specified type
+                    E.g. validators, extractors. In None is
+                    specified, return all plugins.
+
+    """
+
+    if not type:
+        plugins = list()
+        for type in patterns.keys():
+            plugins.extend(_discover_type(type))
+        return plugins
+    else:
+        return _discover_type(type)
+
+
+def _discover_type(type):
+    """Return plugins of type `type`
+
+    Helper method for the above function :func:discover()
+
+    """
+
     try:
         plugins = set()
 
@@ -122,5 +147,5 @@ if __name__ == '__main__':
     register_plugin_path(_validators_path)
 
     # for plugin in discover('extractors'):
-    for plugin in discover('validators'):
+    for plugin in discover():
         print plugin

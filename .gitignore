@@ -1,6 +1,6 @@
 *.swatches
 .idea
-published/*
+**/published
 *.mb
 *.egg-info
 dist
