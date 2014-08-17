@@ -131,6 +131,8 @@ def _discover_type(type):
                         if inspect.isclass(obj):
                             if issubclass(obj, publish.abstract.Filter):
                                 plugins.add(obj)
+                            if issubclass(obj, publish.abstract.Selector):
+                                plugins.add(obj)
 
         return plugins
 

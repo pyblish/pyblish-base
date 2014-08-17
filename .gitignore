@@ -4,3 +4,4 @@
 *.mb
 *.egg-info
 dist
+*.pyc

@@ -35,30 +35,22 @@ def select():
 
     """
 
+    plugins = publish.plugin.discover(type='selectors')
+
     context = publish.domain.Context()
 
-    for objset in cmds.ls("*." + publish.config.identifier,
-                          objectsOnly=True,
-                          type='objectSet'):
+    for plugin in plugins:
 
-        instance = publish.domain.Instance(name=objset)
-
-        for node in cmds.sets(objset, query=True):
-            instance.add(node)
-
-        attrs = cmds.listAttr(objset, userDefined=True)
-        for attr in attrs:
-            if attr == publish.config.identifier:
-                continue
-
-            try:
-                value = cmds.getAttr(objset + "." + attr)
-            except:
-                continue
-
-            instance.config[attr] = value
-
-        context.add(instance)
+        try:
+            log.info("Selecting with {plugin}".format(
+                plugin=plugin.__name__))
+            newContext = plugin().process()
+            for instance in newContext:
+                context.add(instance)
+        except Exception:
+            log.error(traceback.format_exc())
+            log.error('An exception occured during the '
+                      'execution of plugin: {0}'.format(plugin))
 
     return context
 

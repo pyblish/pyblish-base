@@ -23,15 +23,18 @@ class Filter(object):
         pass
 
 
+class Selector(object):
+
+    @abc.abstractmethod
+    def process(self, instance):
+        pass
+
+
 class Validator(Filter):
 
     @abc.abstractmethod
     def fix(self, instance):
         pass
-
-
-class Selector(Filter):
-    pass
 
 
 class Extractor(Filter):
