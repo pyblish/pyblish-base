@@ -5,6 +5,16 @@ import maya.cmds as cmds
 
 
 class SelectObjectSet(publish.abstract.Selector):
+    """Select instances of node-type 'transform'
+
+    Opens up the doors for instances containing nodes of any type,
+    but lacks the ability to be nested with DAG nodes.
+
+    E.g.          -> /root/MyCharacter.publishable/an_object_set
+
+    """
+
+    hosts = ["maya"]
 
     def process(self):
 
