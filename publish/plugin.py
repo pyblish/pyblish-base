@@ -9,7 +9,8 @@ In this system, the predicate is whether or not a fname starts
 with "validate_" and ends with ".py"
 
 Attributes:
-    validator_pattern: Predicate for w
+    patterns: Regular expressions used for lookup of plugins.
+    registered: Set of all registered plugin-paths
 
 """
 
@@ -28,80 +29,125 @@ __all__ = ['discover',
            'deregister_plugin_path',
            'deregister_all']
 
-validator_pattern = re.compile(r'^validate_.*\.py$')
-validator_dirs = set()
+patterns = {
+    'validators': r'^validate_.*\.py$',
+    'extractors': r'^extract_.*\.py$',
+    'selectors': r'^select_.*\.py$',
+    'conforms': r'^conform_.*\.py$'
+}
+
+registered = set()
 
 log = logging.getLogger('publish.plugin')
 
 
 def register_plugin_path(path):
-    validator_dirs.add(path)
+    """Plug-ins are looked up at run-time from directories registered here
+
+    To register a new directory, run this command along with the absolute
+    path to where you're plug-ins are located.
+
+    Example:
+        >>> my_plugins = '/home/marcus/publish_plugins'
+        >>> register_plugin_path(my_plugins)
+
+    """
+    registered.add(path)
 
 
 def deregister_plugin_path(path):
-    validator_dirs.remove(path)
+    """Remove a registered path
+
+    Raises:
+        KeyError if `path` isn't registered
+
+    """
+
+    registered.remove(path)
 
 
 def deregister_all():
-    validator_dirs.clear()
+    """Mainly used in tests"""
+    registered.clear()
 
 
-def discover(type):
-    if type == 'validators':
-        return _discover_validators()
+def discover(type=None):
+    """Find plugins within registered plugin-paths
 
-    raise ValueError("type not recognised: {0}".format(type))
+    Arguments:
+        type (str): Only return plugins of specified type
+                    E.g. validators, extractors. In None is
+                    specified, return all plugins.
+
+    """
+
+    if not type:
+        plugins = list()
+        for type in patterns.keys():
+            plugins.extend(_discover_type(type))
+        return plugins
+    else:
+        return _discover_type(type)
 
 
-def _discover_validators():
-    """Find and return validators"""
+def _discover_type(type):
+    """Return plugins of type `type`
 
-    plugins = set()
-    for path in validator_dirs:
-        for fname in os.listdir(path):
-            abspath = os.path.join(path, fname)
+    Helper method for the above function :func:discover()
 
-            if not os.path.isfile(abspath):
-                continue
+    """
 
-            name, suffix = os.path.splitext(fname)
+    try:
+        plugins = set()
 
-            if validator_pattern.match(fname):
-                try:
-                    module = imp.load_source(name, abspath)
-                except ImportError:
-                    log.warning("Skipping {0}".format(fname))
+        # Accept paths added via Python and
+        # paths via environment variable.
+        paths = list(registered)
+        paths += os.environ.get('PUBLISHPLUGINPATH', list())
+
+        for path in paths:
+            for fname in os.listdir(path):
+                abspath = os.path.join(path, fname)
+
+                if not os.path.isfile(abspath):
                     continue
 
-                for name, obj in inspect.getmembers(module):
-                    if inspect.isclass(obj):
-                        if issubclass(obj, publish.abstract.Filter):
-                            plugins.add(obj)
+                name, suffix = os.path.splitext(fname)
 
-    validated = set()
-    while plugins:
-        plugin = plugins.pop()
-        if _is_valid(plugin):
-            validated.add(plugin)
-        else:
-            log.warning("Invalid plugin: {0}".format(plugin))
+                try:
+                    pattern = patterns[type]
+                except KeyError:
+                    raise  # Handled below
 
-    return validated
+                if re.match(pattern, fname):
+                    try:
+                        module = imp.load_source(name, abspath)
+                    except ImportError as e:
+                        log.warning('"{mod}": Skipped ({msg})'.format(
+                            mod=name, msg=e))
+                        continue
+
+                    for name, obj in inspect.getmembers(module):
+                        if inspect.isclass(obj):
+                            if issubclass(obj, publish.abstract.Filter):
+                                plugins.add(obj)
+                            if issubclass(obj, publish.abstract.Selector):
+                                plugins.add(obj)
+
+        return plugins
+
+    except KeyError:
+        raise ValueError("type not recognised: {0}".format(type))
 
 
-def _is_valid(plugin):
-    try:
-        attrs = [
-            '__families__',
-            '__hosts__',
-            '__version__',
-            'process',
-            'fix']
+if __name__ == '__main__':
+    logging.basicConfig()
 
-        for attr in attrs:
-            assert attr in dir(plugin)
+    _package_dir = os.path.dirname(publish.__file__)
+    _validators_path = os.path.join(_package_dir, 'plugins')
+    _validators_path = os.path.abspath(_validators_path)
+    register_plugin_path(_validators_path)
 
-    except AssertionError:
-        return False
-
-    return True
+    # for plugin in discover('extractors'):
+    for plugin in discover():
+        print plugin

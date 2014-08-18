@@ -1,8 +1,5 @@
 """Tests to be run via mayapy"""
 
-import os
-
-import publish
 import publish.main
 import publish.tests
 import publish.config
@@ -29,35 +26,27 @@ class TestMayaPy(publish.tests.ModelPublishTestCase):
 
         """
 
-        path = publish.main.publish_all()[0]
-        path = os.path.normpath(path)
-        expected_path = os.path.join(self.root_path,
-                                     publish.config.prefix,
-                                     'model')
-        self.assertIn(expected_path, path)
+        publish.main.publish_all()
 
     def test_interface(self):
         """Test full interface for Publish"""
 
-        # parse selection
+        # Parse selection
         context = publish.main.select()
         self.assertIsInstance(context, publish.abstract.Context)
 
-        # validate
-        failures = publish.main.validate(context)
-        self.assertEquals(failures, [])
+        # Validate
+        publish.main.process('validators', context)
+        self.assertEquals(context.errors, [])
 
-        # extract
-        instance = context.pop()
-        path = publish.main.extract(instance)
-        path = os.path.normpath(path)
-        expected_path = os.path.join(self.root_path,
-                                     publish.config.prefix,
-                                     'model')
-        self.assertIn(expected_path, path)
+        # Extract
+        publish.main.process('extractors', context)
+        self.assertEquals(context.errors, [])
 
-        # Conform isn't doing anything currently
-        self.assertEquals(publish.main.conform(path), path)
+        # Conform
+        # ..note:: This doesn't do anything at the moment.
+        publish.main.process('conforms', context)
+        self.assertEquals(context.errors, [])
 
 
 if __name__ == '__main__':

@@ -24,10 +24,10 @@ class TestRegisterValidators(publish.tests.BaseTestCase):
         validators_path = os.path.abspath(validators_path)
 
         publish.plugin.register_plugin_path(validators_path)
-        self.assertIn(validators_path, publish.plugin.validator_dirs)
+        self.assertIn(validators_path, publish.plugin.registered)
 
         publish.plugin.deregister_plugin_path(validators_path)
-        self.assertNotIn(validators_path, publish.plugin.validator_dirs)
+        self.assertNotIn(validators_path, publish.plugin.registered)
 
     def test_list_validators(self):
         """Validator objects are returned by which family they belong
