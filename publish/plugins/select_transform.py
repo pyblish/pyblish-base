@@ -5,9 +5,22 @@ import maya.cmds as cmds
 
 
 class SelectTransform(publish.abstract.Selector):
+    """Select instances of node-type 'transform'
+
+    Opens up the doors for nested instances.
+
+    E.g.          -> /root/characters_GRP/MyCharacter.publishable
+    As opposed to -> /root/MyCharacter.publishable
+
+    But lacks ability to append non-DAG nodes.
+
+    E.g.          -> /root/MyCharacter.publishable/an_object_set
+
+    """
+
+    hosts = ["maya"]
 
     def process(self):
-
         context = publish.domain.Context()
 
         for transform in cmds.ls("*." + publish.config.identifier,

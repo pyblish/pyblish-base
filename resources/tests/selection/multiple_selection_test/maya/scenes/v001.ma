@@ -1,6 +1,6 @@
 //Maya ASCII 2014 scene
 //Name: v001.ma
-//Last modified: Sun, Aug 17, 2014 03:21:25 PM
+//Last modified: Mon, Aug 18, 2014 08:46:17 PM
 //Codeset: 1252
 requires maya "2014";
 currentUnit -l centimeter -a degree -t film;
@@ -11,12 +11,12 @@ fileInfo "cutIdentifier" "201307170459-880822";
 fileInfo "osv" "Microsoft Windows 8 Enterprise Edition, 64-bit  (Build 9200)\n";
 createNode transform -s -n "persp";
 	setAttr ".v" no;
-	setAttr ".t" -type "double3" -32.646800011167123 300.05886716540442 96.711903332000276 ;
-	setAttr ".r" -type "double3" -60.338352729506141 -24.60000000000144 0 ;
+	setAttr ".t" -type "double3" 45.407179432658978 176.2900982710247 254.29765414585802 ;
+	setAttr ".r" -type "double3" -15.338352729506122 6.9999999999985096 2.0027750574897627e-016 ;
 createNode camera -s -n "perspShape" -p "persp";
 	setAttr -k off ".v" no;
 	setAttr ".fl" 34.999999999999986;
-	setAttr ".coi" 224.70252745042109;
+	setAttr ".coi" 270.26225755714933;
 	setAttr ".imn" -type "string" "persp";
 	setAttr ".den" -type "string" "persp_depth";
 	setAttr ".man" -type "string" "persp_mask";
@@ -1560,7 +1560,7 @@ createNode transform -n "full_CAM";
 	setAttr -l on ".tx";
 	setAttr -l on ".ty";
 	setAttr -l on ".tz";
-	setAttr ".r" -type "double3" -14.816923233919052 69.737374256061187 0.10217415091909737 ;
+	setAttr ".r" -type "double3" -14.816923233919052 360 0.10217415091909737 ;
 	setAttr -l on ".rx";
 	setAttr -l on ".rz";
 	setAttr ".rp" -type "double3" -0.63317092671893249 -89.725838452275653 -297.12921928844435 ;
@@ -1584,7 +1584,7 @@ createNode transform -n "head_CAM";
 	setAttr -l on ".tx";
 	setAttr -l on ".ty";
 	setAttr -l on ".tz";
-	setAttr ".r" -type "double3" -2.2197763802481245 69.090909090909108 0.10217415082379037 ;
+	setAttr ".r" -type "double3" -2.2197763802481245 360 0.10217415082379037 ;
 	setAttr -l on ".rx";
 	setAttr -l on ".rz";
 	setAttr ".s" -type "double3" 2.1575334612902073 2.1575334612902073 2.1575334612902073 ;
@@ -1667,8 +1667,8 @@ createNode animCurveTA -n "head_CAM_rotateY";
 createNode polyCube -n "polyCube1";
 	setAttr ".cuv" 4;
 select -ne :time1;
-	setAttr ".o" 120;
-	setAttr ".unw" 120;
+	setAttr ".o" 200;
+	setAttr ".unw" 200;
 select -ne :renderPartition;
 	setAttr -s 3 ".st";
 select -ne :initialShadingGroup;

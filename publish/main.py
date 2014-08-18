@@ -40,6 +40,8 @@ def select():
     context = publish.domain.Context()
 
     for plugin in plugins:
+        if not publish.domain.host() in plugin.hosts:
+            continue
 
         try:
             log.info("Selecting with {plugin}".format(
@@ -81,10 +83,10 @@ def process(process, context):
 
         # Run tests for pre-defined host and family
         for plugin in plugins:
-            if not 'maya' in plugin.__hosts__:
+            if not publish.domain.host() in plugin.hosts:
                 continue
 
-            if not family in plugin.__families__:
+            if not family in plugin.families:
                 continue
 
             try:
