@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 # Standard library
-import os
 import logging
 import traceback
 
@@ -11,13 +10,6 @@ import publish.config
 import publish.domain
 
 log = logging.getLogger('publish')
-
-
-# Register included plugin path
-_package_dir = os.path.dirname(__file__)
-_validators_path = os.path.join(_package_dir, 'plugins')
-_validators_path = os.path.abspath(_validators_path)
-publish.plugin.register_plugin_path(_validators_path)
 
 
 def select():
