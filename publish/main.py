@@ -12,10 +12,6 @@ import publish.domain
 
 log = logging.getLogger('publish')
 
-# Running from within Maya
-from maya import mel
-from maya import cmds
-
 
 # Register included plugin path
 _package_dir = os.path.dirname(__file__)
@@ -140,53 +136,3 @@ def publish_all():
             log.error("({n}): {error}".format(
                 n=context.errors.index(error) + 1,
                 error=error))
-
-
-def append_to_filemenu():
-    """Add Publish to file-menu
-
-    As Maya builds its menus upon first being accessed,
-    you'll have to use eval_append_to_filemenu() below
-    if triggered automatically at startup; such as in
-    your userSetup.py
-
-    """
-
-    cmds.menuItem('publishOpeningDivider',
-                  divider=True,
-                  insertAfter='saveAsOptions',
-                  parent='mainFileMenu')
-    cmds.menuItem('publishScene',
-                  label='Publish',
-                  insertAfter='publishOpeningDivider',
-                  command=lambda _: publish_all())
-    cmds.menuItem('publishCloseDivider',
-                  divider=True,
-                  insertAfter='publishScene')
-    log.info("Success")
-
-
-def eval_append_to_filemenu():
-    """Add Publish to file-menu"""
-    mel.eval("evalDeferred buildFileMenu")
-
-    script = """
-import publish.main
-publish.main.append_to_filemenu()
-    """
-
-    cmds.evalDeferred(script)
-
-
-if __name__ == '__main__':
-    import publish.plugin
-
-    # Register validators
-    module_dir = os.path.dirname(__file__)
-    validators_path = os.path.join(module_dir, 'validators')
-
-    publish.plugin.register_plugin_path(validators_path)
-
-    # List available validators
-    for plugin in publish.plugin.discover('validators'):
-        print "%s" % plugin
