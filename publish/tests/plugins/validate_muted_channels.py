@@ -4,9 +4,9 @@ from maya import cmds
 
 
 class ValidateMutedChannels(publish.abstract.Validator):
-    __families__ = ['model']
-    __version__ = (0, 1, 0)
-    __hosts__ = ['maya']
+    families = ['model']
+    version = (0, 1, 0)
+    hosts = ['maya']
 
     def process(self):
         mutes = cmds.ls(type='mute')

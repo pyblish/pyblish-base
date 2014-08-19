@@ -4,9 +4,27 @@ import abc
 
 
 class Filter(object):
-    __families__ = []
-    __hosts__ = []
-    __version__ = (0, 0, 0)
+    """Abstract base-class for sequential plugins
+
+    Sequential plugins are those that takes as input what it gives
+    as output and may thus be arranged in any arbitrary order.
+
+    E.g. Validators are filters. Validators may get executed in any
+    order whilst still producing identical results. The same goes
+    for Extractors.
+
+    Attributes:
+        families (list): List of strings with all supported families e.g. Model
+        hosts (list): List of strings for supported hosts e.g. Maya
+        version (tuple): Version of plugin, used for conflict resolution.
+
+    """
+
+    __metaclass__ = abc.ABCMeta
+
+    families = []
+    hosts = []
+    version = (0, 0, 0)
 
     def __str__(self):
         return type(self).__name__
@@ -24,6 +42,16 @@ class Filter(object):
 
 
 class Selector(object):
+    """Parse a given working scene for available Instances.
+
+    Selectors operate on the context and injects it with
+    discovered Instances.
+
+    """
+
+    __metaclass__ = abc.ABCMeta
+
+    hosts = []
 
     @abc.abstractmethod
     def process(self, instance):
@@ -31,43 +59,60 @@ class Selector(object):
 
 
 class Validator(Filter):
+    """Validate/check/test individual instance for correctness.
 
-    @abc.abstractmethod
+    It either raises an exception, which are caught by the erroring instance,
+    or does nothing; indicating success.
+
+    """
+
     def fix(self, instance):
-        pass
+        """Optional auto-fix for when validation fails"""
 
 
 class Extractor(Filter):
-    pass
+    """Physically separate Instance from Host into corresponding Resources
+
+    An extractor operats on Instances and its content to produce
+    the corresponding files on disk.
+
+    """
 
 
 class Context(set):
-    @property
+    """Maintain a collection of Instances"""
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractproperty
     def errors(self):
         """Return errors occured in contained instances"""
-        errors = list()
-        for instance in self:
-            errors.extend(instance.errors)
-        return errors
 
-    @property
+    @abc.abstractproperty
     def has_errors(self):
         """Return True if Context contains errors, False otherwise"""
-        for error in self.errors:
-            return True
-        return False
 
 
 class Instance(set):
+    """Maintain a collection of nodes along with their configuration"""
+
     def __hash__(self):
+        """Instances are distinguished solely by their name
+
+        This is in contrast to Python sets in general which are mutable
+        and can thus not be part of another collection, such as lists
+        or other sets. Since we're collecting Instances within Context
+        they must be collectible and identifying them by name seems
+        appropriate.
+
+        """
+
         return hash(self.name)
 
     def __repr__(self):
-        """E.g. Instance('publish_model_SEL')"""
         return u"%s(%r)" % (type(self).__name__, self.__str__())
 
     def __str__(self):
-        """E.g. 'publish_model_SEL'"""
         return str(self.name)
 
     def __init__(self, name):

@@ -20,9 +20,9 @@ class ExtractModelAsMa(publish.abstract.Extractor):
 
     """
 
-    __families__ = ['model']
-    __hosts__ = ['maya']
-    __version__ = (0, 1, 0)
+    families = ['model']
+    hosts = ['maya']
+    version = (0, 1, 0)
 
     def process(self):
         family = self.instance.config.get('family')
