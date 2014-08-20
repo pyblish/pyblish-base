@@ -1,8 +1,11 @@
 """Tests to be run via mayapy"""
 
+import os
+
 import publish.main
 import publish.tests
 import publish.config
+import publish.domain
 import publish.abstract
 
 
@@ -19,6 +22,9 @@ class TestMayaPy(publish.tests.ModelPublishTestCase):
         self.assertEquals(self.cmds.getAttr('publish_SEL.family'),
                           'model')
 
+        workspace_definiton = os.path.join(self.root_path, 'workspace.mel')
+        self.assertTrue(os.path.exists(workspace_definiton))
+
     def test_publish_all(self):
         """Publish the only instance in the scene
 
@@ -32,21 +38,33 @@ class TestMayaPy(publish.tests.ModelPublishTestCase):
         """Test full interface for Publish"""
 
         # Parse selection
-        context = publish.main.select()
+        context = publish.domain.select()
         self.assertIsInstance(context, publish.abstract.Context)
 
         # Validate
-        publish.main.process('validators', context)
+        publish.domain.process('validators', context)
         self.assertEquals(context.errors, [])
 
         # Extract
-        publish.main.process('extractors', context)
+        publish.domain.process('extractors', context)
         self.assertEquals(context.errors, [])
 
         # Conform
         # ..note:: This doesn't do anything at the moment.
-        publish.main.process('conforms', context)
+        publish.domain.process('conforms', context)
         self.assertEquals(context.errors, [])
+
+    # def test_ui_separation(self):
+    #     """Getting and assigning plugins works
+
+    #     When running Publish via a UI, we'll need to find a method of
+    #     getting the plugins that will run upon each instance, and another
+    #     method of assigning those plugins by hand. The UI will need to
+    #     do this in order to visualise and allow users to modify them.
+
+    #     """
+
+    #     context = publish.domain.select()
 
 
 if __name__ == '__main__':

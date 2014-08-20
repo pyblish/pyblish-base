@@ -1,7 +1,11 @@
 import os
 import sys
+import logging
+import traceback
 
 import publish.abstract
+
+log = logging.getLogger('publish.domain')
 
 
 class Context(publish.abstract.Context):
@@ -61,3 +65,84 @@ def host():
 
     else:
         raise ValueError("Could not determine host")
+
+
+def select(context=None):
+    """Parse currently active scene and return Context
+
+    The context includes which nodes to extract along
+    with their configuration.
+
+    Returns:
+        Context: Fully qualified context object.
+
+    """
+
+    plugins = publish.plugin.discover(type='selectors')
+
+    context = context or publish.domain.Context()
+
+    for plugin in plugins:
+        if not publish.domain.host() in plugin.hosts:
+            continue
+
+        try:
+            log.info("Selecting with {plugin}".format(
+                plugin=plugin.__name__))
+            plugin(context).process()
+
+        except Exception:
+            log.error(traceback.format_exc())
+            log.error('An exception occured during the '
+                      'execution of plugin: {0}'.format(plugin))
+
+    return context
+
+
+def process(process, context):
+    """Perform process step `process` upon context `context`
+
+    Arguments:
+        process (str): Type of process to apply
+        context (Context): Context upon which to appy process
+
+    Example:
+        >>> ctx = publish.domain.Context()
+        >>> process('validators', ctx)
+        Context([])
+
+    """
+
+    assert isinstance(context, publish.domain.Context)
+
+    plugins = publish.plugin.discover(type=process)
+
+    for instance in context:
+        family = instance.config.get('family')
+
+        log.info("Processing {inst} ({family})".format(
+            inst=instance, family=family))
+
+        # Run tests for pre-defined host and family
+        for plugin in plugins:
+            if not publish.domain.host() in plugin.hosts:
+                continue
+
+            if not family in plugin.families:
+                continue
+
+            try:
+                log.info("{process} {instance} with {plugin}".format(
+                    process=process,
+                    instance=instance,
+                    plugin=plugin.__name__))
+                plugin(instance).process()
+            except Exception as exc:
+                log.error(traceback.format_exc())
+                log.error('An exception occured during the '
+                          'execution of plugin: {0}'.format(plugin))
+                exc.parent = instance
+                exc.traceback = traceback.format_exc()
+                instance.errors.append(exc)
+
+    return context

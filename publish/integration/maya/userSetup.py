@@ -28,9 +28,13 @@ cmds.menuItem('publishScene',
               label='Publish',
               insertAfter='publishOpeningDivider',
               command=lambda _: publish.main.publish_all())
+cmds.menuItem('validateScene',
+              label='Validate',
+              insertAfter='publishScene',
+              command=lambda _: publish.main.validate_all())
 cmds.menuItem('publishCloseDivider',
               divider=True,
-              insertAfter='publishScene')
+              insertAfter='validateScene')
 
     """
 
