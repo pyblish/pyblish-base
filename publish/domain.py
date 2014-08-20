@@ -80,7 +80,7 @@ def select(context=None):
 
     plugins = publish.plugin.discover(type='selectors')
 
-    context = context or publish.domain.Context()
+    context = context if not context is None else publish.domain.Context()
 
     for plugin in plugins:
         if not publish.domain.host() in plugin.hosts:

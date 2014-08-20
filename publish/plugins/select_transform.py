@@ -21,8 +21,6 @@ class SelectTransform(publish.abstract.Selector):
     hosts = ["maya"]
 
     def process(self):
-        context = publish.domain.Context()
-
         for transform in cmds.ls("*." + publish.config.identifier,
                                  objectsOnly=True,
                                  type='transform'):
@@ -43,6 +41,4 @@ class SelectTransform(publish.abstract.Selector):
 
                 instance.config[attr] = value
 
-            context.add(instance)
-
-        return context
+            self.context.add(instance)

@@ -51,10 +51,10 @@ class ModelPublishTestCase(BaseTestCase):
         self.fname = fname
         self.root_path = root_path
 
+        self.create_workspace_definition()
         mel.eval('setProject "{0}"'.format(
             root_path.replace("\\", "/")))
 
-        self.create_workspace_definition()
         self.create_scene()
 
     def tearDown(self):
@@ -118,6 +118,14 @@ class SelectTestCase(ModelPublishTestCase):
     One instance is an objectSet, and the other a transform.
 
     """
+
+    def setUp(self):
+        super(SelectTestCase, self).setUp()
+        package_dir = os.path.dirname(publish.__file__)
+        validators_path = os.path.join(package_dir, 'plugins')
+        validators_path = os.path.abspath(validators_path)
+
+        publish.plugin.register_plugin_path(validators_path)
 
     @property
     def description(self):

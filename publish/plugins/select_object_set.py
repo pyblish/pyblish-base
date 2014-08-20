@@ -17,9 +17,6 @@ class SelectObjectSet(publish.abstract.Selector):
     hosts = ["maya"]
 
     def process(self):
-
-        context = publish.domain.Context()
-
         for objset in cmds.ls("*." + publish.config.identifier,
                               objectsOnly=True,
                               type='objectSet'):
@@ -27,7 +24,13 @@ class SelectObjectSet(publish.abstract.Selector):
             instance = publish.domain.Instance(name=objset)
 
             for node in cmds.sets(objset, query=True):
-                instance.add(node)
+                if cmds.nodeType(node) == 'transform':
+                    descendents = cmds.listRelatives(node,
+                                                     allDescendents=True)
+                    for descendent in descendents:
+                        instance.add(node)
+                else:
+                    instance.add(node)
 
             attrs = cmds.listAttr(objset, userDefined=True)
             for attr in attrs:
@@ -41,6 +44,4 @@ class SelectObjectSet(publish.abstract.Selector):
 
                 instance.config[attr] = value
 
-            context.add(instance)
-
-        return context
+            self.context.add(instance)

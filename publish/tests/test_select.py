@@ -25,17 +25,15 @@ class TestMayaPy(publish.tests.SelectTestCase):
         self.assertEquals(objectset_family, 'model')
         self.assertEquals(transform_family, 'model')
 
-    # def test_select(self):
-    #     """Selecting all items in the scene works"""
-    #     ctx = publish.domain.Context()
-    #     publish.domain.select(ctx)
+    def test_select(self):
+        """Selecting all items in the scene works"""
+        ctx = publish.domain.Context()
+        publish.domain.select(ctx)
 
-    #     print ctx
+        # There will be 2 instances in this
+        # context - Hero_AST, and publish_SEL
+        self.assertEquals(len(ctx), 2)
 
-    #     # There will be 2 instances in this ctx
-    #     # Hero_AST, and publish_SEL
-    #     self.assertEquals(len(ctx), 2)
-
-    #     for instance in ctx:
-    #         name = instance.name
-    #         assert name == 'Hero_AST' or name == 'publish_SEL'
+        for instance in ctx:
+            name = instance.name
+            assert name == 'Hero_AST' or name == 'publish_SEL'
