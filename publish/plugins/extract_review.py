@@ -117,8 +117,6 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
 
         # Make one playblast per included camera
         try:
-            cmds.refresh(suspend=True)
-
             for camera in cameras:
                 self.log.info("Playblasting {camera}".format(camera=camera))
                 cmds.lookThru(playblast_panel, camera)
@@ -137,6 +135,8 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
 
         finally:
             # No matter what happens, always restore panels
+            cmds.refresh(suspend=True)
+
             self.log.info("Restoring panels")
             cmds.isolateSelect(playblast_panel, state=False)
 

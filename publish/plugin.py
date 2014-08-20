@@ -140,13 +140,15 @@ def _discover_type(type):
         raise ValueError("type not recognised: {0}".format(type))
 
 
+# Register included plugin path
+_package_dir = os.path.dirname(__file__)
+_validators_path = os.path.join(_package_dir, 'plugins')
+_validators_path = os.path.abspath(_validators_path)
+register_plugin_path(_validators_path)
+
+
 if __name__ == '__main__':
     logging.basicConfig()
-
-    _package_dir = os.path.dirname(publish.__file__)
-    _validators_path = os.path.join(_package_dir, 'plugins')
-    _validators_path = os.path.abspath(_validators_path)
-    register_plugin_path(_validators_path)
 
     # for plugin in discover('extractors'):
     for plugin in discover():
