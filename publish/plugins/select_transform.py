@@ -30,6 +30,8 @@ class SelectTransform(publish.abstract.Selector):
             instance = publish.domain.Instance(name=transform)
 
             instance.add(transform)
+            for child in cmds.listRelatives(transform, allDescendents=True):
+                    instance.add(child)
 
             attrs = cmds.listAttr(transform, userDefined=True)
             for attr in attrs:
