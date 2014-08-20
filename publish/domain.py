@@ -40,7 +40,7 @@ class Instance(publish.abstract.Instance):
     """
 
 
-def host():
+def current_host():
     """Return currently active host
 
     When running Publish from within a host, this function determines
@@ -48,10 +48,10 @@ def host():
 
     Example:
         >> # Running within Autodesk Maya
-        >> host()
+        >> current_host()
         'maya'
         >> # Running within Sidefx Houdini
-        >> host()
+        >> current_host()
         'houdini'
 
     """
@@ -80,10 +80,10 @@ def select(context=None):
 
     plugins = publish.plugin.discover(type='selectors')
 
-    context = context if not context is None else publish.domain.Context()
+    context = context if not context is None else Context()
 
     for plugin in plugins:
-        if not publish.domain.host() in plugin.hosts:
+        if not current_host() in plugin.hosts:
             continue
 
         try:
@@ -107,13 +107,13 @@ def process(process, context):
         context (Context): Context upon which to appy process
 
     Example:
-        >>> ctx = publish.domain.Context()
+        >>> ctx = Context()
         >>> process('validators', ctx)
         Context([])
 
     """
 
-    assert isinstance(context, publish.domain.Context)
+    assert isinstance(context, Context)
 
     plugins = publish.plugin.discover(type=process)
 
@@ -123,9 +123,11 @@ def process(process, context):
         log.info("Processing {inst} ({family})".format(
             inst=instance, family=family))
 
+        print "Processing instance %s with ID %s" % (instance.name, id(instance))
+
         # Run tests for pre-defined host and family
         for plugin in plugins:
-            if not publish.domain.host() in plugin.hosts:
+            if not current_host() in plugin.hosts:
                 continue
 
             if not family in plugin.families:

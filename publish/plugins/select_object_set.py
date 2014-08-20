@@ -17,6 +17,7 @@ class SelectObjectSet(publish.abstract.Selector):
     hosts = ["maya"]
 
     def process(self):
+
         for objset in cmds.ls("*." + publish.config.identifier,
                               objectsOnly=True,
                               type='objectSet'):
@@ -28,7 +29,7 @@ class SelectObjectSet(publish.abstract.Selector):
                     descendents = cmds.listRelatives(node,
                                                      allDescendents=True)
                     for descendent in descendents:
-                        instance.add(node)
+                        instance.add(descendent)
                 else:
                     instance.add(node)
 
@@ -40,6 +41,11 @@ class SelectObjectSet(publish.abstract.Selector):
                 try:
                     value = cmds.getAttr(objset + "." + attr)
                 except:
+                    continue
+
+                # Allow name to be overriden via attribute.
+                if attr == 'name':
+                    instance.name = value
                     continue
 
                 instance.config[attr] = value
