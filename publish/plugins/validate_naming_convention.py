@@ -20,7 +20,7 @@ class ValidateNamingConvention(publish.abstract.Validator):
     version = (0, 1, 0)
     hosts = ['maya']
 
-    pattern = re.compile("^\w+_\w{3}$")
+    pattern = re.compile("^\w+_\w{3}(Shape)?$")
 
     def process(self):
         """Allow nodes of appropriate names through
@@ -53,7 +53,7 @@ class ValidateNamingConvention(publish.abstract.Validator):
         if mismatches:
             msg = "The following nodes were misnamed\n"
             for node in mismatches:
-                msg += "\t{0}".format(node)
+                msg += "\t{0}\n".format(node)
 
             exc = ValueError(msg)
             exc.nodes = mismatches
