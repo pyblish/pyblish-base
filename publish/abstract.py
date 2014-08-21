@@ -37,8 +37,8 @@ class Filter(object):
         self.errors = list()
 
     @abc.abstractmethod
-    def process(self, instance):
-        pass
+    def process(self):
+        return None
 
 
 class Selector(object):
@@ -47,15 +47,21 @@ class Selector(object):
     Selectors operate on the context and injects it with
     discovered Instances.
 
+    Attributes:
+        hosts (list): List of strings for supported hosts e.g. Maya
+
     """
 
     __metaclass__ = abc.ABCMeta
 
     hosts = []
 
+    def __init__(self, context):
+        self.context = context
+
     @abc.abstractmethod
-    def process(self, instance):
-        pass
+    def process(self):
+        return None
 
 
 class Validator(Filter):
@@ -66,7 +72,7 @@ class Validator(Filter):
 
     """
 
-    def fix(self, instance):
+    def fix(self):
         """Optional auto-fix for when validation fails"""
 
 

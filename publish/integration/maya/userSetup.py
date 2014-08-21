@@ -28,13 +28,21 @@ cmds.menuItem('publishScene',
               label='Publish',
               insertAfter='publishOpeningDivider',
               command=lambda _: publish.main.publish_all())
+cmds.menuItem('validateScene',
+              label='Validate',
+              insertAfter='publishScene',
+              command=lambda _: publish.main.validate_all())
 cmds.menuItem('publishCloseDivider',
               divider=True,
-              insertAfter='publishScene')
+              insertAfter='validateScene')
 
     """
 
     cmds.evalDeferred(script)
 
 
-eval_append_to_filemenu()
+if hasattr(cmds, 'about') and not cmds.about(batch=True):
+    # If cmds doesn't have any members, we're most likely in an
+    # uninitialized batch-mode. It it does exists, ensure we
+    # really aren't in batch mode.
+    eval_append_to_filemenu()
