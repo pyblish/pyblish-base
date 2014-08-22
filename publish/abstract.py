@@ -22,9 +22,17 @@ class Filter(object):
 
     __metaclass__ = abc.ABCMeta
 
-    families = []
-    hosts = []
-    version = (0, 0, 0)
+    @abc.abstractproperty
+    def families(self):
+        return list()
+
+    @abc.abstractproperty
+    def hosts(self):
+        return list()
+
+    @abc.abstractproperty
+    def version(self):
+        return tuple()
 
     def __str__(self):
         return type(self).__name__
@@ -54,7 +62,13 @@ class Selector(object):
 
     __metaclass__ = abc.ABCMeta
 
-    hosts = []
+    @abc.abstractproperty
+    def hosts(self):
+        return list()
+
+    @abc.abstractproperty
+    def version(self):
+        return tuple()
 
     def __init__(self, context):
         self.context = context

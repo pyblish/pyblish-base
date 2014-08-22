@@ -82,19 +82,21 @@ def select(context=None):
 
     context = context if not context is None else Context()
 
-    for plugin in plugins:
+    for PluginClass in plugins:
+        plugin = PluginClass(context)
+
         if not current_host() in plugin.hosts:
             continue
 
         try:
             log.info("Selecting with {plugin}".format(
-                plugin=plugin.__name__))
-            plugin(context).process()
+                plugin=PluginClass.__name__))
+            plugin.process()
 
         except Exception:
             log.error(traceback.format_exc())
             log.error('An exception occured during the '
-                      'execution of plugin: {0}'.format(plugin))
+                      'execution of plugin: {0}'.format(PluginClass))
 
     return context
 
@@ -124,7 +126,9 @@ def process(process, context):
             inst=instance, family=family))
 
         # Run tests for pre-defined host and family
-        for plugin in plugins:
+        for PluginClass in plugins:
+            plugin = PluginClass(instance)
+
             if not current_host() in plugin.hosts:
                 continue
 
@@ -135,12 +139,12 @@ def process(process, context):
                 log.info("{process} {instance} with {plugin}".format(
                     process=process,
                     instance=instance,
-                    plugin=plugin.__name__))
-                plugin(instance).process()
+                    plugin=PluginClass.__name__))
+                plugin.process()
             except Exception as exc:
                 log.error(traceback.format_exc())
                 log.error('An exception occured during the '
-                          'execution of plugin: {0}'.format(plugin))
+                          'execution of plugin: {0}'.format(PluginClass))
                 exc.parent = instance
                 exc.traceback = traceback.format_exc()
                 instance.errors.append(exc)

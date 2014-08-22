@@ -18,7 +18,13 @@ class SelectTransform(publish.abstract.Selector):
 
     """
 
-    hosts = ["maya"]
+    @property
+    def hosts(self):
+        return ['maya']
+
+    @property
+    def version(self):
+        return (0, 1, 0)
 
     def process(self):
         for transform in cmds.ls("*." + publish.config.identifier,

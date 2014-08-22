@@ -11,9 +11,17 @@ class ValidateMutedChannels(publish.abstract.Validator):
 
     """
 
-    families = ['model']
-    version = (0, 1, 0)
-    hosts = ['maya']
+    @property
+    def families(self):
+        return ['model']
+
+    @property
+    def hosts(self):
+        return ['maya']
+
+    @property
+    def version(self):
+        return (0, 1, 0)
 
     def process(self):
         """Look for nodes of type 'mute'"""

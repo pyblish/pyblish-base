@@ -2,9 +2,18 @@ import publish.abstract
 
 
 class ValidateUniqueNames(publish.abstract.Validator):
-    families = ['model', 'animation', 'animRig']
-    version = (0, 1, 0)
-    hosts = ['maya']
+
+    @property
+    def families(self):
+        return ['model', 'animation', 'animRig']
+
+    @property
+    def hosts(self):
+        return ['maya']
+
+    @property
+    def version(self):
+        return (0, 1, 0)
 
     def process(self):
         pass
