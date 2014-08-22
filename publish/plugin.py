@@ -22,6 +22,7 @@ import logging
 import inspect
 
 # Local library
+import publish.config
 import publish.abstract
 
 __all__ = ['discover',
@@ -30,10 +31,10 @@ __all__ = ['discover',
            'deregister_all']
 
 patterns = {
-    'validators': r'^validate_.*\.py$',
-    'extractors': r'^extract_.*\.py$',
-    'selectors': r'^select_.*\.py$',
-    'conforms': r'^conform_.*\.py$'
+    'validators': publish.config.validators_regex,
+    'extractors': publish.config.extractors_regex,
+    'selectors': publish.config.selectors_regex,
+    'conforms': publish.config.conforms_regex
 }
 
 registered = set()
@@ -71,26 +72,31 @@ def deregister_all():
     registered.clear()
 
 
-def discover(type=None):
+def discover(type=None, regex=None):
     """Find plugins within registered plugin-paths
 
     Arguments:
         type (str): Only return plugins of specified type
-                    E.g. validators, extractors. In None is
-                    specified, return all plugins.
+            E.g. validators, extractors. In None is
+            specified, return all plugins.
+        regex (str): Limit results to those matching `regex`
+            Mathching is done on classes, as opposed to
+            filenames due to a file possibly hosting
+            multiple plugins.
 
     """
 
     if not type:
         plugins = list()
         for type in patterns.keys():
-            plugins.extend(_discover_type(type))
+            plugins.extend(_discover_type(type=type,
+                                          regex=regex))
         return plugins
     else:
-        return _discover_type(type)
+        return _discover_type(type=type, regex=regex)
 
 
-def _discover_type(type):
+def _discover_type(type, regex=None):
     """Return plugins of type `type`
 
     Helper method for the above function :func:discover()
@@ -100,10 +106,16 @@ def _discover_type(type):
     try:
         plugins = set()
 
+        paths = list(registered)
+
         # Accept paths added via Python and
         # paths via environment variable.
-        paths = list(registered)
-        paths += os.environ.get('PUBLISHPLUGINPATH', list())
+        env_var = publish.config.paths_environment_variable
+        env_val = os.environ.get(env_var)
+        if env_val:
+            print env_val
+            sep = ';' if os.name == 'nt' else ':'
+            paths.extend(env_val.split(sep))
 
         for path in paths:
             for fname in os.listdir(path):
@@ -122,17 +134,18 @@ def _discover_type(type):
                 if re.match(pattern, fname):
                     try:
                         module = imp.load_source(name, abspath)
-                    except ImportError as e:
+                    except (ImportError, IndentationError) as e:
                         log.warning('"{mod}": Skipped ({msg})'.format(
                             mod=name, msg=e))
                         continue
 
                     for name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj):
-                            if issubclass(obj, publish.abstract.Filter):
-                                plugins.add(obj)
-                            if issubclass(obj, publish.abstract.Selector):
-                                plugins.add(obj)
+                            if issubclass(obj, publish.abstract.Filter) or \
+                               issubclass(obj, publish.abstract.Selector):
+                                if regex is None or re.match(regex,
+                                                             obj.__name__):
+                                    plugins.add(obj)
 
         return plugins
 

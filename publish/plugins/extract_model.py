@@ -61,7 +61,7 @@ class ExtractModelAsMa(publish.abstract.Extractor):
     def commit(self, path, family):
         """Move to timestamped destination relative workspace"""
 
-        date = time.strftime(publish.config.dateFormat)
+        date = time.strftime(publish.config.date_format)
 
         workspace_dir = cmds.workspace(rootDirectory=True, query=True)
         if not workspace_dir:

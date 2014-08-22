@@ -1,10 +1,13 @@
 # Standard library
 import os
+import shutil
+import tempfile
 
 # Local library
 import publish
 import publish.tests
 import publish.plugin
+import publish.config
 
 
 class TestRegisterValidators(publish.tests.BaseTestCase):
@@ -44,7 +47,8 @@ class TestRegisterValidators(publish.tests.BaseTestCase):
         expected_validators = ['ValidateMutedChannels',
                                'ValidateUniqueNames',
                                'ValidateBlank1',
-                               'ValidateBlank2']
+                               'ValidateBlank2',
+                               'ValidateNamingConvention']
 
         # List available validators
         plugins = publish.plugin.discover(type='validators')
@@ -52,6 +56,53 @@ class TestRegisterValidators(publish.tests.BaseTestCase):
         for plugin in plugins:
             validator_name = plugin.__name__
             self.assertIn(validator_name, expected_validators)
+
+    def test_regex(self):
+        """Return only plugins matching the regex
+
+        Existing plugins:
+            - ValidateBlank1
+            - ValidateBlank2
+            - ...
+
+        """
+
+        plugins = publish.plugin.discover('validators', regex='.*Blank1')
+        plugin_names = [plugin.__name__ for plugin in plugins]
+        self.assertIn('ValidateBlank1', plugin_names)
+        self.assertNotIn('ValidateBlank2', plugin_names)
+
+    def test_environment_variable(self):
+        """Plugin is discovered when located on env path"""
+
+        try:
+            # Make a new path, and add a new plugin there.
+            plugin_path = tempfile.mkdtemp()
+            plugin_module = os.path.join(plugin_path, 'validate_test.py')
+
+            with open(plugin_module, 'w') as f:
+                f.write("""
+import publish.abstract
+class ValidateTest(publish.abstract.Validator):
+    pass
+    """)
+
+            self.assertTrue(os.path.exists(plugin_module))
+
+            env_var = publish.config.paths_environment_variable
+            os.environ[env_var] = plugin_path
+
+            plugins = list()
+            for plugin in publish.plugin.discover('validators'):
+                plugins.append(plugin.__name__)
+
+            self.assertIn('ValidateTest', plugins)
+
+            # Restore environment
+            os.environ.pop(env_var)
+
+        finally:
+            shutil.rmtree(plugin_path)
 
 
 if __name__ == '__main__':

@@ -30,4 +30,4 @@ def setup_log():
 
     return log
 
-setup_log()
+# setup_log()

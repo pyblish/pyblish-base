@@ -32,6 +32,7 @@ class TestMayaPy(publish.tests.ModelPublishTestCase):
 
         """
 
+        # Todo: How do we test the success of this?
         publish.main.publish_all()
 
     def test_interface(self):
@@ -40,6 +41,9 @@ class TestMayaPy(publish.tests.ModelPublishTestCase):
         # Parse selection
         context = publish.domain.select()
         self.assertIsInstance(context, publish.abstract.Context)
+
+        self.assertEquals(len(context), 1)
+        self.assertEqual(context.pop().name, 'publish_SEL')
 
         # Validate
         publish.domain.process('validators', context)

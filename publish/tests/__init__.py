@@ -127,6 +127,14 @@ class SelectTestCase(ModelPublishTestCase):
 
         publish.plugin.register_plugin_path(validators_path)
 
+        self.nodes = (
+            'Hero_AST',
+            'Villain_AST',
+            'hero_PLY',
+            'villain_PLY',
+            'publish_SEL'
+        )
+
     @property
     def description(self):
         return """

@@ -3,11 +3,11 @@
 import publish.main
 import publish.tests
 import publish.config
-import publish.abstract
 import publish.domain
+import publish.abstract
 
 
-class TestMayaPy(publish.tests.SelectTestCase):
+class TestSelection(publish.tests.SelectTestCase):
     def test_fixture(self):
         """Fixture contains the correct nodes"""
         for node in ('Hero_AST',
@@ -37,3 +37,13 @@ class TestMayaPy(publish.tests.SelectTestCase):
         for instance in ctx:
             name = instance.name
             assert name == 'Hero_AST' or name == 'publish_SEL'
+
+    # def test_naming_convention(self):
+    #     """The naming convention plugin is good for testing selection"""
+
+    #     ctx = publish.domain.Context()
+    #     publish.domain.select(ctx)
+    #     publish.domain.process_single(
+    #         'ValidateNamingConvention', ctx)
+
+    #     self.assertEqual(len(ctx.errors), 0)
