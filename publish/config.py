@@ -1,13 +1,14 @@
 """Publish configuration
 
-Configuration is copied into the users HOME directory
-upon first use.
-
 Usage:
     To alter the configuration of Publish to suit your needs,
-    simply modify your own copy located at <HOME>/.publish
+    simply create your own copy at <HOME>/.publish as a JSON-
+    formatted, plain-text file. E.g.
 
-    It is a JSON-formatted, plain-text file.
+    # .publish
+    {
+        "identifier": "MyIdentifier"
+    }
 
     Members of the configuration is then accessed via dot-
     notation.
@@ -16,12 +17,14 @@ Usage:
     >>> assert publish.config.identifier == 'publishable'
 
 Attributes:
-    identifier: How to distinguish between publishable instances
-    prefix: Relative root-directory for extracted instances
-    date_format: Format with which to date extracted instances
+    Attributes present within the config.json file:
+
+    identifier:     How to distinguish between publishable instances
+    prefix:         Relative root-directory for extracted instances
+    date_format:    Format with which to date extracted instances
     paths_environment_variable: Which variable to look for added
         plugin paths.
-    *_regex: Regular expression for finding the various plugins.
+    *_regex:        Regular expression for finding the various plugins.
 
 """
 
