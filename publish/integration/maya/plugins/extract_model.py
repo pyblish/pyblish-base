@@ -4,13 +4,13 @@ import shutil
 import tempfile
 
 import publish.lib
-import publish.abstract
+import publish.plugin
 
 from maya import cmds
 
 
 @publish.lib.log
-class ExtractModelAsMa(publish.abstract.Extractor):
+class ExtractModelAsMa(publish.plugin.Extractor):
     """Extract family members of Model in Maya ASCII
 
     Attributes:
@@ -20,35 +20,34 @@ class ExtractModelAsMa(publish.abstract.Extractor):
 
     """
 
-    @property
-    def families(self):
-        return ['model']
+    families = ['model']
+    hosts = ['maya']
+    version = (0, 1, 0)
 
-    @property
-    def hosts(self):
-        return ['maya']
+    def process(self, context):
+        """Returns list of value and exception"""
 
-    @property
-    def version(self):
-        return (0, 1, 0)
-
-    def process(self):
-        for instance in self.instances:
+        for instance in context:
             family = instance.config.get('family')
 
             temp_dir = tempfile.mkdtemp()
             temp_file = os.path.join(temp_dir, 'publish')
 
-            self.log.info("_extract_model: Extracting locally..")
+            self.log.info("Extracting locally..")
             previous_selection = cmds.ls(selection=True)
             cmds.select(list(instance), replace=True)
             cmds.file(temp_file, type='mayaBinary', exportSelected=True)
 
-            self.log.info("_extract_model: Moving extraction "
-                          "relative working file..")
+            self.log.info("Moving extraction relative working file..")
             output = self.commit(path=temp_dir, family=family)
 
-            self.log.info("_extract_model: Clearing local cache..")
+            # Record where instance was extracted
+            if not hasattr(instance, 'output_paths'):
+                instance.output_paths = list()
+
+            instance.output_paths.append(output)
+
+            self.log.info("Clearing local cache..")
             shutil.rmtree(temp_dir)
 
             if previous_selection:
@@ -56,8 +55,9 @@ class ExtractModelAsMa(publish.abstract.Extractor):
             else:
                 cmds.select(deselect=True)
 
-            self.log.info("_extract_model: Extraction successful!")
-            return output
+            self.log.info("Extraction successful.")
+
+            yield instance, None  # Value, Exception
 
     def commit(self, path, family):
         """Move to timestamped destination relative workspace"""

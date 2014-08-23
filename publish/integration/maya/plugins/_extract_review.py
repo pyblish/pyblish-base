@@ -4,13 +4,13 @@ import shutil
 import tempfile
 
 import publish.lib
-import publish.abstract
+import publish.plugin
 
 from maya import cmds
 
 
 @publish.lib.log
-class ExtractReviewAsPng(publish.abstract.Extractor):
+class ExtractReviewAsPng(publish.plugin.Extractor):
     """Extract family members as image-sequence (png)
 
     Some things are lacking; including setting shaded state
@@ -31,17 +31,9 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
 
     """
 
-    @property
-    def families(self):
-        return ['review']
-
-    @property
-    def hosts(self):
-        return ['maya']
-
-    @property
-    def version(self):
-        return (0, 1, 0)
+    families = ['review']
+    hosts = ['maya']
+    version = (0, 1, 0)
 
     def process(self):
         """Extracting a playblast is quite involved.
