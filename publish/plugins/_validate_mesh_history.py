@@ -4,18 +4,21 @@ import pymel.core as pm
 
 
 class ValidateMeshHistory(publish.abstract.Validator):
-    """ Check meshes for construction history
+    """Check meshes for construction history"""
 
-    """
+    @property
+    def families(self):
+        return ['model']
 
-    families = ['model']
-    version = (0, 1, 0)
-    hosts = ['maya']
+    @property
+    def hosts(self):
+        return ['maya']
+
+    @property
+    def version(self):
+        return (0, 1, 0)
 
     def process(self):
-        """
-        """
-
         for node in self.instance:
             node = pm.PyNode(node)
             if node.inMesh.listConnections():

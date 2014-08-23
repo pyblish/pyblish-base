@@ -16,9 +16,17 @@ class ValidateNamingConvention(publish.abstract.Validator):
 
     """
 
-    families = ['model', 'animation', 'animRig']
-    version = (0, 1, 0)
-    hosts = ['maya']
+    @property
+    def families(self):
+        return ['model', 'animation', 'animRig']
+
+    @property
+    def hosts(self):
+        return ['maya']
+
+    @property
+    def version(self):
+        return (0, 1, 0)
 
     pattern = re.compile("^\w+_\w{3}(Shape)?$")
 
@@ -47,6 +55,7 @@ class ValidateNamingConvention(publish.abstract.Validator):
 
         mismatches = list()
         for node in self.instance:
+            print "node %r" % node
             if not self.pattern.match(node):
                 mismatches.append(node)
 

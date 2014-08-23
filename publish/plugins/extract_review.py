@@ -31,9 +31,17 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
 
     """
 
-    families = ['review']
-    hosts = ['maya']
-    version = (0, 1, 0)
+    @property
+    def families(self):
+        return ['review']
+
+    @property
+    def hosts(self):
+        return ['maya']
+
+    @property
+    def version(self):
+        return (0, 1, 0)
 
     def process(self):
         """Extracting a playblast is quite involved.

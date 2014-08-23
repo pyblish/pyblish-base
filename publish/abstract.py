@@ -13,18 +13,24 @@ class Filter(object):
     order whilst still producing identical results. The same goes
     for Extractors.
 
-    Attributes:
-        families (list): List of strings with all supported families e.g. Model
-        hosts (list): List of strings for supported hosts e.g. Maya
-        version (tuple): Version of plugin, used for conflict resolution.
-
     """
 
     __metaclass__ = abc.ABCMeta
 
-    families = []
-    hosts = []
-    version = (0, 0, 0)
+    @abc.abstractproperty
+    def families(self):
+        """Return list of supported families, e.g. 'model'"""
+        return list()
+
+    @abc.abstractproperty
+    def hosts(self):
+        """Return list of supported hosts, e.g. 'maya'"""
+        return list()
+
+    @abc.abstractproperty
+    def version(self):
+        """Return tuple of version, e.g. (1, 3, 14)"""
+        return (0, 0, 0)
 
     def __str__(self):
         return type(self).__name__
@@ -54,7 +60,13 @@ class Selector(object):
 
     __metaclass__ = abc.ABCMeta
 
-    hosts = []
+    @abc.abstractproperty
+    def hosts(self):
+        return list()
+
+    @abc.abstractproperty
+    def version(self):
+        return tuple()
 
     def __init__(self, context):
         self.context = context

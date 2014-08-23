@@ -1,9 +1,11 @@
-import publish.abstract
+import publish.lib
 import publish.config
+import publish.abstract
 
 import maya.cmds as cmds
 
 
+@publish.lib.log
 class SelectObjectSet(publish.abstract.Selector):
     """Select instances of node-type 'transform'
 
@@ -14,7 +16,13 @@ class SelectObjectSet(publish.abstract.Selector):
 
     """
 
-    hosts = ["maya"]
+    @property
+    def hosts(self):
+        return ['maya']
+
+    @property
+    def version(self):
+        return (0, 1, 0)
 
     def process(self):
 
@@ -23,6 +31,7 @@ class SelectObjectSet(publish.abstract.Selector):
                               type='objectSet'):
 
             instance = publish.domain.Instance(name=objset)
+            self.log.info("Adding instance: {0}".format(objset))
 
             for node in cmds.sets(objset, query=True):
                 if cmds.nodeType(node) == 'transform':
