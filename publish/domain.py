@@ -127,7 +127,7 @@ def process(process, context):
 
         # Run tests for pre-defined host and family
         for PluginClass in plugins:
-            plugin = PluginClass(instance)
+            plugin = PluginClass(context)
 
             if not current_host() in plugin.hosts:
                 continue

@@ -18,11 +18,6 @@ class Filter(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractproperty
-    def families(self):
-        """Return list of supported families, e.g. 'model'"""
-        return list()
-
-    @abc.abstractproperty
     def hosts(self):
         """Return list of supported hosts, e.g. 'maya'"""
         return list()
@@ -38,16 +33,24 @@ class Filter(object):
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
 
-    def __init__(self, instance):
-        self.instance = instance
+    def __init__(self, context):
+        self.context = context
         self.errors = list()
 
     @abc.abstractmethod
     def process(self):
         return None
 
+    @property
+    def instances(self):
+        result = []
+        for instance in self.context:
+            if instance.config.get('family') in self.families:
+                result.append(instance)
+        return result
 
-class Selector(object):
+
+class Selector(Filter):
     """Parse a given working scene for available Instances.
 
     Selectors operate on the context and injects it with
@@ -58,23 +61,6 @@ class Selector(object):
 
     """
 
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractproperty
-    def hosts(self):
-        return list()
-
-    @abc.abstractproperty
-    def version(self):
-        return tuple()
-
-    def __init__(self, context):
-        self.context = context
-
-    @abc.abstractmethod
-    def process(self):
-        return None
-
 
 class Validator(Filter):
     """Validate/check/test individual instance for correctness.
@@ -83,6 +69,11 @@ class Validator(Filter):
     or does nothing; indicating success.
 
     """
+
+    @abc.abstractproperty
+    def families(self):
+        """Return list of supported families, e.g. 'model'"""
+        return list()
 
     def fix(self):
         """Optional auto-fix for when validation fails"""
@@ -95,6 +86,11 @@ class Extractor(Filter):
     the corresponding files on disk.
 
     """
+
+    @abc.abstractproperty
+    def families(self):
+        """Return list of supported families, e.g. 'model'"""
+        return list()
 
 
 class Context(set):
