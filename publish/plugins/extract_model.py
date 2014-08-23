@@ -33,30 +33,31 @@ class ExtractModelAsMa(publish.abstract.Extractor):
         return (0, 1, 0)
 
     def process(self):
-        family = self.instance.config.get('family')
+        for instance in self.instances:
+            family = instance.config.get('family')
 
-        temp_dir = tempfile.mkdtemp()
-        temp_file = os.path.join(temp_dir, 'publish')
+            temp_dir = tempfile.mkdtemp()
+            temp_file = os.path.join(temp_dir, 'publish')
 
-        self.log.info("_extract_model: Extracting locally..")
-        previous_selection = cmds.ls(selection=True)
-        cmds.select(list(self.instance), replace=True)
-        cmds.file(temp_file, type='mayaBinary', exportSelected=True)
+            self.log.info("_extract_model: Extracting locally..")
+            previous_selection = cmds.ls(selection=True)
+            cmds.select(list(instance), replace=True)
+            cmds.file(temp_file, type='mayaBinary', exportSelected=True)
 
-        self.log.info("_extract_model: Moving extraction "
-                      "relative working file..")
-        output = self.commit(path=temp_dir, family=family)
+            self.log.info("_extract_model: Moving extraction "
+                          "relative working file..")
+            output = self.commit(path=temp_dir, family=family)
 
-        self.log.info("_extract_model: Clearing local cache..")
-        shutil.rmtree(temp_dir)
+            self.log.info("_extract_model: Clearing local cache..")
+            shutil.rmtree(temp_dir)
 
-        if previous_selection:
-            cmds.select(previous_selection, replace=True)
-        else:
-            cmds.select(deselect=True)
+            if previous_selection:
+                cmds.select(previous_selection, replace=True)
+            else:
+                cmds.select(deselect=True)
 
-        self.log.info("_extract_model: Extraction successful!")
-        return output
+            self.log.info("_extract_model: Extraction successful!")
+            return output
 
     def commit(self, path, family):
         """Move to timestamped destination relative workspace"""
