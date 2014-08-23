@@ -33,7 +33,7 @@ class ExtractModelAsMa(publish.abstract.Extractor):
         return (0, 1, 0)
 
     def process(self):
-        for instance in self.instances():
+        for instance in self.instances:
             family = instance.config.get('family')
 
             temp_dir = tempfile.mkdtemp()

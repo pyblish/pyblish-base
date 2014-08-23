@@ -46,6 +46,7 @@ class Filter(object):
     def process(self):
         return None
 
+    @property
     def instances(self):
         result = []
         for instance in self.context:

@@ -54,7 +54,7 @@ class ValidateNamingConvention(publish.abstract.Validator):
         """
 
         mismatches = list()
-        for instance in self.instances():
+        for instance in self.instances:
             for node in instance:
                 print "node %r" % node
                 if not self.pattern.match(node):

@@ -64,7 +64,7 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
 
         # Get cameras
         cameras = list()
-        for instance in self.instances():
+        for instance in self.instances:
             for node in instance:
                 self.log.debug("Looking for camera: {0}".format(node))
 
@@ -84,7 +84,7 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
         if not cameras:
             self.log.info("No cameras found..")
             raise ValueError("No cameras found for Review '{0}'".format(
-                self.instances().name))
+                self.instances.name))
 
         # Setup panel
         previous_panel = cmds.getPanel(withFocus=True)
@@ -102,7 +102,7 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
         cmds.panel(previous_panel, edit=True, replacePanel=playblast_panel)
 
         # Establish configuration
-        for instance in self.instances():
+        for instance in self.instances:
 
             config = instance.config
 
