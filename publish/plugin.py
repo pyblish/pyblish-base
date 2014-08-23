@@ -10,22 +10,31 @@ with "validate_" and ends with ".py"
 
 Attributes:
     patterns: Regular expressions used for lookup of plugins.
-    registered: Set of all registered plugin-paths
+    registered_paths: Set of all registered_paths plugin-paths
 
 """
 
 # Standard library
 import os
 import re
+import sys
 import imp
+import abc
 import logging
 import inspect
 
 # Local library
 import publish.config
-import publish.abstract
+import publish.plugin
 
-__all__ = ['discover',
+__all__ = ['Filter',
+           'Selector',
+           'Validator',
+           'Extractor',
+           'Conform',
+           'Context',
+           'Instance',
+           'discover',
            'register_plugin_path',
            'deregister_plugin_path',
            'deregister_all']
@@ -37,9 +46,150 @@ patterns = {
     'conforms': publish.config.conforms_regex
 }
 
-registered = set()
+registered_paths = set()
 
 log = logging.getLogger('publish.plugin')
+
+
+class Filter(object):
+    """Abstract base-class for sequential plugins
+
+    Sequential plugins are those that takes as input what it gives
+    as output and may thus be arranged in any arbitrary order.
+
+    E.g. Validators are filters. Validators may get executed in any
+    order whilst still producing identical results. The same goes
+    for Extractors.
+
+    """
+
+    __metaclass__ = abc.ABCMeta
+
+    families = list()
+    hosts = list()
+    version = (0, 0, 0)
+
+    def __str__(self):
+        return type(self).__name__
+
+    def __repr__(self):
+        return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
+
+    def __init__(self):
+        self.errors = list()
+
+    @abc.abstractmethod
+    def process(self, context):
+        """Perform processing upon context `context`
+
+        Returns:
+            Generator, yielding per instance
+
+        Yields:
+            Tuple of return value and exception (if any)
+
+        """
+
+        yield None, None
+
+
+class Selector(Filter):
+    """Parse a given working scene for available Instances"""
+
+
+class Validator(Filter):
+    """Validate/check/test individual instance for correctness.
+
+    Raises exception upon failure.
+
+    """
+
+    def fix(self):
+        """Optional auto-fix for when validation fails"""
+
+
+class Extractor(Filter):
+    """Physically separate Instance from Host into corresponding Resources
+
+    Yields:
+        (Instance, Exception): Output path and exception
+
+    """
+
+
+class Conform(Filter):
+    pass
+
+
+class Context(set):
+    """Maintain a collection of Instances"""
+
+
+class Instance(set):
+    """An individually publishable component within scene
+
+    Examples include rigs, models.
+
+    Attributes:
+        name (str): Name of instance, used in plugins
+        config (dict): Full configuration, as recorded onto objectSet.
+
+    """
+    def __hash__(self):
+        """Instances are distinguished solely by their name
+
+        This is in contrast to Python sets in general which are mutable
+        and can thus not be part of another collection, such as lists
+        or other sets. Since we're collecting Instances within Context
+        they must be collectible and identifying them by name seems
+        appropriate.
+
+        """
+
+        return hash(self.name)
+
+    def __repr__(self):
+        return u"%s(%r)" % (type(self).__name__, self.__str__())
+
+    def __str__(self):
+        return str(self.name)
+
+    def __init__(self, name):
+        super(Instance, self).__init__()
+        self.name = name
+        self.config = dict()
+
+
+def current_host():
+    """Return currently active host
+
+    When running Publish from within a host, this function determines
+    which host is running and returns the equivalent keyword.
+
+    Example:
+        >> # Running within Autodesk Maya
+        >> host()
+        'maya'
+        >> # Running within Sidefx Houdini
+        >> current_host()
+        'houdini'
+
+    """
+
+    executable = os.path.basename(sys.executable)
+
+    if 'python' in executable:
+        # Running from standalone Python
+        return 'python'
+
+    if 'maya' in executable:
+        # Maya is distinguished by looking at the currently running
+        # executable of the Python interpreter. It will be something
+        # like: "maya.exe" or "mayapy.exe"; without suffix for
+        # posix platforms.
+        return 'maya'
+
+    raise ValueError("Could not determine host")
 
 
 def register_plugin_path(path):
@@ -53,27 +203,27 @@ def register_plugin_path(path):
         >>> register_plugin_path(my_plugins)
 
     """
-    registered.add(path)
+    registered_paths.add(path)
 
 
 def deregister_plugin_path(path):
-    """Remove a registered path
+    """Remove a registered_paths path
 
     Raises:
         KeyError if `path` isn't registered
 
     """
 
-    registered.remove(path)
+    registered_paths.remove(path)
 
 
 def deregister_all():
     """Mainly used in tests"""
-    registered.clear()
+    registered_paths.clear()
 
 
-def discover(type=None, regex=None):
-    """Find plugins within registered plugin-paths
+def discover(type=None, regex=None, context=None):
+    """Find plugins within registered_paths plugin-paths
 
     Arguments:
         type (str): Only return plugins of specified type
@@ -83,17 +233,50 @@ def discover(type=None, regex=None):
             Mathching is done on classes, as opposed to
             filenames due to a file possibly hosting
             multiple plugins.
+        context (Context): Only return plugins compatible
+            with specified context.
 
     """
 
-    if not type:
-        plugins = list()
-        for type in patterns.keys():
-            plugins.extend(_discover_type(type=type,
-                                          regex=regex))
-        return plugins
+    if type is not None:
+        types = [type]
     else:
-        return _discover_type(type=type, regex=regex)
+        # If no type is specified,
+        # discover all plugins
+        types = patterns.keys()
+
+    plugins = list()
+    for type in types:
+        plugins.extend(_discover_type(type=type,
+                                      regex=regex))
+
+    return plugins
+
+
+def filter_by_instance(instance, plugins):
+    """Return plugins matching an instance's criteria
+
+    Arguments:
+        instance (Instance): Instance with which to filter against
+        plugins (list): List of plugins
+
+    Returns:
+        List of non-instantiated plugins.
+
+    """
+
+    plugins = list()
+
+    for plugin in plugins:
+        if instance.config.get('family') not in plugin.families:
+            continue
+
+        if instance.config.get('host') not in plugin.hosts:
+            continue
+
+        plugins.append(plugin)
+
+    return plugins
 
 
 def _discover_type(type, regex=None):
@@ -106,14 +289,13 @@ def _discover_type(type, regex=None):
     try:
         plugins = set()
 
-        paths = list(registered)
+        paths = list(registered_paths)
 
         # Accept paths added via Python and
         # paths via environment variable.
         env_var = publish.config.paths_environment_variable
         env_val = os.environ.get(env_var)
         if env_val:
-            print env_val
             sep = ';' if os.name == 'nt' else ':'
             paths.extend(env_val.split(sep))
 
@@ -141,8 +323,8 @@ def _discover_type(type, regex=None):
 
                     for name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj):
-                            if issubclass(obj, publish.abstract.Filter) or \
-                               issubclass(obj, publish.abstract.Selector):
+                            if issubclass(obj, publish.plugin.Filter) or \
+                               issubclass(obj, publish.plugin.Selector):
                                 if regex is None or re.match(regex,
                                                              obj.__name__):
                                     plugins.add(obj)

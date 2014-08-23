@@ -33,13 +33,11 @@ import sys
 import json
 import logging
 
-import publish
-
 log = logging.getLogger('publish.config')
 
 # Look for configuration in users HOME
 home_dir = os.path.expanduser('~')
-package_dir = os.path.dirname(publish.__file__)
+package_dir = os.path.dirname(__file__)
 
 user_config_path = os.path.join(home_dir, '.publish')
 default_config_path = os.path.join(package_dir, 'config.json')

@@ -1,6 +1,21 @@
+# Standard library
+import os
 
+# Publish libraries
+import publish.plugin
+
+# Host libraries
 from maya import mel
 from maya import cmds
+
+
+# Register accompanying plugins
+plugin_path = os.path.join(
+    os.path.dirname(
+        publish.plugin.__file__), 'integration', 'maya', 'plugins')
+
+publish.plugin.register_plugin_path(plugin_path)
+print "Registered %s" % plugin_path
 
 
 def eval_append_to_filemenu():

@@ -6,67 +6,79 @@ import logging
 # Local library
 import publish.plugin
 import publish.config
-import publish.domain
 
 log = logging.getLogger('publish')
 
 
+def process(process, context):
+    """Perform process step `process` upon context `context`
+
+    Arguments:
+        process (str): Type of process to apply
+        context (Context): Context upon which to appy process
+
+    Example:
+        >>> import publish.plugin
+        >>> ctx = publish.plugin.Context()
+        >>> inst = publish.plugin.Instance('MyInstance')
+        >>> inst.add('MyItem')
+        >>> ctx.add(inst)
+        >>> process('validators', ctx)
+        Context([Instance('MyInstance')])
+
+    """
+
+    assert isinstance(process, basestring)
+    assert isinstance(context, publish.plugin.Context)
+
+    for plugin in publish.plugin.discover(type=process):
+        if not publish.plugin.current_host() in plugin.hosts:
+            continue
+
+        log.info("Applying {process} using {plugin}".format(
+            process=process,
+            plugin=plugin.__name__))
+        plugin().process(context)
+
+    return context
+
+
+def select(context):
+    return process(context, 'selectors')
+
+
+def validate(context):
+    return process(context, 'validators')
+
+
+def extract(context):
+    return process(context, 'extractors')
+
+
+def conform(context):
+    return process(context, 'conforms')
+
+
 def publish_all():
-    """Convenience function of the above"""
+    context = publish.plugin.Context()
 
-    # parse context
-    context = publish.domain.select()
+    select(context)
+    validate(context)
+    extract(context)
+    conform(context)
 
-    if not context:
-        log.info("No instances found")
-        return
-
-    # Validate
-    publish.domain.process('validators', context)
-
-    if context.has_errors:
-        log.error("There were ({n}) errors "
-                  "during validation:".format(n=len(context.errors)))
-
-        for error in context.errors:
-            log.error("({n}): {error}".format(
-                n=context.errors.index(error) + 1,
-                error=error))
-        return
-
-    # Extract
-    publish.domain.process('extractors', context)
-
-    if context.has_errors:
-        log.error("There were ({n}) errors "
-                  "during extraction:".format(n=len(context.errors)))
-
-        for error in context.errors:
-            log.error("({n}): {error}".format(
-                n=context.errors.index(error) + 1,
-                error=error))
+    return context
 
 
 def validate_all():
-    """Convenience function for selecting and validating"""
-    # parse context
-    context = publish.domain.select()
+    context = publish.plugin.Context()
 
-    if not context:
-        log.info("No instances found")
-        return
+    select(context)
+    validate(context)
 
-    # Validate
-    publish.domain.process('validators', context)
+    return context
 
-    if context.has_errors:
-        log.error("There were ({n}) errors "
-                  "during validation:".format(n=len(context.errors)))
 
-        for error in context.errors:
-            log.error("({n}): {error}".format(
-                n=context.errors.index(error) + 1,
-                error=error))
-        return
-
-    log.info("Passed")
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

@@ -1,9 +1,9 @@
-import publish.abstract
+import publish.plugin
 
 import pymel.core as pm
 
 
-class ValidateMeshHistory(publish.abstract.Validator):
+class ValidateMeshHistory(publish.plugin.Validator):
     """Check meshes for construction history"""
 
     @property

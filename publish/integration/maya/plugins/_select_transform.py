@@ -1,10 +1,10 @@
-import publish.abstract
+import publish.plugin
 import publish.config
 
 import maya.cmds as cmds
 
 
-class SelectTransform(publish.abstract.Selector):
+class SelectTransform(publish.plugin.Selector):
     """Select instances of node-type 'transform'
 
     Opens up the doors for nested instances.

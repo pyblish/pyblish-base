@@ -1,7 +1,7 @@
-import publish.abstract
+import publish.plugin
 
 
-class ValidateUniqueNames(publish.abstract.Validator):
+class ValidateUniqueNames(publish.plugin.Validator):
 
     @property
     def families(self):

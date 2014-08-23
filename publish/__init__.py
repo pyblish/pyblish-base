@@ -29,5 +29,3 @@ def setup_log():
     log.addHandler(stream_handler)
 
     return log
-
-# setup_log()
