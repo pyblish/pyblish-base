@@ -64,26 +64,27 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
 
         # Get cameras
         cameras = list()
-        for node in self.instance:
-            self.log.debug("Looking for camera: {0}".format(node))
+        for instance in self.instances():
+            for node in instance:
+                self.log.debug("Looking for camera: {0}".format(node))
 
-            test_node = node
-            if cmds.nodeType(test_node) == 'transform':
-                try:
-                    test_node = cmds.listRelatives(node, shapes=True)[0]
-                except TypeError:
-                    # listRelatives returns None if no items are found
-                    # which causes a TypeError, as opposed to an IndexError
-                    # which is normally the case on empty lists.
-                    continue
+                test_node = node
+                if cmds.nodeType(test_node) == 'transform':
+                    try:
+                        test_node = cmds.listRelatives(node, shapes=True)[0]
+                    except TypeError:
+                        # listRelatives returns None if no items are found
+                        # which causes a TypeError, as opposed to an IndexError
+                        # which is normally the case on empty lists.
+                        continue
 
-            if cmds.nodeType(test_node) == 'camera':
-                cameras.append(node)
+                if cmds.nodeType(test_node) == 'camera':
+                    cameras.append(node)
 
         if not cameras:
             self.log.info("No cameras found..")
             raise ValueError("No cameras found for Review '{0}'".format(
-                self.instance.name))
+                self.instances().name))
 
         # Setup panel
         previous_panel = cmds.getPanel(withFocus=True)
@@ -101,66 +102,68 @@ class ExtractReviewAsPng(publish.abstract.Extractor):
         cmds.panel(previous_panel, edit=True, replacePanel=playblast_panel)
 
         # Establish configuration
-        config = self.instance.config
+        for instance in self.instances():
 
-        min_time = cmds.playbackOptions(minTime=True, query=True)
-        max_time = cmds.playbackOptions(maxTime=True, query=True)
-        default_width = cmds.getAttr('defaultResolution.width')
-        default_height = cmds.getAttr('defaultResolution.height')
+            config = instance.config
 
-        playblast_kwargs = {
-            'percent': 100,
-            'quality': 100,
-            'offScreen': True,
-            'viewer': False,
-            'startTime': config.get('startFrame', min_time),
-            'endTime': config.get('endFrame', max_time),
-            'format': config.get('format', 'image'),
-            'width': config.get('width', default_width),
-            'height': config.get('height', default_height),
-            'compression': config.get('compression', 'png')
-        }
+            min_time = cmds.playbackOptions(minTime=True, query=True)
+            max_time = cmds.playbackOptions(maxTime=True, query=True)
+            default_width = cmds.getAttr('defaultResolution.width')
+            default_height = cmds.getAttr('defaultResolution.height')
 
-        self.log.info("Configuration: {0}".format(playblast_kwargs))
+            playblast_kwargs = {
+                'percent': 100,
+                'quality': 100,
+                'offScreen': True,
+                'viewer': False,
+                'startTime': config.get('startFrame', min_time),
+                'endTime': config.get('endFrame', max_time),
+                'format': config.get('format', 'image'),
+                'width': config.get('width', default_width),
+                'height': config.get('height', default_height),
+                'compression': config.get('compression', 'png')
+            }
 
-        # Make one playblast per included camera
-        try:
-            for camera in cameras:
-                self.log.info("Playblasting {camera}".format(camera=camera))
-                cmds.lookThru(playblast_panel, camera)
+            self.log.info("Configuration: {0}".format(playblast_kwargs))
 
-                cmds.isolateSelect(playblast_panel, state=True)
+            # Make one playblast per included camera
+            try:
+                for camera in cameras:
+                    self.log.info("Playblasting {camera}".format(camera=camera))
+                    cmds.lookThru(playblast_panel, camera)
 
-                for obj in self.instance:
-                    cmds.isolateSelect(playblast_panel, addDagObject=obj)
+                    cmds.isolateSelect(playblast_panel, state=True)
 
-                temp_file = os.path.join(temp_dir, camera, camera)
-                playblast_kwargs['filename'] = temp_file
+                    for obj in instance:
+                        cmds.isolateSelect(playblast_panel, addDagObject=obj)
 
-                self.log.info("Running playblast..")
-                cmds.playblast(**playblast_kwargs)  # Do not open player
-                self.log.info("Completed at {0}".format(temp_file))
+                    temp_file = os.path.join(temp_dir, camera, camera)
+                    playblast_kwargs['filename'] = temp_file
 
-        finally:
-            # No matter what happens, always restore panels
-            cmds.refresh(suspend=True)
+                    self.log.info("Running playblast..")
+                    cmds.playblast(**playblast_kwargs)  # Do not open player
+                    self.log.info("Completed at {0}".format(temp_file))
 
-            self.log.info("Restoring panels")
-            cmds.isolateSelect(playblast_panel, state=False)
+            finally:
+                # No matter what happens, always restore panels
+                cmds.refresh(suspend=True)
 
-            if previous_camera:
-                cmds.lookThru(playblast_panel, previous_camera)
+                self.log.info("Restoring panels")
+                cmds.isolateSelect(playblast_panel, state=False)
 
-            cmds.panel(playblast_panel, edit=True, replacePanel=previous_panel)
-            cmds.refresh(suspend=False)
+                if previous_camera:
+                    cmds.lookThru(playblast_panel, previous_camera)
 
-        # Move temporary files to directory relative the
-        # current working file.
-        family = self.instance.config.get('family')
+                cmds.panel(playblast_panel, edit=True, replacePanel=previous_panel)
+                cmds.refresh(suspend=False)
 
-        self.commit(temp_dir, family=family)
-        self.log.info("_extract_model: Clearing local cache..")
-        shutil.rmtree(temp_dir)
+            # Move temporary files to directory relative the
+            # current working file.
+            family = instance.config.get('family')
+
+            self.commit(temp_dir, family=family)
+            self.log.info("_extract_model: Clearing local cache..")
+            shutil.rmtree(temp_dir)
 
     def commit(self, path, family):
         """Move to timestamped destination relative workspace"""

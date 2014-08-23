@@ -38,16 +38,23 @@ class Filter(object):
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
 
-    def __init__(self, instance):
-        self.instance = instance
+    def __init__(self, context):
+        self.context = context
         self.errors = list()
 
     @abc.abstractmethod
     def process(self):
         return None
 
+    def instances(self):
+        result = []
+        for instance in self.context:
+            if instance.config.get('family') in self.families:
+                result.append(instance)
+        return result
 
-class Selector(object):
+
+class Selector(Filter):
     """Parse a given working scene for available Instances.
 
     Selectors operate on the context and injects it with
@@ -58,21 +65,8 @@ class Selector(object):
 
     """
 
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractproperty
-    def hosts(self):
-        return list()
-
-    @abc.abstractproperty
-    def version(self):
-        return tuple()
-
-    def __init__(self, context):
-        self.context = context
-
-    @abc.abstractmethod
-    def process(self):
+    @property
+    def families(self):
         return None
 
 

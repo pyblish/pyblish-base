@@ -54,10 +54,11 @@ class ValidateNamingConvention(publish.abstract.Validator):
         """
 
         mismatches = list()
-        for node in self.instance:
-            print "node %r" % node
-            if not self.pattern.match(node):
-                mismatches.append(node)
+        for instance in self.instances():
+            for node in instance:
+                print "node %r" % node
+                if not self.pattern.match(node):
+                    mismatches.append(node)
 
         if mismatches:
             msg = "The following nodes were misnamed\n"
