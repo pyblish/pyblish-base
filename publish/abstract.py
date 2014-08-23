@@ -18,11 +18,6 @@ class Filter(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractproperty
-    def families(self):
-        """Return list of supported families, e.g. 'model'"""
-        return list()
-
-    @abc.abstractproperty
     def hosts(self):
         """Return list of supported hosts, e.g. 'maya'"""
         return list()
@@ -66,10 +61,6 @@ class Selector(Filter):
 
     """
 
-    @property
-    def families(self):
-        return None
-
 
 class Validator(Filter):
     """Validate/check/test individual instance for correctness.
@@ -78,6 +69,11 @@ class Validator(Filter):
     or does nothing; indicating success.
 
     """
+
+    @abc.abstractproperty
+    def families(self):
+        """Return list of supported families, e.g. 'model'"""
+        return list()
 
     def fix(self):
         """Optional auto-fix for when validation fails"""
@@ -90,6 +86,11 @@ class Extractor(Filter):
     the corresponding files on disk.
 
     """
+
+    @abc.abstractproperty
+    def families(self):
+        """Return list of supported families, e.g. 'model'"""
+        return list()
 
 
 class Context(set):
