@@ -1,4 +1,6 @@
+import os
 import logging
+import inspect
 
 
 def log(cls):
@@ -21,6 +23,13 @@ def log(cls):
     logname = "%s.%s" % (module, name)
     cls.log = logging.getLogger(logname)
     return cls
+
+
+def main_package_path():
+    """Return path of main publish package"""
+    lib_py_path = os.path.abspath(inspect.stack()[0][1])
+    package_path = os.path.dirname(lib_py_path)
+    return package_path
 
 
 if __name__ == '__main__':

@@ -5,3 +5,5 @@
 *.egg-info
 dist
 *.pyc
+coverage
+docs/_**

@@ -1,0 +1,10 @@
+0.1.5 2014-08-21
+    
+    * No more domain.py nor abstract.py: They've been moved to plugin.py
+        where they belong.
+    * plugin.py: Filter.instances to method instead of property due to
+        context being passed as argument to Filter.process instead
+        of as argument to constructor.
+    * plugin.py: Filter.instances to publish.plugin.instances due to it
+        not being applicable to Selector and Selector being subclass
+        of Filter.
