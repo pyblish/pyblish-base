@@ -42,7 +42,8 @@ class ValidateNamingConvention(publish.backend.plugin.Validator):
 
                 yield instance, exc
 
-            yield instance, None
+            else:
+                yield instance, None
 
 
 if __name__ == '__main__':
