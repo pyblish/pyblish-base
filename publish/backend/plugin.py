@@ -332,7 +332,6 @@ def _discover_type(type, regex=None):
 
                 if re.match(pattern, fname):
                     try:
-                        print "Loading module: %s" % abspath
                         module = imp.load_source(name, abspath)
                     except (ImportError, IndentationError) as e:
                         log.warning('"{mod}": Skipped ({msg})'.format(
