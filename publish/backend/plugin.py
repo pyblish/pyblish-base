@@ -53,14 +53,11 @@ log = logging.getLogger('publish.backend.plugin')
 
 
 class Filter(object):
-    """Abstract base-class for sequential plugins
+    """Abstract base-class for plugins
 
-    Sequential plugins are those that takes as input what it gives
-    as output and may thus be arranged in any arbitrary order.
-
-    E.g. Validators are filters. Validators may get executed in any
-    order whilst still producing identical results. The same goes
-    for Extractors.
+    Attributes:
+        hosts: Hosts compatible with filter
+        version: Current version of filter
 
     """
 

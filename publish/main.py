@@ -1,3 +1,5 @@
+"""Entry-point of Publish"""
+
 from __future__ import absolute_import
 
 # Standard library
@@ -45,22 +47,27 @@ def process(process, context):
 
 
 def select(context):
+    """Perform selection upon context `context`"""
     return process('selectors', context)
 
 
 def validate(context):
+    """Perform validation upon context `context`"""
     return process('validators', context)
 
 
 def extract(context):
+    """Perform extraction upon context `context`"""
     return process('extractors', context)
 
 
 def conform(context):
+    """Perform conform upon context `context`"""
     return process('conforms', context)
 
 
 def publish_all():
+    """Convenience method for executing all steps in sequence"""
     context = publish.backend.plugin.Context()
 
     for instance, error in select(context):
