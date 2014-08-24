@@ -19,7 +19,7 @@ class ValidateInstance(publish.backend.plugin.Validator):
 
             for node in instance:
                 self.log.debug("Validating {0}".format(node))
-                if not re.match("^\w+_\w{3}?$", node):
+                if not re.match(r"^\w+_\w{3}?$", node):
                     misnamed.append(node)
 
             if misnamed:
