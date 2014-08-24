@@ -6,3 +6,4 @@
 dist
 *.pyc
 coverage
+docs/_**
