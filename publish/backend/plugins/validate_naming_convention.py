@@ -1,9 +1,9 @@
 import re
 
-import publish.plugin
+import publish.backend.plugin
 
 
-class ValidateNamingConvention(publish.plugin.Validator):
+class ValidateNamingConvention(publish.backend.plugin.Validator):
     """Ensure each included node ends with a three-letter, upper-case type
 
     Example:
@@ -23,32 +23,10 @@ class ValidateNamingConvention(publish.plugin.Validator):
     pattern = re.compile("^\w+_\w{3}(Shape)?$")
 
     def process(self, context):
-        """Allow nodes of appropriate names through
+        """Allow nodes of appropriate names through"""
 
-        Example:
-            >>> # These are fine
-            >>> inst = publish.plugin.Instance('doctest')
-            >>> inst.add('clavicle_CTL')
-            >>> inst.add('Peter_AST')
-            >>> inst.add('Body_PLYShape')
-
-            >>> ctx = publish.plugin.Context()
-            >>> ctx.add(inst)
-
-            >>> validator = ValidateNamingConvention()
-            >>> value, exc = next(validator.process(ctx))
-            >>> assert exc is None
-
-            >>> # But these are invalid
-            >>> inst.add('misnamed')
-            >>> inst.add('missing_suffix')
-
-            >>> value, exc = next(validator.process(ctx))
-            >>> assert isinstance(exc, ValueError)
-
-        """
-
-        for instance in context:
+        for instance in publish.backend.plugin.instances_by_plugin(
+                instances=context, plugin=self):
             mismatches = list()
             for node in instance:
                 if not self.pattern.match(node):

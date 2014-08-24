@@ -1,10 +1,10 @@
 
 import publish.lib
-import publish.plugin
+import publish.backend.plugin
 
 
 @publish.lib.log
-class SelectInstances(publish.plugin.Selector):
+class SelectInstances(publish.backend.plugin.Selector):
     """Select instances"""
 
     hosts = ['python']
@@ -12,7 +12,7 @@ class SelectInstances(publish.plugin.Selector):
 
     def process(self, context):
         for instance in ('inst1',):
-            instance = publish.plugin.Instance(instance)
+            instance = publish.backend.plugin.Instance(instance)
 
             for node in ('node1_PLY', 'node2_PLY', 'node3_GRP'):
                 instance.add(node)
@@ -25,3 +25,5 @@ class SelectInstances(publish.plugin.Selector):
                 instance.config[key] = value
 
             context.add(instance)
+
+            yield instance, None

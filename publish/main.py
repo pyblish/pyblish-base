@@ -4,10 +4,18 @@ from __future__ import absolute_import
 import logging
 
 # Local library
-import publish.plugin
 import publish.config
+import publish.backend.plugin
 
 log = logging.getLogger('publish')
+
+
+__all__ = ['process',
+           'select',
+           'validate',
+           'extract',
+           'conform',
+           'publish_all']
 
 
 def process(process, context):
@@ -17,52 +25,51 @@ def process(process, context):
         process (str): Type of process to apply
         context (Context): Context upon which to appy process
 
-    Example:
-        >>> import publish.plugin
-        >>> ctx = publish.plugin.Context()
-        >>> inst = publish.plugin.Instance('MyInstance')
-        >>> inst.add('MyItem')
-        >>> ctx.add(inst)
-        >>> process('validators', ctx)
-        Context([Instance('MyInstance')])
-
     """
 
     assert isinstance(process, basestring)
-    assert isinstance(context, publish.plugin.Context)
+    assert isinstance(context, publish.backend.plugin.Context)
 
-    for plugin in publish.plugin.discover(type=process):
-        if not publish.plugin.current_host() in plugin.hosts:
+    for plugin in publish.backend.plugin.discover(type=process):
+        if not publish.backend.plugin.current_host() in plugin.hosts:
             continue
 
         log.info("Applying {process} using {plugin}".format(
             process=process,
             plugin=plugin.__name__))
-        plugin().process(context)
 
-    return context
+        for instance, error in plugin().process(context):
+            yield instance, error
 
 
 def select(context):
-    return process(context, 'selectors')
+    for instance, error in process('selectors', context):
+        pass
 
 
 def validate(context):
-    return process(context, 'validators')
+    for instance, error in process('validators', context):
+        pass
 
 
 def extract(context):
-    return process(context, 'extractors')
+    for instance, error in process('extractors', context):
+        pass
 
 
 def conform(context):
-    return process(context, 'conforms')
+    for instance, error in process('conforms', context):
+        pass
 
 
 def publish_all():
-    context = publish.plugin.Context()
+    context = publish.backend.plugin.Context()
 
     select(context)
+
+    if not context:
+        return log.info("No instances found")
+
     validate(context)
     extract(context)
     conform(context)
@@ -71,7 +78,7 @@ def publish_all():
 
 
 def validate_all():
-    context = publish.plugin.Context()
+    context = publish.backend.plugin.Context()
 
     select(context)
     validate(context)

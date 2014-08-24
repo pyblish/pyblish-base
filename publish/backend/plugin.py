@@ -25,7 +25,7 @@ import inspect
 
 # Local library
 import publish.config
-import publish.plugin
+import publish.backend.plugin
 
 __all__ = ['Filter',
            'Selector',
@@ -48,7 +48,7 @@ patterns = {
 
 registered_paths = set()
 
-log = logging.getLogger('publish.plugin')
+log = logging.getLogger('publish.backend.plugin')
 
 
 class Filter(object):
@@ -65,7 +65,6 @@ class Filter(object):
 
     __metaclass__ = abc.ABCMeta
 
-    families = list()
     hosts = list()
     version = (0, 0, 0)
 
@@ -86,7 +85,7 @@ class Filter(object):
             Generator, yielding per instance
 
         Yields:
-            Tuple of return value and exception (if any)
+            Tuple of Instance and exception (if any)
 
         """
 
@@ -104,6 +103,8 @@ class Validator(Filter):
 
     """
 
+    families = list()
+
     def fix(self):
         """Optional auto-fix for when validation fails"""
 
@@ -116,9 +117,11 @@ class Extractor(Filter):
 
     """
 
+    families = list()
+
 
 class Conform(Filter):
-    pass
+    families = list()
 
 
 class Context(set):
@@ -199,11 +202,15 @@ def register_plugin_path(path):
     path to where you're plug-ins are located.
 
     Example:
-        >>> my_plugins = '/home/marcus/publish_plugins'
-        >>> register_plugin_path(my_plugins)
+        >> my_plugins = '/home/marcus/publish_plugins'
+        >> register_plugin_path(my_plugins)
 
     """
-    registered_paths.add(path)
+
+    if os.path.isdir(path):
+        registered_paths.add(path)
+    else:
+        raise OSError("{0} does not exist".format(path))
 
 
 def deregister_plugin_path(path):
@@ -253,8 +260,8 @@ def discover(type=None, regex=None, context=None):
     return plugins
 
 
-def filter_by_instance(instance, plugins):
-    """Return plugins matching an instance's criteria
+def plugins_by_instance(plugins, instance):
+    """Yield compatible plugins `plugins` to instance `instance`
 
     Arguments:
         instance (Instance): Instance with which to filter against
@@ -265,8 +272,6 @@ def filter_by_instance(instance, plugins):
 
     """
 
-    plugins = list()
-
     for plugin in plugins:
         if instance.config.get('family') not in plugin.families:
             continue
@@ -274,9 +279,23 @@ def filter_by_instance(instance, plugins):
         if instance.config.get('host') not in plugin.hosts:
             continue
 
-        plugins.append(plugin)
+        yield plugin
 
-    return plugins
+
+def instances_by_plugin(instances, plugin):
+    """Yield compatible instances `instances` to context `context`
+
+    Arguments:
+        context (Context): Context with which to yield compatible instances
+
+    Yields:
+        instance (Instance): Compatible instance
+
+    """
+
+    for instance in instances:
+        if instance.config.get('family') in plugin.families:
+            yield instance
 
 
 def _discover_type(type, regex=None):
@@ -323,8 +342,7 @@ def _discover_type(type, regex=None):
 
                     for name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj):
-                            if issubclass(obj, publish.plugin.Filter) or \
-                               issubclass(obj, publish.plugin.Selector):
+                            if issubclass(obj, publish.backend.plugin.Filter):
                                 if regex is None or re.match(regex,
                                                              obj.__name__):
                                     plugins.add(obj)
