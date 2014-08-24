@@ -27,6 +27,8 @@ def process(process, context):
 
     """
 
+    print "Processing ctx: %s with %s" % (context, process)
+
     assert isinstance(process, basestring)
     assert isinstance(context, publish.backend.plugin.Context)
 
@@ -43,37 +45,39 @@ def process(process, context):
 
 
 def select(context):
-    for instance, error in process('selectors', context):
-        pass
+    return process('selectors', context)
 
 
 def validate(context):
-    for instance, error in process('validators', context):
-        pass
+    return process('validators', context)
 
 
 def extract(context):
-    for instance, error in process('extractors', context):
-        pass
+    return process('extractors', context)
 
 
 def conform(context):
-    for instance, error in process('conforms', context):
-        pass
+    return process('conforms', context)
 
 
 def publish_all():
     context = publish.backend.plugin.Context()
 
-    select(context)
+    for instance, error in select(context):
+        print "Selected {0}".format(instance)
 
     if not context:
         return log.info("No instances found")
 
-    validate(context)
-    extract(context)
-    conform(context)
+    for p in (validate, extract, conform):
+        for instance, error in p(context):
+            print "{process} {inst}".format(process=p, inst=instance)
+            if error:
+                print error
 
+        print "Process: %s" % p
+
+    print "Finished"
     return context
 
 

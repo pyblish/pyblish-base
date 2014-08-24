@@ -20,13 +20,12 @@ setup(
     author='Marcus Ottosson',
     author_email='marcus@abstractfactory.com',
     url='https://github.com/abstractfactory/publish',
-    license="license.txt",
+    license="LICENSE.txt",
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'publish': ['*.json',
-                    'integration/maya/*']
+        'publish': ['*.json']
     },
 )
