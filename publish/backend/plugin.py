@@ -24,6 +24,7 @@ import logging
 import inspect
 
 # Local library
+import publish.lib
 import publish.config
 import publish.backend.plugin
 
@@ -334,6 +335,7 @@ def _discover_type(type, regex=None):
 
                 if re.match(pattern, fname):
                     try:
+                        print "Loading module: %s" % abspath
                         module = imp.load_source(name, abspath)
                     except (ImportError, IndentationError) as e:
                         log.warning('"{mod}": Skipped ({msg})'.format(
@@ -354,8 +356,8 @@ def _discover_type(type, regex=None):
 
 
 # Register included plugin path
-_package_dir = os.path.dirname(__file__)
-_validators_path = os.path.join(_package_dir, 'plugins')
+_package_path = publish.lib.main_package_path()
+_validators_path = os.path.join(_package_path, 'backend', 'plugins')
 _validators_path = os.path.abspath(_validators_path)
 register_plugin_path(_validators_path)
 

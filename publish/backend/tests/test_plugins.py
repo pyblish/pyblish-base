@@ -3,6 +3,7 @@
 import os
 
 # Local library
+import publish.lib
 import publish.config
 import publish.backend.plugin
 
@@ -12,7 +13,8 @@ from publish.vendor.nose.tools import raises
 HOST = 'python'
 FAMILY = 'test.family'
 
-plugin_path = os.path.join(os.path.dirname(__file__), 'plugins')
+package_path = publish.lib.main_package_path()
+plugin_path = os.path.join(package_path, 'backend', 'tests', 'plugins')
 
 publish.backend.plugin.deregister_all()
 publish.backend.plugin.register_plugin_path(plugin_path)
@@ -225,10 +227,10 @@ if __name__ == '__main__':
 
     test_selection_interface()
     test_validation_interface()
-    test_validation_failure()
-    test_extraction_interface()
-    test_extraction_failure()
-    test_plugin_interface()
-    test_selection_appends()
-    test_plugins_by_instance()
-    test_instances_by_plugin()
+    # test_validation_failure()
+    # test_extraction_interface()
+    # test_extraction_failure()
+    # test_plugin_interface()
+    # test_selection_appends()
+    # test_plugins_by_instance()
+    # test_instances_by_plugin()
