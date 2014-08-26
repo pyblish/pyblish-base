@@ -4,6 +4,7 @@ python:
 install:
   - pip install coveralls
 script:
+  - nosetests --cover-package=publish --with-doctest --with-coverage --exclude=vendor
   - pip install git+git://github.com/abstractfactory/publish.git
 after_success:
   - coveralls

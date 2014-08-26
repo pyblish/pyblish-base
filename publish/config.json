@@ -1,5 +1,12 @@
 {
     "prefix": "published",
     "identifier": "publishable",
-    "dateFormat": "%Y%m%d_%H%M%S"
+    "date_format": "%Y%m%d_%H%M%S",
+
+    "paths_environment_variable": "PUBLISHPLUGINPATH",
+
+    "validators_regex": "^validate_.*\\.py$",
+	"extractors_regex": "^extract_.*\\.py$",
+	"selectors_regex": "^select_.*\\.py$",
+	"conforms_regex": "^conform_.*\\.py$"
 }
