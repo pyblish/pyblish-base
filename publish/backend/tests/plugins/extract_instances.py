@@ -12,7 +12,12 @@ class ExtractInstances(publish.backend.plugin.Extractor):
     version = (0, 1, 0)
 
     def process(self, context):
-        for instance in ('inst1',):
+        instances = list()
+
+        for name in ('inst1', 'inst2'):
+            instances.append(publish.backend.plugin.Instance(name))
+
+        for instance in instances:
             self.log.debug("Extracting %s" % instance)
 
             yield instance, None

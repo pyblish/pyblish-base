@@ -148,9 +148,8 @@ def test_plugin_interface():
     ctx = publish.backend.plugin.Context()
 
     for plugin in publish.backend.plugin.discover():
-        plugin().process(ctx)
-
-    print ctx
+        for instance, error in plugin().process(ctx):
+            assert (error is None) or isinstance(error, Exception)
 
 
 def test_selection_appends():
@@ -196,8 +195,10 @@ def test_instances_by_plugin():
 
     # Generate two instances, only one of which will be
     # compatible with the given plugin below.
-    for family in ('test.family', 'test.other_family'):
-        inst = publish.backend.plugin.Instance('TestInstance')
+    families = ('test.family', 'test.other_family')
+    for family in families:
+        inst = publish.backend.plugin.Instance('TestInstance{0}'.format(
+            families.index(family) + 1))
         inst.config['family'] = family
         inst.config['host'] = 'python'
         inst.config[publish.config.identifier] = True
@@ -210,13 +211,32 @@ def test_instances_by_plugin():
     for plugin in plugins:
         plugins_dict[plugin.__name__] = plugin
 
-    # This plugin is only compatible with family = test.family
     plugin = plugins_dict['ValidateInstance']
 
     compatible = publish.backend.plugin.instances_by_plugin(
         instances=ctx, plugin=plugin)
 
-    assert next(compatible).name == 'TestInstance'
+    # This plugin is only compatible with
+    # the family is "TestInstance1"
+    assert next(compatible).name == 'TestInstance1'
+
+
+def test_conform():
+    """Conform notifies external parties"""
+    ctx = publish.backend.plugin.Context()
+
+    # Generate instance to report status about
+    inst = publish.backend.plugin.Instance('TestInstance1')
+    inst.config['family'] = 'test.family'
+    inst.config['host'] = 'python'
+    inst.config['assetId'] = ''
+    inst.config[publish.config.identifier] = True
+
+    inst.add('test1_GRP')
+    inst.add('test2_GRP')
+    inst.add('test3_GRP')
+
+    ctx.add(inst)
 
 
 if __name__ == '__main__':
@@ -227,10 +247,11 @@ if __name__ == '__main__':
 
     test_selection_interface()
     test_validation_interface()
-    # test_validation_failure()
-    # test_extraction_interface()
-    # test_extraction_failure()
-    # test_plugin_interface()
-    # test_selection_appends()
-    # test_plugins_by_instance()
-    # test_instances_by_plugin()
+    test_validation_failure()
+    test_extraction_interface()
+    test_extraction_failure()
+    test_plugin_interface()
+    test_selection_appends()
+    test_plugins_by_instance()
+    test_instances_by_plugin()
+    test_conform()
