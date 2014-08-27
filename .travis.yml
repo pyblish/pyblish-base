@@ -1,10 +1,17 @@
 language: python
 python:
-  - 2.7
+- 2.6
+- 2.7
 install:
-  - pip install coveralls
+- pip install coveralls
 script:
-  - nosetests --cover-package=publish --with-doctest --with-coverage --exclude=vendor
-  - pip install git+git://github.com/abstractfactory/publish.git
+- nosetests --cover-package=publish --with-doctest --with-coverage --exclude=vendor
+- pip install git+git://github.com/abstractfactory/publish.git
 after_success:
-  - coveralls
+- coveralls
+deploy:
+  provider: pypi
+  user: mottosso
+  password: OA0LmiLkryLgxGebvs7uwv/rExnL4KnCeiMBK9P42qgKwE9aLQY3Y+iB94gy0Q/ziPGm8zASAHeCUIwmbmRleQEvAXdoDIFdl59vRBkocDKc2Ya3Nqw9zwBm5ExDZeuj23JcWl18rH8XNd7HTyRaOZisZ4aZfG/2k++ylvOCZYU=
+  on:
+    tags: true
