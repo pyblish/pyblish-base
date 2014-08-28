@@ -101,7 +101,8 @@ def validate_all():
         pass
 
     for instance, error in validate(context):
-        pass
+        if error is not None:
+            raise error
 
     return context
 
