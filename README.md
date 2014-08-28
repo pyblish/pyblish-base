@@ -5,20 +5,35 @@
 
 Feature film-strength quality assurance for content; built for platform, software and language agnosticism. Free, community-driven and licensed under LGPLv3.
 
+- [Wiki][wiki]
+- [Documentation][docs]
+- [Website][web]
+- [PyPI][pypi]
+
 ### Getting started
 
-Pyblish is in development, but will remain functional at all times.
-
 ```bash
+# Pyblish is in development, but will remain functional at all times.
 $ git clone https://github.com/abstractfactory/pyblish.git
 ```
 
-To get up and running with Maya:
+### See also
 
-```bash
-$ git clone https://github.com/abstractfactory/pyblish-maya.git
-```
+To get started quickly, have a look at one of the integrations for Pyblish.
 
-You'll need to append both repositories to your PYTHONPATH, in addition to the `/publish-maya/publish_maya/pythonpath` directory. This is what will make Pyblish appear as an item in your File-menu.
+[![](https://github.com/abstractfactory/pyblish/wiki/images/maya-pyblish.png)][maya]
 
-**See [Wiki](https://github.com/abstractfactory/pyblish/wiki) for more information**
+[![](https://github.com/abstractfactory/pyblish/wiki/images/git-pyblish.png)][git]
+
+[![](https://github.com/abstractfactory/pyblish/wiki/images/asana-pyblish.png)][asana]
+
+
+[pypi]: https://pypi.python.org/pypi/pyblish
+[wiki]: https://github.com/abstractfactory/pyblish/wiki
+[docs]: http://pyblish.readthedocs.org/en/latest/
+[web]: http://abstractfactory.github.io/pyblish/
+
+[maya]: https://github.com/abstractfactory/pyblish-maya
+[nuke]: https://github.com/abstractfactory/pyblish-nuke
+[asana]: https://github.com/abstractfactory/pyblish-asana
+[git]: https://github.com/abstractfactory/pyblish-git
