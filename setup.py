@@ -30,7 +30,7 @@ setup(
     version=version,
     description='quality assurance for content',
     long_description=open('README.txt').read(),
-    author='Marcus Ottosson',
+    author='Abstract Factort and Contributors',
     author_email='marcus@abstractfactory.com',
     url='https://github.com/abstractfactory/pyblish',
     license='LGPL',
