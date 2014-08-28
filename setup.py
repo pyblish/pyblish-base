@@ -39,6 +39,6 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'pyblish': ['*.json']
+        'pyblish.backend': ['*.json']
     },
 )
