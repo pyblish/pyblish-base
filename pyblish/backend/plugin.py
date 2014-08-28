@@ -24,9 +24,9 @@ import logging
 import inspect
 
 # Local library
-import publish.lib
-import publish.config
-import publish.backend.plugin
+import pyblish.backend.lib
+import pyblish.backend.config
+import pyblish.backend.plugin
 
 __all__ = ['Filter',
            'Selector',
@@ -41,15 +41,15 @@ __all__ = ['Filter',
            'deregister_all']
 
 patterns = {
-    'validators': publish.config.validators_regex,
-    'extractors': publish.config.extractors_regex,
-    'selectors': publish.config.selectors_regex,
-    'conforms': publish.config.conforms_regex
+    'validators': pyblish.backend.config.validators_regex,
+    'extractors': pyblish.backend.config.extractors_regex,
+    'selectors': pyblish.backend.config.selectors_regex,
+    'conforms': pyblish.backend.config.conforms_regex
 }
 
 registered_paths = set()
 
-log = logging.getLogger('publish.backend.plugin')
+log = logging.getLogger('pyblish.backend.plugin')
 
 
 class Filter(object):
@@ -164,7 +164,7 @@ class Instance(set):
 def current_host():
     """Return currently active host
 
-    When running Publish from within a host, this function determines
+    When running Pyblish from within a host, this function determines
     which host is running and returns the equivalent keyword.
 
     Example:
@@ -200,7 +200,7 @@ def register_plugin_path(path):
     path to where you're plug-ins are located.
 
     Example:
-        >> my_plugins = '/home/marcus/publish_plugins'
+        >> my_plugins = '/home/marcus/pyblish_plugins'
         >> register_plugin_path(my_plugins)
 
     """
@@ -310,7 +310,7 @@ def _discover_type(type, regex=None):
 
         # Accept paths added via Python and
         # paths via environment variable.
-        env_var = publish.config.paths_environment_variable
+        env_var = pyblish.backend.config.paths_environment_variable
         env_val = os.environ.get(env_var)
         if env_val:
             sep = ';' if os.name == 'nt' else ':'
@@ -340,7 +340,7 @@ def _discover_type(type, regex=None):
 
                     for name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj):
-                            if issubclass(obj, publish.backend.plugin.Filter):
+                            if issubclass(obj, pyblish.backend.plugin.Filter):
                                 if regex is None or re.match(regex,
                                                              obj.__name__):
                                     plugins.add(obj)
@@ -352,7 +352,7 @@ def _discover_type(type, regex=None):
 
 
 # Register included plugin path
-_package_path = publish.lib.main_package_path()
+_package_path = pyblish.backend.lib.main_package_path()
 _validators_path = os.path.join(_package_path, 'backend', 'plugins')
 _validators_path = os.path.abspath(_validators_path)
 register_plugin_path(_validators_path)

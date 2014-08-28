@@ -1,7 +1,7 @@
 Documentation Overview
 ======================
 
-Welcome to the documentation of Publish v\ |version|.
+Welcome to the documentation of Pyblish v\ |version|.
 
 Contents:
 

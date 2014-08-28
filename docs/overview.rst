@@ -5,4 +5,4 @@ Feature film-strength quality assurance for content; built for platform, softwar
 
 `See Wiki`_ for more information
 
-.. _`See Wiki`: https://github.com/abstractfactory/publish/wiki
+.. _`See Wiki`: https://github.com/abstractfactory/pyblish/wiki

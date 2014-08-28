@@ -3,38 +3,38 @@
 Reference
 =========
 
-Publish reference
+Pyblish reference
 
 .. autosummary::
    :nosignatures:
    
-   ~publish.main
-   ~publish.backend.plugin
+   ~pyblish.main
+   ~pyblish.backend.plugin
 
 
-publish.main
+pyblish.main
 ------------
 
-.. automodule:: publish.main
+.. automodule:: pyblish.main
 
-.. autofunction:: publish.main.publish_all
-.. autofunction:: publish.main.select
-.. autofunction:: publish.main.validate
-.. autofunction:: publish.main.extract
-.. autofunction:: publish.main.conform
+.. autofunction:: pyblish.main.pyblish_all
+.. autofunction:: pyblish.main.select
+.. autofunction:: pyblish.main.validate
+.. autofunction:: pyblish.main.extract
+.. autofunction:: pyblish.main.conform
 
-publish.backend.plugin
+pyblish.backend.plugin
 ----------------------
 
-.. automodule:: publish.backend.plugin
+.. automodule:: pyblish.backend.plugin
 
-.. autoclass:: publish.backend.plugin.Filter
-.. autoclass:: publish.backend.plugin.Context
-.. autoclass:: publish.backend.plugin.Instance
-.. autoclass:: publish.backend.plugin.Selector
-.. autoclass:: publish.backend.plugin.Validator
-.. autoclass:: publish.backend.plugin.Extractor
-.. autoclass:: publish.backend.plugin.Conform
+.. autoclass:: pyblish.backend.plugin.Filter
+.. autoclass:: pyblish.backend.plugin.Context
+.. autoclass:: pyblish.backend.plugin.Instance
+.. autoclass:: pyblish.backend.plugin.Selector
+.. autoclass:: pyblish.backend.plugin.Validator
+.. autoclass:: pyblish.backend.plugin.Extractor
+.. autoclass:: pyblish.backend.plugin.Conform
 
-.. autofunction:: publish.backend.plugin.plugins_by_instance
-.. autofunction:: publish.backend.plugin.instances_by_plugin
+.. autofunction:: pyblish.backend.plugin.plugins_by_instance
+.. autofunction:: pyblish.backend.plugin.instances_by_plugin

@@ -1,4 +1,4 @@
-"""Entry-point of Publish"""
+"""Entry-point of Pyblish"""
 
 from __future__ import absolute_import
 
@@ -6,10 +6,10 @@ from __future__ import absolute_import
 import logging
 
 # Local library
-import publish.config
-import publish.backend.plugin
+import pyblish.backend.config
+import pyblish.backend.plugin
 
-log = logging.getLogger('publish')
+log = logging.getLogger('pyblish')
 
 
 __all__ = ['process',
@@ -32,10 +32,10 @@ def process(process, context):
     print "Processing ctx: %s with %s" % (context, process)
 
     assert isinstance(process, basestring)
-    assert isinstance(context, publish.backend.plugin.Context)
+    assert isinstance(context, pyblish.backend.plugin.Context)
 
-    for plugin in publish.backend.plugin.discover(type=process):
-        if not publish.backend.plugin.current_host() in plugin.hosts:
+    for plugin in pyblish.backend.plugin.discover(type=process):
+        if not pyblish.backend.plugin.current_host() in plugin.hosts:
             continue
 
         log.info("Applying {process} using {plugin}".format(
@@ -68,7 +68,7 @@ def conform(context):
 
 def publish_all():
     """Convenience method for executing all steps in sequence"""
-    context = publish.backend.plugin.Context()
+    context = pyblish.backend.plugin.Context()
 
     for instance, error in select(context):
         print "Selected {0}".format(instance)
@@ -76,10 +76,16 @@ def publish_all():
     if not context:
         return log.info("No instances found")
 
-    for p in (validate, extract, conform):
+    for instance, error in validate(context):
+        if error is not None:
+            # Stop immediately if any validation fails
+            raise error
+
+    for p in (extract, conform):
         for instance, error in p(context):
             print "{process} {inst}".format(process=p, inst=instance)
-            if error:
+            if error is not None:
+                # Continue regardless
                 print error
 
         print "Process: %s" % p
@@ -89,10 +95,13 @@ def publish_all():
 
 
 def validate_all():
-    context = publish.backend.plugin.Context()
+    context = pyblish.backend.plugin.Context()
 
-    select(context)
-    validate(context)
+    for instance, error in select(context):
+        pass
+
+    for instance, error in validate(context):
+        pass
 
     return context
 

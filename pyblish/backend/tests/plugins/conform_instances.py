@@ -1,12 +1,12 @@
 """Mockup of potential integration with 3rd-party task managment suite"""
 
 
-import publish.backend.plugin
+import pyblish.backend.plugin
 
 
-class ConformInstances(publish.backend.plugin.Conform):
+class ConformInstances(pyblish.backend.plugin.Conform):
     def process(self, context):
-        for instance in publish.backend.plugin.instances_by_plugin(
+        for instance in pyblish.backend.plugin.instances_by_plugin(
                 instances=context, plugin=self):
             print instance
 

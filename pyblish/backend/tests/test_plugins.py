@@ -3,29 +3,29 @@
 import os
 
 # Local library
-import publish.lib
-import publish.config
-import publish.backend.plugin
+import pyblish.backend.lib
+import pyblish.backend.config
+import pyblish.backend.plugin
 
-from publish.vendor.nose.tools import raises
+from pyblish.vendor.nose.tools import raises
 
 # Setup
 HOST = 'python'
 FAMILY = 'test.family'
 
-package_path = publish.lib.main_package_path()
+package_path = pyblish.backend.lib.main_package_path()
 plugin_path = os.path.join(package_path, 'backend', 'tests', 'plugins')
 
-publish.backend.plugin.deregister_all()
-publish.backend.plugin.register_plugin_path(plugin_path)
+pyblish.backend.plugin.deregister_all()
+pyblish.backend.plugin.register_plugin_path(plugin_path)
 
 
 def test_selection_interface():
     """The interface of selection works fine"""
 
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
-    selectors = publish.backend.plugin.discover(type='selectors')
+    selectors = pyblish.backend.plugin.discover(type='selectors')
     assert len(selectors) >= 1
 
     for selector in selectors:
@@ -43,19 +43,19 @@ def test_selection_interface():
 
 def test_validation_interface():
     """The interface of validation works fine"""
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
-    inst = publish.backend.plugin.Instance('test_instance')
+    inst = pyblish.backend.plugin.Instance('test_instance')
     inst.add('test_node1_PLY')
     inst.add('test_node2_PLY')
     inst.add('test_node3_GRP')
-    inst.config[publish.config.identifier] = True
+    inst.config[pyblish.backend.config.identifier] = True
     inst.config['family'] = FAMILY
 
     ctx.add(inst)
 
-    validators = publish.backend.plugin.discover(type='validators')
+    validators = pyblish.backend.plugin.discover(type='validators')
     assert len(validators) >= 1
 
     for validator in validators:
@@ -66,20 +66,20 @@ def test_validation_interface():
 @raises(ValueError)
 def test_validation_failure():
     """Validation throws exception upon failure"""
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
-    inst = publish.backend.plugin.Instance('test_instance')
+    inst = pyblish.backend.plugin.Instance('test_instance')
 
     inst.add('test_PLY')
     inst.add('test_misnamed')
 
-    inst.config[publish.config.identifier] = True
+    inst.config[pyblish.backend.config.identifier] = True
     inst.config['family'] = FAMILY
 
     ctx.add(inst)
 
-    validators = publish.backend.plugin.discover(type='validators',
+    validators = pyblish.backend.plugin.discover(type='validators',
                                                  regex='ValidateInstance')
     assert len(validators) == 1
 
@@ -90,20 +90,20 @@ def test_validation_failure():
 
 def test_extraction_interface():
     """The interface of extractors works fine"""
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
-    inst = publish.backend.plugin.Instance('test_instance')
+    inst = pyblish.backend.plugin.Instance('test_instance')
 
     inst.add('test_PLY')
-    inst.config[publish.config.identifier] = True
+    inst.config[pyblish.backend.config.identifier] = True
     inst.config['family'] = FAMILY
 
     ctx.add(inst)
 
     # Assuming validations pass
 
-    extractors = publish.backend.plugin.discover(type='extractors',
+    extractors = pyblish.backend.plugin.discover(type='extractors',
                                                  regex='.*ExtractInstances$')
     extractor = extractors.pop()
     assert extractor.__name__ == "ExtractInstances"
@@ -120,20 +120,20 @@ def test_extraction_failure():
     keep going and that the user is properly notified of the failure.
 
     """
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
-    inst = publish.backend.plugin.Instance('test_instance')
+    inst = pyblish.backend.plugin.Instance('test_instance')
 
     inst.add('test_PLY')
-    inst.config[publish.config.identifier] = True
+    inst.config[pyblish.backend.config.identifier] = True
     inst.config['family'] = FAMILY
 
     ctx.add(inst)
 
     # Assuming validations pass
 
-    extractors = publish.backend.plugin.discover(type='extractors',
+    extractors = pyblish.backend.plugin.discover(type='extractors',
                                                  regex='.*Fail$')
     extractor = extractors.pop()
     assert extractor.__name__ == "ExtractInstancesFail"
@@ -145,9 +145,9 @@ def test_extraction_failure():
 def test_plugin_interface():
     """All plugins share interface"""
 
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
-    for plugin in publish.backend.plugin.discover():
+    for plugin in pyblish.backend.plugin.discover():
         for instance, error in plugin().process(ctx):
             assert (error is None) or isinstance(error, Exception)
 
@@ -155,18 +155,18 @@ def test_plugin_interface():
 def test_selection_appends():
     """Selectors append, rather than replace existing instances"""
 
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
-    my_inst = publish.backend.plugin.Instance('MyInstance')
+    my_inst = pyblish.backend.plugin.Instance('MyInstance')
     my_inst.add('node1')
     my_inst.add('node2')
-    my_inst.config[publish.config.identifier] = True
+    my_inst.config[pyblish.backend.config.identifier] = True
 
     ctx.add(my_inst)
 
     assert len(ctx) == 1
 
-    for selector in publish.backend.plugin.discover('selectors'):
+    for selector in pyblish.backend.plugin.discover('selectors'):
         for instance, error in selector().process(context=ctx):
             assert error is None
 
@@ -177,13 +177,13 @@ def test_selection_appends():
 
 def test_plugins_by_instance():
     """Returns plugins compatible with instance"""
-    inst = publish.backend.plugin.Instance('TestInstance')
+    inst = pyblish.backend.plugin.Instance('TestInstance')
     inst.config['family'] = 'test.family'
     inst.config['host'] = 'python'
-    inst.config[publish.config.identifier] = True
+    inst.config[pyblish.backend.config.identifier] = True
 
-    plugins = publish.backend.plugin.discover('validators')
-    compatible = publish.backend.plugin.plugins_by_instance(plugins, inst)
+    plugins = pyblish.backend.plugin.discover('validators')
+    compatible = pyblish.backend.plugin.plugins_by_instance(plugins, inst)
 
     # The filter will discard at least one plugin
     assert len(plugins) > len(list(compatible))
@@ -191,21 +191,21 @@ def test_plugins_by_instance():
 
 def test_instances_by_plugin():
     """Returns instances compatible with plugin"""
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
     # Generate two instances, only one of which will be
     # compatible with the given plugin below.
     families = ('test.family', 'test.other_family')
     for family in families:
-        inst = publish.backend.plugin.Instance('TestInstance{0}'.format(
+        inst = pyblish.backend.plugin.Instance('TestInstance{0}'.format(
             families.index(family) + 1))
         inst.config['family'] = family
         inst.config['host'] = 'python'
-        inst.config[publish.config.identifier] = True
+        inst.config[pyblish.backend.config.identifier] = True
 
         ctx.add(inst)
 
-    plugins = publish.backend.plugin.discover('validators')
+    plugins = pyblish.backend.plugin.discover('validators')
     plugins_dict = dict()
 
     for plugin in plugins:
@@ -213,7 +213,7 @@ def test_instances_by_plugin():
 
     plugin = plugins_dict['ValidateInstance']
 
-    compatible = publish.backend.plugin.instances_by_plugin(
+    compatible = pyblish.backend.plugin.instances_by_plugin(
         instances=ctx, plugin=plugin)
 
     # This plugin is only compatible with
@@ -223,14 +223,14 @@ def test_instances_by_plugin():
 
 def test_conform():
     """Conform notifies external parties"""
-    ctx = publish.backend.plugin.Context()
+    ctx = pyblish.backend.plugin.Context()
 
     # Generate instance to report status about
-    inst = publish.backend.plugin.Instance('TestInstance1')
+    inst = pyblish.backend.plugin.Instance('TestInstance1')
     inst.config['family'] = 'test.family'
     inst.config['host'] = 'python'
     inst.config['assetId'] = ''
-    inst.config[publish.config.identifier] = True
+    inst.config[pyblish.backend.config.identifier] = True
 
     inst.add('test1_GRP')
     inst.add('test2_GRP')
@@ -241,8 +241,8 @@ def test_conform():
 
 if __name__ == '__main__':
     import logging
-    import publish
-    log = publish.setup_log()
+    import pyblish
+    log = pyblish.setup_log()
     log.setLevel(logging.DEBUG)
 
     test_selection_interface()

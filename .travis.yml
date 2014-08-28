@@ -5,8 +5,8 @@ python:
 install:
 - pip install coveralls
 script:
-- nosetests --cover-package=publish --with-doctest --with-coverage --exclude=vendor
-- pip install git+git://github.com/abstractfactory/publish.git
+- nosetests --cover-package=pyblish --with-doctest --with-coverage --exclude=vendor
+- pip install git+git://github.com/abstractfactory/pyblish.git
 after_success:
 - coveralls
 deploy:

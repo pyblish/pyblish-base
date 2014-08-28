@@ -1,9 +1,9 @@
 import re
 
-import publish.backend.plugin
+import pyblish.backend.plugin
 
 
-class ValidateNamingConvention(publish.backend.plugin.Validator):
+class ValidateNamingConvention(pyblish.backend.plugin.Validator):
     """Ensure each included node ends with a three-letter, upper-case type
 
     Example:
@@ -25,7 +25,7 @@ class ValidateNamingConvention(publish.backend.plugin.Validator):
     def process(self, context):
         """Allow nodes of appropriate names through"""
 
-        for instance in publish.backend.plugin.instances_by_plugin(
+        for instance in pyblish.backend.plugin.instances_by_plugin(
                 instances=context, plugin=self):
             mismatches = list()
             for node in instance:

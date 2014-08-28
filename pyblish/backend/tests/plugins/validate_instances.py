@@ -1,12 +1,12 @@
 
 import re
 
-import publish.lib
-import publish.backend.plugin
+import pyblish.backend.lib
+import pyblish.backend.plugin
 
 
-@publish.lib.log
-class ValidateInstance(publish.backend.plugin.Validator):
+@pyblish.backend.lib.log
+class ValidateInstance(pyblish.backend.plugin.Validator):
     """All nodes ends with a three-letter extension"""
 
     hosts = ['python']
@@ -29,8 +29,8 @@ class ValidateInstance(publish.backend.plugin.Validator):
                 yield instance, None
 
 
-@publish.lib.log
-class ValidateOtherInstance(publish.backend.plugin.Validator):
+@pyblish.backend.lib.log
+class ValidateOtherInstance(pyblish.backend.plugin.Validator):
     """All nodes ends with a three-letter extension"""
 
     hosts = ['python']

@@ -1,10 +1,10 @@
 
-import publish.lib
-import publish.backend.plugin
+import pyblish.backend.lib
+import pyblish.backend.plugin
 
 
-@publish.lib.log
-class ExtractInstances(publish.backend.plugin.Extractor):
+@pyblish.backend.lib.log
+class ExtractInstances(pyblish.backend.plugin.Extractor):
     """Extract instances"""
 
     hosts = ['python']
@@ -15,7 +15,7 @@ class ExtractInstances(publish.backend.plugin.Extractor):
         instances = list()
 
         for name in ('inst1', 'inst2'):
-            instances.append(publish.backend.plugin.Instance(name))
+            instances.append(pyblish.backend.plugin.Instance(name))
 
         for instance in instances:
             self.log.debug("Extracting %s" % instance)
@@ -23,8 +23,8 @@ class ExtractInstances(publish.backend.plugin.Extractor):
             yield instance, None
 
 
-@publish.lib.log
-class ExtractInstancesFail(publish.backend.plugin.Extractor):
+@pyblish.backend.lib.log
+class ExtractInstancesFail(pyblish.backend.plugin.Extractor):
     """Extract instances"""
 
     hosts = ['python']

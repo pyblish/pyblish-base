@@ -1,7 +1,7 @@
 [run]
-source = publish
+source = pyblish
 
 [report]
-include = *publish*
+include = *pyblish*
 omit = 
     */vendor*

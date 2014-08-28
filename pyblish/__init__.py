@@ -14,7 +14,7 @@ def get_formatter():
 
 
 def setup_log():
-    log = logging.getLogger('publish')
+    log = logging.getLogger('pyblish')
 
     if log.handlers:
         return log.handlers[0]

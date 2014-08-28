@@ -1,11 +1,11 @@
-"""Publish configuration
+"""Pyblish configuration
 
 Usage:
-    To alter the configuration of Publish to suit your needs,
-    simply create your own copy at <HOME>/.publish as a JSON-
+    To alter the configuration of Pyblish to suit your needs,
+    simply create your own copy at <HOME>/.pyblish as a JSON-
     formatted, plain-text file. E.g.
 
-    # .publish
+    # .pyblish
     {
         "identifier": "MyIdentifier"
     }
@@ -13,8 +13,8 @@ Usage:
     Members of the configuration is then accessed via dot-
     notation.
 
-    >>> import publish.config
-    >>> assert publish.config.identifier == 'publishable'
+    >>> import pyblish.backend.config
+    >>> assert pyblish.backend.config.identifier == 'publishable'
 
 Attributes:
     Attributes present within the config.json file:
@@ -33,13 +33,13 @@ import sys
 import json
 import logging
 
-log = logging.getLogger('publish.config')
+log = logging.getLogger('pyblish.backend.config')
 
 # Look for configuration in users HOME
 home_dir = os.path.expanduser('~')
 package_dir = os.path.dirname(__file__)
 
-user_config_path = os.path.join(home_dir, '.publish')
+user_config_path = os.path.join(home_dir, '.pyblish')
 default_config_path = os.path.join(package_dir, 'config.json')
 
 

@@ -26,9 +26,10 @@ def log(cls):
 
 
 def main_package_path():
-    """Return path of main publish package"""
+    """Return path of main pyblish package"""
     lib_py_path = os.path.abspath(inspect.stack()[0][1])
-    package_path = os.path.dirname(lib_py_path)
+    backend_path = os.path.dirname(lib_py_path)
+    package_path = os.path.dirname(backend_path)
     return package_path
 
 

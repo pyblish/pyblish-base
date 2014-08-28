@@ -1,10 +1,10 @@
 
-import publish.lib
-import publish.backend.plugin
+import pyblish.backend.lib
+import pyblish.backend.plugin
 
 
-@publish.lib.log
-class SelectInstances(publish.backend.plugin.Selector):
+@pyblish.backend.lib.log
+class SelectInstances(pyblish.backend.plugin.Selector):
     """Select instances"""
 
     hosts = ['python']
@@ -12,7 +12,7 @@ class SelectInstances(publish.backend.plugin.Selector):
 
     def process(self, context):
         for instance in ('inst1',):
-            instance = publish.backend.plugin.Instance(instance)
+            instance = pyblish.backend.plugin.Instance(instance)
 
             for node in ('node1_PLY', 'node2_PLY', 'node3_GRP'):
                 instance.add(node)
