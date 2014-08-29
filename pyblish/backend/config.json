@@ -3,7 +3,7 @@
     "identifier": "publishable",
     "date_format": "%Y%m%d_%H%M%S",
 
-    "paths_environment_variable": "PUBLISHPLUGINPATH",
+    "paths_environment_variable": "PYBLISHPLUGINPATH",
 
     "validators_regex": "^validate_.*\\.py$",
 	"extractors_regex": "^extract_.*\\.py$",
