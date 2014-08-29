@@ -28,7 +28,7 @@ import pyblish.backend.lib
 import pyblish.backend.config
 import pyblish.backend.plugin
 
-__all__ = ['Filter',
+__all__ = ['Plugin',
            'Selector',
            'Validator',
            'Extractor',
@@ -52,7 +52,7 @@ registered_paths = set()
 log = logging.getLogger('pyblish.backend.plugin')
 
 
-class Filter(object):
+class Plugin(object):
     """Abstract base-class for plugins
 
     Attributes:
@@ -90,11 +90,11 @@ class Filter(object):
         yield None, None
 
 
-class Selector(Filter):
+class Selector(Plugin):
     """Parse a given working scene for available Instances"""
 
 
-class Validator(Filter):
+class Validator(Plugin):
     """Validate/check/test individual instance for correctness.
 
     Raises exception upon failure.
@@ -107,7 +107,7 @@ class Validator(Filter):
         """Optional auto-fix for when validation fails"""
 
 
-class Extractor(Filter):
+class Extractor(Plugin):
     """Physically separate Instance from Host into corresponding Resources
 
     Yields:
@@ -117,16 +117,35 @@ class Extractor(Filter):
 
     families = list()
 
+    def commit(self, context):
+        print "Committing {0}".format(context)
 
-class Conform(Filter):
+
+class Conform(Plugin):
     families = list()
 
 
-class Context(set):
+class AbstractEntity(set):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self):
+        self._data = dict()
+
+    def data(self, key):
+        pass
+
+    def set_data(self, key, value):
+        pass
+
+    def has_data(self, key, value):
+        pass
+
+
+class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
 
-class Instance(set):
+class Instance(AbstractEntity):
     """An individually publishable component within scene
 
     Examples include rigs, models.
@@ -340,7 +359,7 @@ def _discover_type(type, regex=None):
 
                     for name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj):
-                            if issubclass(obj, pyblish.backend.plugin.Filter):
+                            if issubclass(obj, pyblish.backend.plugin.Plugin):
                                 if regex is None or re.match(regex,
                                                              obj.__name__):
                                     plugins.add(obj)
