@@ -137,11 +137,11 @@ class AbstractEntity(set):
     def __init__(self):
         self._data = dict()
 
-    def data(self, key=None):
+    def data(self, key=None, default=None):
         if key is None:
             return self._data
 
-        return self._data.get(key)
+        return self._data.get(key, default)
 
     def set_data(self, key, value):
         self._data[key] = value

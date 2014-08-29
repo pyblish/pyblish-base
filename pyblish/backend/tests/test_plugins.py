@@ -220,23 +220,24 @@ def test_instances_by_plugin():
     # the family is "TestInstance1"
     assert next(compatible).name == 'TestInstance1'
 
+# def test_conform():
+#     """Conform notifies external parties"""
+#     ctx = pyblish.backend.plugin.Context()
 
-def test_conform():
-    """Conform notifies external parties"""
-    ctx = pyblish.backend.plugin.Context()
+#     # Generate instance to report status about
+#     inst = pyblish.backend.plugin.Instance('TestInstance1')
+#     inst.config['family'] = 'test.family'
+#     inst.config['host'] = 'python'
+#     inst.config['assetId'] = ''
+#     inst.config[pyblish.backend.config.identifier] = True
 
-    # Generate instance to report status about
-    inst = pyblish.backend.plugin.Instance('TestInstance1')
-    inst.config['family'] = 'test.family'
-    inst.config['host'] = 'python'
-    inst.config['assetId'] = ''
-    inst.config[pyblish.backend.config.identifier] = True
+#     inst.add('test1_GRP')
+#     inst.add('test2_GRP')
+#     inst.add('test3_GRP')
 
-    inst.add('test1_GRP')
-    inst.add('test2_GRP')
-    inst.add('test3_GRP')
+#     ctx.add(inst)
 
-    ctx.add(inst)
+#     raise NotImplementedError
 
 
 if __name__ == '__main__':
@@ -254,4 +255,4 @@ if __name__ == '__main__':
     test_selection_appends()
     test_plugins_by_instance()
     test_instances_by_plugin()
-    test_conform()
+    # test_conform()
