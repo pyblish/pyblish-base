@@ -56,8 +56,8 @@ class Plugin(object):
     """Abstract base-class for plugins
 
     Attributes:
-        hosts: Hosts compatible with filter
-        version: Current version of filter
+        hosts: Hosts compatible with plugin
+        version: Current version of plugin
 
     """
 
@@ -88,6 +88,12 @@ class Plugin(object):
         """
 
         yield None, None
+
+    def process_all(self, context):
+        """Convenience method of the above :meth:process"""
+        for instance, error in self.process(context):
+            if error is not None:
+                raise error
 
 
 class Selector(Plugin):
@@ -131,14 +137,20 @@ class AbstractEntity(set):
     def __init__(self):
         self._data = dict()
 
-    def data(self, key):
-        pass
+    def data(self, key=None):
+        if key is None:
+            return self._data
+
+        return self._data.get(key)
 
     def set_data(self, key, value):
-        pass
+        self._data[key] = value
 
-    def has_data(self, key, value):
-        pass
+    def remove_data(self, key):
+        self._data.pop(key)
+
+    def has_data(self, key):
+        return key in self._data
 
 
 class Context(AbstractEntity):
@@ -155,6 +167,7 @@ class Instance(AbstractEntity):
         config (dict): Full configuration, as recorded onto objectSet.
 
     """
+
     def __hash__(self):
         """Instances are distinguished solely by their name
 
@@ -246,7 +259,7 @@ def deregister_all():
     registered_paths.clear()
 
 
-def discover(type=None, regex=None, context=None):
+def discover(type=None, regex=None):
     """Find plugins within registered_paths plugin-paths
 
     Arguments:
@@ -257,8 +270,6 @@ def discover(type=None, regex=None, context=None):
             Mathching is done on classes, as opposed to
             filenames due to a file possibly hosting
             multiple plugins.
-        context (Context): Only return plugins compatible
-            with specified context.
 
     """
 
@@ -281,7 +292,7 @@ def plugins_by_instance(plugins, instance):
     """Yield compatible plugins `plugins` to instance `instance`
 
     Arguments:
-        instance (Instance): Instance with which to filter against
+        instance (Instance): Instance with which to plugin against
         plugins (list): List of plugins
 
     Returns:
