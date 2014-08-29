@@ -3,14 +3,13 @@
 from __future__ import absolute_import
 
 # Standard library
-import os
 import logging
 
 # Local library
 import pyblish.backend.config
 import pyblish.backend.plugin
 
-log = logging.getLogger('pyblish')
+log = logging.getLogger('pyblish.main')
 
 
 __all__ = ['process',
@@ -30,18 +29,12 @@ def process(process, context):
 
     """
 
-    log.info("Processing ctx: %s with %s" % (context, process))
-
     assert isinstance(process, basestring)
     assert isinstance(context, pyblish.backend.plugin.Context)
 
     for plugin in pyblish.backend.plugin.discover(type=process):
         if not pyblish.backend.plugin.current_host() in plugin.hosts:
             continue
-
-        log.info("Applying {process} using {plugin}".format(
-            process=process,
-            plugin=plugin.__name__))
 
         for instance, error in plugin().process(context):
             yield instance, error
@@ -57,7 +50,7 @@ def process_all(process, context):
 def select(context):
     """Convenience function for selecting using all available plugins"""
     for instance, error in process('selectors', context):
-        log.info("Selecting {0}".format(instance.name))
+        log.info("Selecting {0}".format(getattr(instance, 'name', None)))
         if error is not None:
             log.error(error)
 
@@ -65,7 +58,7 @@ def select(context):
 def validate(context):
     """Convenience function for validation"""
     for instance, error in process('validators', context):
-        log.info("Validating {0}".format(instance.name))
+        log.info("Validating {0}".format(getattr(instance, 'name', None)))
 
         if error is not None:
             # Stop immediately if any validation fails
@@ -75,7 +68,7 @@ def validate(context):
 def extract(context):
     """Convenience function for extraction"""
     for instance, error in process('extractors', context):
-        log.info("Extracting {0}".format(instance.name))
+        log.info("Extracting {0}".format(getattr(instance, 'name', None)))
 
         if error is not None:
             # Continue regardless
@@ -85,7 +78,7 @@ def extract(context):
 def conform(context):
     """Perform conform upon context `context`"""
     for instance, error in process('conforms', context):
-        log.info("Conforming {0}".format(instance.name))
+        log.info("Conforming {0}".format(getattr(instance, 'name', None)))
 
         if error is not None:
             # Continue regardless
@@ -103,8 +96,7 @@ def publish_all(context=None):
     log.info("Publishing everything..")
 
     if not context:
-        context = pyblish.backend.plugin.Context(
-            current_path=os.getcwd())
+        context = pyblish.backend.plugin.Context()
 
     select(context)
 
@@ -122,8 +114,7 @@ def publish_all(context=None):
 
 def validate_all(context=None):
     if not context:
-        context = pyblish.backend.plugin.Context(
-            current_path=os.getcwd())
+        context = pyblish.backend.plugin.Context()
 
     select(context)
     validate(context)
