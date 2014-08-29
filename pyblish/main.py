@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 # Standard library
+import os
 import logging
 
 # Local library
@@ -29,7 +30,7 @@ def process(process, context):
 
     """
 
-    print "Processing ctx: %s with %s" % (context, process)
+    log.info("Processing ctx: %s with %s" % (context, process))
 
     assert isinstance(process, basestring)
     assert isinstance(context, pyblish.backend.plugin.Context)
@@ -46,66 +47,86 @@ def process(process, context):
             yield instance, error
 
 
+def process_all(process, context):
+    """Convenience function of the above :meth:process"""
+    for instance, error in process(process, context):
+        if error is not None:
+            raise error
+
+
 def select(context):
-    """Perform selection upon context `context`"""
-    return process('selectors', context)
+    """Convenience function for selecting using all available plugins"""
+    for instance, error in process('selectors', context):
+        log.info("Selecting {0}".format(instance.name))
+        if error is not None:
+            log.error(error)
 
 
 def validate(context):
-    """Perform validation upon context `context`"""
-    return process('validators', context)
+    """Convenience function for validation"""
+    for instance, error in process('validators', context):
+        log.info("Validating {0}".format(instance.name))
 
-
-def extract(context):
-    """Perform extraction upon context `context`"""
-    return process('extractors', context)
-
-
-def conform(context):
-    """Perform conform upon context `context`"""
-    return process('conforms', context)
-
-
-def publish_all():
-    """Convenience method for executing all steps in sequence"""
-    context = pyblish.backend.plugin.Context()
-
-    for instance, error in select(context):
-        print "Selected {0}".format(instance)
-
-    if not context:
-        return log.info("No instances found")
-
-    for instance, error in validate(context):
         if error is not None:
             # Stop immediately if any validation fails
             raise error
 
-    for p in (extract, conform):
-        for instance, error in p(context):
-            print "{process} {inst}".format(process=p, inst=instance)
-            if error is not None:
-                # Continue regardless
-                print error
 
-        print "Process: %s" % p
+def extract(context):
+    """Convenience function for extraction"""
+    for instance, error in process('extractors', context):
+        log.info("Extracting {0}".format(instance.name))
 
-    print "Finished"
-    return context
-
-
-def validate_all():
-    context = pyblish.backend.plugin.Context()
-
-    for instance, error in select(context):
-        pass
-
-    for instance, error in validate(context):
         if error is not None:
-            raise error
+            # Continue regardless
+            log.error(error)
+
+
+def conform(context):
+    """Perform conform upon context `context`"""
+    for instance, error in process('conforms', context):
+        log.info("Conforming {0}".format(instance.name))
+
+        if error is not None:
+            # Continue regardless
+            log.error(error)
+
+
+def publish_all(context=None):
+    """Convenience method for executing all steps in sequence
+
+    Arguments:
+        context (Context): Optional context
+
+    """
+
+    log.info("Publishing everything..")
+
+    if not context:
+        context = pyblish.backend.plugin.Context(
+            current_path=os.getcwd())
+
+    select(context)
+
+    if not context:
+        return log.info("No instances found.")
+
+    validate(context)  # Will raise exception at failure
+    extract(context)
+    conform(context)
+
+    log.info("Finished successfully")
 
     return context
 
+
+def validate_all(context=None):
+    if not context:
+        context = pyblish.backend.plugin.Context(
+            current_path=os.getcwd())
+
+    select(context)
+    validate(context)
 
 if __name__ == '__main__':
     import doctest
