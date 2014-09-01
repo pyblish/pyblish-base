@@ -89,6 +89,13 @@ class Filter(object):
 
         yield None, None
 
+    def instances(self, context):
+        result = []
+        for instance in context:
+            if instance.config.get('family') in self.families:
+                result.append(instance)
+        return result
+
 
 class Selector(Filter):
     """Parse a given working scene for available Instances"""
