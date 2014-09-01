@@ -22,6 +22,7 @@ import imp
 import abc
 import logging
 import inspect
+import warnings
 
 # Local library
 import pyblish.backend.lib
@@ -156,6 +157,19 @@ class AbstractEntity(set):
 class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
+    def create_instance(self, name):
+        """Convenience method for the following.
+
+        >>> ctx = Context()
+        >>> inst = Instance('name', context=ctx)
+        >>> ctx.add(inst)
+
+        """
+
+        instance = Instance(name, context=self)
+        self.add(instance)
+        return instance
+
 
 class Instance(AbstractEntity):
     """An individually publishable component within scene
@@ -187,10 +201,18 @@ class Instance(AbstractEntity):
     def __str__(self):
         return str(self.name)
 
-    def __init__(self, name):
+    def __init__(self, name, context=None):
         super(Instance, self).__init__()
         self.name = name
-        self.config = dict()
+        self.context = context
+        self._config = dict()
+
+    @property
+    def config(self):
+        warnings.warn("config deprecated, use .data() instead.",
+                      DeprecationWarning,
+                      stacklevel=2)
+        return self._config
 
 
 def current_host():
@@ -300,14 +322,23 @@ def plugins_by_instance(plugins, instance):
 
     """
 
+    compatible = list()
+
     for plugin in plugins:
-        if instance.config.get('family') not in plugin.families:
+        family = instance.data('family')
+        host = instance.data('host')
+
+        if hasattr(plugin, 'families') and family not in plugin.families:
             continue
 
-        if instance.config.get('host') not in plugin.hosts:
+        # Basic accept wildcards
+        # Todo: Expand to take partial wildcards e.g. '*Mesh'
+        if '*' not in plugin.hosts and host not in plugin.hosts:
             continue
 
-        yield plugin
+        compatible.append(plugin)
+
+    return compatible
 
 
 def instances_by_plugin(instances, plugin):
@@ -321,9 +352,13 @@ def instances_by_plugin(instances, plugin):
 
     """
 
+    compatible = list()
+
     for instance in instances:
-        if instance.config.get('family') in plugin.families:
-            yield instance
+        if instance.data('family') in plugin.families:
+            compatible.append(instance)
+
+    return instance
 
 
 def _discover_type(type, regex=None):
