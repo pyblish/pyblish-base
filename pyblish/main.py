@@ -33,10 +33,15 @@ def process(process, context):
     assert isinstance(context, pyblish.backend.plugin.Context)
 
     for plugin in pyblish.backend.plugin.discover(type=process):
-        if not pyblish.backend.plugin.current_host() in plugin.hosts:
+        current_host = pyblish.backend.plugin.current_host()
+        if not '*' in plugin.hosts and not current_host in plugin.hosts:
             continue
 
         for instance, error in plugin().process(context):
+            log.info("Running {process} with {plugin} on {subject}".format(
+                process=process,
+                plugin=plugin,
+                subject=getattr(instance, 'name', context)))
             yield instance, error
 
 
@@ -50,7 +55,6 @@ def process_all(process, context):
 def select(context):
     """Convenience function for selecting using all available plugins"""
     for instance, error in process('selectors', context):
-        log.info("Selecting {0}".format(getattr(instance, 'name', None)))
         if error is not None:
             log.error(error)
 
@@ -58,7 +62,6 @@ def select(context):
 def validate(context):
     """Convenience function for validation"""
     for instance, error in process('validators', context):
-        log.info("Validating {0}".format(getattr(instance, 'name', None)))
 
         if error is not None:
             # Stop immediately if any validation fails
@@ -68,7 +71,6 @@ def validate(context):
 def extract(context):
     """Convenience function for extraction"""
     for instance, error in process('extractors', context):
-        log.info("Extracting {0}".format(getattr(instance, 'name', None)))
 
         if error is not None:
             # Continue regardless
@@ -78,7 +80,6 @@ def extract(context):
 def conform(context):
     """Perform conform upon context `context`"""
     for instance, error in process('conforms', context):
-        log.info("Conforming {0}".format(getattr(instance, 'name', None)))
 
         if error is not None:
             # Continue regardless
