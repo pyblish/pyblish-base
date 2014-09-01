@@ -22,7 +22,7 @@ class SelectInstances(pyblish.backend.plugin.Selector):
                                'startFrame': 1001,
                                'endFrame': 1025}.iteritems():
 
-                instance.config[key] = value
+                instance.set_data(key, value)
 
             context.add(instance)
 
