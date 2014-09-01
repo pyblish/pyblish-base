@@ -6,6 +6,7 @@
 Feature film-strength quality assurance for content; built for platform, software and language agnosticism. Free, community-driven and licensed under LGPLv3.
 
 - [Wiki][wiki]
+- [Usergroup][]
 - [Documentation][docs]
 - [Website][web]
 - [PyPI][pypi]
@@ -29,6 +30,7 @@ To get started quickly, have a look at one of the integrations for Pyblish.
 
 
 [pypi]: https://pypi.python.org/pypi/pyblish
+[Usergroup]: https://groups.google.com/forum/#!forum/pyblish
 [wiki]: https://github.com/abstractfactory/pyblish/wiki
 [docs]: http://pyblish.readthedocs.org/en/latest/
 [web]: http://abstractfactory.github.io/pyblish/
