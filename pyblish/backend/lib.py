@@ -31,8 +31,3 @@ def main_package_path():
     backend_path = os.path.dirname(lib_py_path)
     package_path = os.path.dirname(backend_path)
     return package_path
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
