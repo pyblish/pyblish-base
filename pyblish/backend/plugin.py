@@ -20,6 +20,8 @@ import re
 import sys
 import imp
 import abc
+import time
+import shutil
 import logging
 import inspect
 import warnings
@@ -124,8 +126,49 @@ class Extractor(Plugin):
 
     families = list()
 
-    def commit(self, context):
-        print "Committing {0}".format(context)
+    def commit(self, path, instance):
+        """Move path `path` relative current workspace
+
+        Arguments:
+            path (str): Absolute path to where files are currently located;
+                usually a temporary directory.
+            instance (Instance): Instance located at `path`
+
+        Todo: Both `path` and `instance` are required for this operation,
+            but it doesn't make sense to include both as argument because
+            they say pretty much the same thing.
+
+            An alternative is to embed `path` into instance.set_data() prior
+            to running `commit()` but the path is ONLY needed during commit
+            and will become invalidated afterwards.
+
+            How do we simplify this? Ultimately, the way in which files
+            end up in their final destination, relative the working file,
+            should be automated and not left up to the user.
+
+        """
+
+        date = time.strftime(pyblish.backend.config.date_format)
+
+        workspace_dir = instance.context.data('workspace_dir')
+        if not workspace_dir:
+            # Project has not been set. Files will
+            # instead end up next to the working file.
+            workspace_dir = instance.context.data('current_file')
+
+        published_dir = os.path.join(workspace_dir,
+                                     pyblish.backend.config.prefix,
+                                     instance.data('family'))
+
+        commit_dir = os.path.join(published_dir, date)
+
+        self.log.info("Moving {0} relative working file..".format(instance))
+        shutil.copytree(path, commit_dir)
+
+        self.log.info("Clearing local cache..")
+        shutil.rmtree(path)
+
+        return commit_dir
 
 
 class Conform(Plugin):
@@ -205,14 +248,28 @@ class Instance(AbstractEntity):
         super(Instance, self).__init__()
         self.name = name
         self.context = context
-        self._config = dict()
+
+    def data(self, key=None, default=None):
+        """Treat `name` data-member as an override to native property
+
+        If name is a data-member, it will be used wherever a name is requested.
+        That way, names may be overridden via data.
+
+        """
+
+        value = super(Instance, self).data(key, default)
+
+        if key == 'name' and value is None:
+            return self.name
+
+        return value
 
     @property
     def config(self):
         warnings.warn("config deprecated, use .data() instead.",
                       DeprecationWarning,
                       stacklevel=2)
-        return self._config
+        return self._data
 
 
 def current_host():
@@ -311,14 +368,14 @@ def discover(type=None, regex=None):
 
 
 def plugins_by_instance(plugins, instance):
-    """Yield compatible plugins `plugins` to instance `instance`
+    """Return compatible plugins `plugins` to instance `instance`
 
     Arguments:
-        instance (Instance): Instance with which to plugin against
         plugins (list): List of plugins
+        instance (Instance): Instance with which to compare against
 
     Returns:
-        List of non-instantiated plugins.
+        List of compatible plugins.
 
     """
 
@@ -342,13 +399,14 @@ def plugins_by_instance(plugins, instance):
 
 
 def instances_by_plugin(instances, plugin):
-    """Yield compatible instances `instances` to context `context`
+    """Return compatible instances `instances` to plugin `plugin`
 
     Arguments:
-        context (Context): Context with which to yield compatible instances
+        instances (list): List of instances
+        plugin (Plugin): Plugin with which to compare against
 
-    Yields:
-        instance (Instance): Compatible instance
+    Returns:
+        List of compatible instances
 
     """
 
@@ -358,7 +416,7 @@ def instances_by_plugin(instances, plugin):
         if instance.data('family') in plugin.families:
             compatible.append(instance)
 
-    return instance
+    return compatible
 
 
 def _discover_type(type, regex=None):

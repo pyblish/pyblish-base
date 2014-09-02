@@ -7,7 +7,6 @@ import pyblish.backend.lib
 import pyblish.backend.plugin
 
 
-
 @pyblish.backend.lib.log
 class SelectCurrentUser(pyblish.backend.plugin.Selector):
     """Append the currently logged on user"""
@@ -30,5 +29,3 @@ class SelectCurrentWorkingDirectory(pyblish.backend.plugin.Selector):
     def process(self, context):
         context.set_data('cwd', value=os.getcwd())
         yield None, None
-
-

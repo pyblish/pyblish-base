@@ -62,7 +62,6 @@ def select(context):
 def validate(context):
     """Convenience function for validation"""
     for instance, error in process('validators', context):
-
         if error is not None:
             # Stop immediately if any validation fails
             raise error
@@ -71,7 +70,6 @@ def validate(context):
 def extract(context):
     """Convenience function for extraction"""
     for instance, error in process('extractors', context):
-
         if error is not None:
             # Continue regardless
             log.error(error)
@@ -80,7 +78,6 @@ def extract(context):
 def conform(context):
     """Perform conform upon context `context`"""
     for instance, error in process('conforms', context):
-
         if error is not None:
             # Continue regardless
             log.error(error)

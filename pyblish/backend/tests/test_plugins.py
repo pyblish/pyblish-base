@@ -219,8 +219,7 @@ def test_instances_by_plugin():
 
     # This plugin is only compatible with
     # the family is "TestInstance1"
-    # compatible = next(compatible)
-    assert next(compatible).name == 'TestInstance1'
+    assert compatible[0].name == 'TestInstance1'
 
 
 def test_print_plugin():
@@ -229,6 +228,15 @@ def test_print_plugin():
     plugin = plugins[0]
     assert plugin.__name__ in repr(plugin())
     assert plugin.__name__ == str(plugin())
+
+
+def test_name_override():
+    """Instances return either a data-member of name or its native name"""
+    inst = pyblish.backend.plugin.Instance(name='my_name')
+    assert inst.data('name') == 'my_name'
+
+    inst.set_data('name', value='overridden_name')
+    assert inst.data('name') == 'overridden_name'
 
 
 # def test_conform():
@@ -268,3 +276,4 @@ if __name__ == '__main__':
     test_instances_by_plugin()
     # test_conform()
     test_print_plugin()
+    test_name_override()
