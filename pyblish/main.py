@@ -117,6 +117,8 @@ def validate_all(context=None):
     select(context)
     validate(context)
 
+    log.info("All instances valid")
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
