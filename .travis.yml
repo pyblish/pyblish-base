@@ -13,5 +13,6 @@ deploy:
   provider: pypi
   user: mottosso
   password: OA0LmiLkryLgxGebvs7uwv/rExnL4KnCeiMBK9P42qgKwE9aLQY3Y+iB94gy0Q/ziPGm8zASAHeCUIwmbmRleQEvAXdoDIFdl59vRBkocDKc2Ya3Nqw9zwBm5ExDZeuj23JcWl18rH8XNd7HTyRaOZisZ4aZfG/2k++ylvOCZYU=
+  distributions: "sdist bdist"
   on:
     tags: true

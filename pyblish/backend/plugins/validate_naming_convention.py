@@ -30,6 +30,7 @@ class ValidateNamingConvention(pyblish.backend.plugin.Validator):
             mismatches = list()
             for node in instance:
                 if not self.pattern.match(node):
+                    print "Appending %s" % node
                     mismatches.append(node)
 
             if mismatches:

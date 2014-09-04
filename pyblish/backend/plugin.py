@@ -20,15 +20,18 @@ import re
 import sys
 import imp
 import abc
+import time
+import shutil
 import logging
 import inspect
+import warnings
 
 # Local library
 import pyblish.backend.lib
 import pyblish.backend.config
 import pyblish.backend.plugin
 
-__all__ = ['Filter',
+__all__ = ['Plugin',
            'Selector',
            'Validator',
            'Extractor',
@@ -52,12 +55,12 @@ registered_paths = set()
 log = logging.getLogger('pyblish.backend.plugin')
 
 
-class Filter(object):
+class Plugin(object):
     """Abstract base-class for plugins
 
     Attributes:
-        hosts: Hosts compatible with filter
-        version: Current version of filter
+        hosts: Hosts compatible with plugin
+        version: Current version of plugin
 
     """
 
@@ -89,12 +92,18 @@ class Filter(object):
 
         yield None, None
 
+    def process_all(self, context):
+        """Convenience method of the above :meth:process"""
+        for instance, error in self.process(context):
+            if error is not None:
+                raise error
 
-class Selector(Filter):
+
+class Selector(Plugin):
     """Parse a given working scene for available Instances"""
 
 
-class Validator(Filter):
+class Validator(Plugin):
     """Validate/check/test individual instance for correctness.
 
     Raises exception upon failure.
@@ -107,7 +116,7 @@ class Validator(Filter):
         """Optional auto-fix for when validation fails"""
 
 
-class Extractor(Filter):
+class Extractor(Plugin):
     """Physically separate Instance from Host into corresponding Resources
 
     Yields:
@@ -117,16 +126,95 @@ class Extractor(Filter):
 
     families = list()
 
+    def commit(self, path, instance):
+        """Move path `path` relative current workspace
 
-class Conform(Filter):
+        Arguments:
+            path (str): Absolute path to where files are currently located;
+                usually a temporary directory.
+            instance (Instance): Instance located at `path`
+
+        Todo: Both `path` and `instance` are required for this operation,
+            but it doesn't make sense to include both as argument because
+            they say pretty much the same thing.
+
+            An alternative is to embed `path` into instance.set_data() prior
+            to running `commit()` but the path is ONLY needed during commit
+            and will become invalidated afterwards.
+
+            How do we simplify this? Ultimately, the way in which files
+            end up in their final destination, relative the working file,
+            should be automated and not left up to the user.
+
+        """
+
+        date = time.strftime(pyblish.backend.config.date_format)
+
+        workspace_dir = instance.context.data('workspace_dir')
+        if not workspace_dir:
+            # Project has not been set. Files will
+            # instead end up next to the working file.
+            workspace_dir = instance.context.data('current_file')
+
+        published_dir = os.path.join(workspace_dir,
+                                     pyblish.backend.config.prefix,
+                                     instance.data('family'))
+
+        commit_dir = os.path.join(published_dir, date)
+
+        self.log.info("Moving {0} relative working file..".format(instance))
+        shutil.copytree(path, commit_dir)
+
+        self.log.info("Clearing local cache..")
+        shutil.rmtree(path)
+
+        return commit_dir
+
+
+class Conform(Plugin):
     families = list()
 
 
-class Context(set):
+class AbstractEntity(set):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self):
+        self._data = dict()
+
+    def data(self, key=None, default=None):
+        if key is None:
+            return self._data
+
+        return self._data.get(key, default)
+
+    def set_data(self, key, value):
+        self._data[key] = value
+
+    def remove_data(self, key):
+        self._data.pop(key)
+
+    def has_data(self, key):
+        return key in self._data
+
+
+class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
+    def create_instance(self, name):
+        """Convenience method for the following.
 
-class Instance(set):
+        >>> ctx = Context()
+        >>> inst = Instance('name', context=ctx)
+        >>> ctx.add(inst)
+
+        """
+
+        instance = Instance(name, context=self)
+        self.add(instance)
+        return instance
+
+
+class Instance(AbstractEntity):
     """An individually publishable component within scene
 
     Examples include rigs, models.
@@ -136,6 +224,7 @@ class Instance(set):
         config (dict): Full configuration, as recorded onto objectSet.
 
     """
+
     def __hash__(self):
         """Instances are distinguished solely by their name
 
@@ -155,10 +244,32 @@ class Instance(set):
     def __str__(self):
         return str(self.name)
 
-    def __init__(self, name):
+    def __init__(self, name, context=None):
         super(Instance, self).__init__()
         self.name = name
-        self.config = dict()
+        self.context = context
+
+    def data(self, key=None, default=None):
+        """Treat `name` data-member as an override to native property
+
+        If name is a data-member, it will be used wherever a name is requested.
+        That way, names may be overridden via data.
+
+        """
+
+        value = super(Instance, self).data(key, default)
+
+        if key == 'name' and value is None:
+            return self.name
+
+        return value
+
+    @property
+    def config(self):
+        warnings.warn("config deprecated, use .data() instead.",
+                      DeprecationWarning,
+                      stacklevel=2)
+        return self._data
 
 
 def current_host():
@@ -227,7 +338,7 @@ def deregister_all():
     registered_paths.clear()
 
 
-def discover(type=None, regex=None, context=None):
+def discover(type=None, regex=None):
     """Find plugins within registered_paths plugin-paths
 
     Arguments:
@@ -238,8 +349,6 @@ def discover(type=None, regex=None, context=None):
             Mathching is done on classes, as opposed to
             filenames due to a file possibly hosting
             multiple plugins.
-        context (Context): Only return plugins compatible
-            with specified context.
 
     """
 
@@ -259,41 +368,55 @@ def discover(type=None, regex=None, context=None):
 
 
 def plugins_by_instance(plugins, instance):
-    """Yield compatible plugins `plugins` to instance `instance`
+    """Return compatible plugins `plugins` to instance `instance`
 
     Arguments:
-        instance (Instance): Instance with which to filter against
         plugins (list): List of plugins
+        instance (Instance): Instance with which to compare against
 
     Returns:
-        List of non-instantiated plugins.
+        List of compatible plugins.
 
     """
 
+    compatible = list()
+
     for plugin in plugins:
-        if instance.config.get('family') not in plugin.families:
+        family = instance.data('family')
+        host = instance.data('host')
+
+        if hasattr(plugin, 'families') and family not in plugin.families:
             continue
 
-        if instance.config.get('host') not in plugin.hosts:
+        # Basic accept wildcards
+        # Todo: Expand to take partial wildcards e.g. '*Mesh'
+        if '*' not in plugin.hosts and host not in plugin.hosts:
             continue
 
-        yield plugin
+        compatible.append(plugin)
+
+    return compatible
 
 
 def instances_by_plugin(instances, plugin):
-    """Yield compatible instances `instances` to context `context`
+    """Return compatible instances `instances` to plugin `plugin`
 
     Arguments:
-        context (Context): Context with which to yield compatible instances
+        instances (list): List of instances
+        plugin (Plugin): Plugin with which to compare against
 
-    Yields:
-        instance (Instance): Compatible instance
+    Returns:
+        List of compatible instances
 
     """
 
+    compatible = list()
+
     for instance in instances:
-        if instance.config.get('family') in plugin.families:
-            yield instance
+        if instance.data('family') in plugin.families:
+            compatible.append(instance)
+
+    return compatible
 
 
 def _discover_type(type, regex=None):
@@ -340,7 +463,7 @@ def _discover_type(type, regex=None):
 
                     for name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj):
-                            if issubclass(obj, pyblish.backend.plugin.Filter):
+                            if issubclass(obj, pyblish.backend.plugin.Plugin):
                                 if regex is None or re.match(regex,
                                                              obj.__name__):
                                     plugins.add(obj)

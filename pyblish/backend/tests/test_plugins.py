@@ -50,8 +50,8 @@ def test_validation_interface():
     inst.add('test_node1_PLY')
     inst.add('test_node2_PLY')
     inst.add('test_node3_GRP')
-    inst.config[pyblish.backend.config.identifier] = True
-    inst.config['family'] = FAMILY
+    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
 
@@ -74,8 +74,8 @@ def test_validation_failure():
     inst.add('test_PLY')
     inst.add('test_misnamed')
 
-    inst.config[pyblish.backend.config.identifier] = True
-    inst.config['family'] = FAMILY
+    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
 
@@ -96,8 +96,8 @@ def test_extraction_interface():
     inst = pyblish.backend.plugin.Instance('test_instance')
 
     inst.add('test_PLY')
-    inst.config[pyblish.backend.config.identifier] = True
-    inst.config['family'] = FAMILY
+    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
 
@@ -126,8 +126,8 @@ def test_extraction_failure():
     inst = pyblish.backend.plugin.Instance('test_instance')
 
     inst.add('test_PLY')
-    inst.config[pyblish.backend.config.identifier] = True
-    inst.config['family'] = FAMILY
+    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
 
@@ -157,12 +157,12 @@ def test_selection_appends():
 
     ctx = pyblish.backend.plugin.Context()
 
-    my_inst = pyblish.backend.plugin.Instance('MyInstance')
-    my_inst.add('node1')
-    my_inst.add('node2')
-    my_inst.config[pyblish.backend.config.identifier] = True
+    inst = pyblish.backend.plugin.Instance('MyInstance')
+    inst.add('node1')
+    inst.add('node2')
+    inst.set_data(pyblish.backend.config.identifier, value=True)
 
-    ctx.add(my_inst)
+    ctx.add(inst)
 
     assert len(ctx) == 1
 
@@ -171,16 +171,16 @@ def test_selection_appends():
             assert error is None
 
     # At least one plugin will append a selector
-    assert my_inst in ctx
+    assert inst in ctx
     assert len(ctx) > 1
 
 
 def test_plugins_by_instance():
     """Returns plugins compatible with instance"""
     inst = pyblish.backend.plugin.Instance('TestInstance')
-    inst.config['family'] = 'test.family'
-    inst.config['host'] = 'python'
-    inst.config[pyblish.backend.config.identifier] = True
+    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data('family', value=FAMILY)
+    inst.set_data('host', value='python')
 
     plugins = pyblish.backend.plugin.discover('validators')
     compatible = pyblish.backend.plugin.plugins_by_instance(plugins, inst)
@@ -197,11 +197,12 @@ def test_instances_by_plugin():
     # compatible with the given plugin below.
     families = ('test.family', 'test.other_family')
     for family in families:
-        inst = pyblish.backend.plugin.Instance('TestInstance{0}'.format(
-            families.index(family) + 1))
-        inst.config['family'] = family
-        inst.config['host'] = 'python'
-        inst.config[pyblish.backend.config.identifier] = True
+        inst = ctx.create_instance(
+            name='TestInstance{0}'.format(families.index(family) + 1))
+
+        inst.set_data(pyblish.backend.config.identifier, value=True)
+        inst.set_data('family', value=family)
+        inst.set_data('host', value='python')
 
         ctx.add(inst)
 
@@ -218,25 +219,44 @@ def test_instances_by_plugin():
 
     # This plugin is only compatible with
     # the family is "TestInstance1"
-    assert next(compatible).name == 'TestInstance1'
+    assert compatible[0].name == 'TestInstance1'
 
 
-def test_conform():
-    """Conform notifies external parties"""
-    ctx = pyblish.backend.plugin.Context()
+def test_print_plugin():
+    """Printing plugin returns name of class"""
+    plugins = pyblish.backend.plugin.discover('validators')
+    plugin = plugins[0]
+    assert plugin.__name__ in repr(plugin())
+    assert plugin.__name__ == str(plugin())
 
-    # Generate instance to report status about
-    inst = pyblish.backend.plugin.Instance('TestInstance1')
-    inst.config['family'] = 'test.family'
-    inst.config['host'] = 'python'
-    inst.config['assetId'] = ''
-    inst.config[pyblish.backend.config.identifier] = True
 
-    inst.add('test1_GRP')
-    inst.add('test2_GRP')
-    inst.add('test3_GRP')
+def test_name_override():
+    """Instances return either a data-member of name or its native name"""
+    inst = pyblish.backend.plugin.Instance(name='my_name')
+    assert inst.data('name') == 'my_name'
 
-    ctx.add(inst)
+    inst.set_data('name', value='overridden_name')
+    assert inst.data('name') == 'overridden_name'
+
+
+# def test_conform():
+#     """Conform notifies external parties"""
+#     ctx = pyblish.backend.plugin.Context()
+
+#     # Generate instance to report status about
+#     inst = pyblish.backend.plugin.Instance('TestInstance1')
+#     inst.config['family'] = 'test.family'
+#     inst.config['host'] = 'python'
+#     inst.config['assetId'] = ''
+#     inst.config[pyblish.backend.config.identifier] = True
+
+#     inst.add('test1_GRP')
+#     inst.add('test2_GRP')
+#     inst.add('test3_GRP')
+
+#     ctx.add(inst)
+
+#     raise NotImplementedError
 
 
 if __name__ == '__main__':
@@ -254,4 +274,6 @@ if __name__ == '__main__':
     test_selection_appends()
     test_plugins_by_instance()
     test_instances_by_plugin()
-    test_conform()
+    # test_conform()
+    test_print_plugin()
+    test_name_override()
