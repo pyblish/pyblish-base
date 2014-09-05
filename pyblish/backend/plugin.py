@@ -505,13 +505,7 @@ def _discover_type(type, regex=None):
                 # Try importing the module. If this fails,
                 # for whatever reason, log it and move on.
                 try:
-                    # Create a local copy of sys.path, clear it
-                    # and add our plugin path to try and import.
-                    # Once done, restore sys.path.
-                    sys_path = list(sys.path)
-                    sys.path[:] = []
-
-                    sys.path.append(path)
+                    sys.path.insert(0, path)
                     module = importlib.import_module(mod_name)
 
                 except (ImportError, IndentationError) as e:
@@ -521,7 +515,7 @@ def _discover_type(type, regex=None):
 
                 finally:
                     # Restore sys.path
-                    sys.path[:] = sys_path
+                    sys.path.remove(path)
 
                 for name in dir(module):
                     obj = getattr(module, name)
