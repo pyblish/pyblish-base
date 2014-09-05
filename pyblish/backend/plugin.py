@@ -18,18 +18,20 @@ Attributes:
 import os
 import re
 import sys
-import imp
 import abc
 import time
 import shutil
 import logging
 import inspect
 import warnings
+import importlib
+import traceback
 
 # Local library
 import pyblish.backend.lib
 import pyblish.backend.config
 import pyblish.backend.plugin
+
 
 __all__ = ['Plugin',
            'Selector',
@@ -50,7 +52,8 @@ patterns = {
     'conforms': pyblish.backend.config.conforms_regex
 }
 
-registered_paths = set()
+registered_paths = list()
+registered_modules = list()
 
 log = logging.getLogger('pyblish.backend.plugin')
 
@@ -316,10 +319,13 @@ def register_plugin_path(path):
 
     """
 
-    if os.path.isdir(path):
-        registered_paths.add(path)
-    else:
+    if not os.path.isdir(path):
         raise OSError("{0} does not exist".format(path))
+
+    if path in registered_paths:
+        return log.warning("Path already registered: {0}".format(path))
+
+    registered_paths.append(path)
 
 
 def deregister_plugin_path(path):
@@ -335,7 +341,7 @@ def deregister_plugin_path(path):
 
 def deregister_all():
     """Mainly used in tests"""
-    registered_paths.clear()
+    registered_paths[:] = []
 
 
 def discover(type=None, regex=None):
@@ -413,8 +419,9 @@ def instances_by_plugin(instances, plugin):
     compatible = list()
 
     for instance in instances:
-        if instance.data('family') in plugin.families:
-            compatible.append(instance)
+        if hasattr(plugin, 'families'):
+            if instance.data('family') in plugin.families:
+                compatible.append(instance)
 
     return compatible
 
@@ -427,7 +434,7 @@ def _discover_type(type, regex=None):
     """
 
     try:
-        plugins = set()
+        plugins = dict()
 
         paths = list(registered_paths)
 
@@ -439,51 +446,105 @@ def _discover_type(type, regex=None):
             sep = ';' if os.name == 'nt' else ':'
             paths.extend(env_val.split(sep))
 
+        # Paths may point to the same location but be formatted
+        # differently. Do a check here.
+        discovered_paths = list()
+
+        # Look through each registered path for potential plugins
         for path in paths:
+            log.debug("Looking for plugins in {0}".format(path))
+
+            normpath = os.path.normpath(path)
+            if normpath in discovered_paths:
+                log.warning("Duplicate path being discovered: {0}".format(
+                    path))
+                continue
+
+            discovered_paths.append(normpath)
+
+            # Look within each directory for available plugins.
+            # Plugins are modules which passes the regex test
+            # as per regexes provided by config.yaml.
             for fname in os.listdir(path):
                 abspath = os.path.join(path, fname)
 
                 if not os.path.isfile(abspath):
                     continue
 
-                name, suffix = os.path.splitext(fname)
+                mod_name, suffix = os.path.splitext(fname)
+
+                if mod_name in registered_modules:
+                    log.warning("Duplicate module name found: "
+                                "{dup} found in {mods}".format(
+                                    dup=abspath, mods=registered_modules))
+                    continue
 
                 try:
                     pattern = patterns[type]
                 except KeyError:
                     raise  # Handled below
 
-                if re.match(pattern, fname):
-                    try:
-                        module = imp.load_source(name, abspath)
-                    except (ImportError, IndentationError) as e:
-                        log.warning('"{mod}": Skipped ({msg})'.format(
-                            mod=name, msg=e))
+                # Modules that don't match the regex aren't plugins.
+                if not re.match(pattern, fname):
+                    continue
+
+                # Try importing the module. If this fails,
+                # for whatever reason, log it and move on.
+                try:
+                    # Create a local copy of sys.path, clear it
+                    # and add our plugin path to try and import.
+                    # Once done, restore sys.path.
+                    sys_path = list(sys.path)
+                    sys.path[:] = []
+
+                    sys.path.append(path)
+                    module = importlib.import_module(mod_name)
+
+                except (ImportError, IndentationError) as e:
+                    log.warning('"{mod}": Skipped ({msg})'.format(
+                        mod=mod_name, msg=e))
+                    continue
+
+                finally:
+                    # Restore sys.path
+                    sys.path[:] = sys_path
+
+                for name in dir(module):
+                    obj = getattr(module, name)
+                # for name, obj in inspect.getmembers(module):
+                    # getmembers will return members including attriutes
+                    # and eventual functions. We're only interested in
+                    # classes.
+                    if not inspect.isclass(obj):
                         continue
 
-                    for name, obj in inspect.getmembers(module):
-                        if inspect.isclass(obj):
-                            if issubclass(obj, pyblish.backend.plugin.Plugin):
-                                if regex is None or re.match(regex,
-                                                             obj.__name__):
-                                    plugins.add(obj)
+                    # All plugins must be subclasses of Plugin
+                    if not issubclass(obj, Plugin):
+                        continue
 
-        return plugins
+                    # Finally, check that the plugin hasn't already been
+                    # registered. This may indicate that a plugin has
+                    # been created with identical name to another plugin.
+                    for plugin in plugins:
+                        if obj.__name__ == plugin:
+                            log.warning(
+                                "Comparing {old} - {new} - Duplicate plugin "
+                                "found: {cls}".format(
+                                    old=obj.__name__,
+                                    new=plugin,
+                                    cls=obj))
+
+                    if regex is None or re.match(regex, obj.__name__):
+                        plugins[obj.__name__] = obj
+
+        return plugins.values()
 
     except KeyError:
-        raise ValueError("type not recognised: {0}".format(type))
+        raise ValueError("Type not recognised: {0}".format(type))
 
 
 # Register included plugin path
 _package_path = pyblish.backend.lib.main_package_path()
-_validators_path = os.path.join(_package_path, 'backend', 'plugins')
-_validators_path = os.path.abspath(_validators_path)
-register_plugin_path(_validators_path)
-
-
-if __name__ == '__main__':
-    logging.basicConfig()
-
-    # for plugin in discover('extractors'):
-    for plugin in discover():
-        print plugin
+_plugins_path = os.path.join(_package_path, 'backend', 'plugins')
+_plugins_path = os.path.abspath(_plugins_path)
+register_plugin_path(_plugins_path)

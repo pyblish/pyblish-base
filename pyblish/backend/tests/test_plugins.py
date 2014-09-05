@@ -1,39 +1,37 @@
 
 # Standard library
 import os
+import shutil
+import tempfile
 
 # Local library
 import pyblish.backend.lib
 import pyblish.backend.config
 import pyblish.backend.plugin
 
-from pyblish.vendor.nose.tools import raises
-
-# Setup
-HOST = 'python'
-FAMILY = 'test.family'
-
-package_path = pyblish.backend.lib.main_package_path()
-plugin_path = os.path.join(package_path, 'backend', 'tests', 'plugins')
-
-pyblish.backend.plugin.deregister_all()
-pyblish.backend.plugin.register_plugin_path(plugin_path)
+from pyblish.backend.tests.lib import (
+    setup, teardown, setup_failing, HOST, FAMILY,
+    setup_duplicate)
+from pyblish.vendor.nose.tools import raises, with_setup
 
 
+@with_setup(setup, teardown)
 def test_selection_interface():
     """The interface of selection works fine"""
 
     ctx = pyblish.backend.plugin.Context()
 
-    selectors = pyblish.backend.plugin.discover(type='selectors')
+    selectors = pyblish.backend.plugin.discover(
+        type='selectors',
+        regex='SelectInstances$')
+
     assert len(selectors) >= 1
 
     for selector in selectors:
         if not HOST in selector.hosts:
             continue
 
-        for instance, error in selector().process(ctx):
-            assert error is None
+        selector().process_all(ctx)
 
     assert len(ctx) >= 1
 
@@ -41,12 +39,13 @@ def test_selection_interface():
     assert len(inst) >= 3
 
 
+@with_setup(setup, teardown)
 def test_validation_interface():
     """The interface of validation works fine"""
     ctx = pyblish.backend.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
-    inst = pyblish.backend.plugin.Instance('test_instance')
+    inst = ctx.create_instance(name='test_instance')
     inst.add('test_node1_PLY')
     inst.add('test_node2_PLY')
     inst.add('test_node3_GRP')
@@ -55,45 +54,21 @@ def test_validation_interface():
 
     ctx.add(inst)
 
-    validators = pyblish.backend.plugin.discover(type='validators')
-    assert len(validators) >= 1
+    validator = pyblish.backend.plugin.discover(
+        type='validators',
+        regex="^ValidateInstance$")[0]
 
-    for validator in validators:
-        for instance, error in validator().process(ctx):
-            assert error is None
-
-
-@raises(ValueError)
-def test_validation_failure():
-    """Validation throws exception upon failure"""
-    ctx = pyblish.backend.plugin.Context()
-
-    # Manually create instance and nodes, bypassing selection
-    inst = pyblish.backend.plugin.Instance('test_instance')
-
-    inst.add('test_PLY')
-    inst.add('test_misnamed')
-
-    inst.set_data(pyblish.backend.config.identifier, value=True)
-    inst.set_data('family', value=FAMILY)
-
-    ctx.add(inst)
-
-    validators = pyblish.backend.plugin.discover(type='validators',
-                                                 regex='ValidateInstance')
-    assert len(validators) == 1
-
-    for validator in validators:
-        for instance, error in validator().process(ctx):
-            raise error
+    for instance, error in validator().process(ctx):
+        assert error is None
 
 
+@with_setup(setup, teardown)
 def test_extraction_interface():
     """The interface of extractors works fine"""
     ctx = pyblish.backend.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
-    inst = pyblish.backend.plugin.Instance('test_instance')
+    inst = ctx.create_instance(name='test_instance')
 
     inst.add('test_PLY')
     inst.set_data(pyblish.backend.config.identifier, value=True)
@@ -103,45 +78,14 @@ def test_extraction_interface():
 
     # Assuming validations pass
 
-    extractors = pyblish.backend.plugin.discover(type='extractors',
-                                                 regex='.*ExtractInstances$')
-    extractor = extractors.pop()
+    extractor = pyblish.backend.plugin.discover(
+        type='extractors', regex='.*ExtractInstances$')[0]
     assert extractor.__name__ == "ExtractInstances"
 
-    for instance, error in extractor().process(ctx):
-        assert error is None
+    extractor().process_all(ctx)
 
 
-@raises(ValueError)
-def test_extraction_failure():
-    """Extraction fails ok
-
-    When extraction fails, it is imperitative that other extractors
-    keep going and that the user is properly notified of the failure.
-
-    """
-    ctx = pyblish.backend.plugin.Context()
-
-    # Manually create instance and nodes, bypassing selection
-    inst = pyblish.backend.plugin.Instance('test_instance')
-
-    inst.add('test_PLY')
-    inst.set_data(pyblish.backend.config.identifier, value=True)
-    inst.set_data('family', value=FAMILY)
-
-    ctx.add(inst)
-
-    # Assuming validations pass
-
-    extractors = pyblish.backend.plugin.discover(type='extractors',
-                                                 regex='.*Fail$')
-    extractor = extractors.pop()
-    assert extractor.__name__ == "ExtractInstancesFail"
-
-    for instance, error in extractor().process(ctx):
-        raise error
-
-
+@with_setup(setup, teardown)
 def test_plugin_interface():
     """All plugins share interface"""
 
@@ -152,29 +96,29 @@ def test_plugin_interface():
             assert (error is None) or isinstance(error, Exception)
 
 
+@with_setup(setup, teardown)
 def test_selection_appends():
     """Selectors append, rather than replace existing instances"""
 
     ctx = pyblish.backend.plugin.Context()
 
-    inst = pyblish.backend.plugin.Instance('MyInstance')
+    inst = ctx.create_instance(name='MyInstance')
     inst.add('node1')
     inst.add('node2')
     inst.set_data(pyblish.backend.config.identifier, value=True)
 
-    ctx.add(inst)
-
     assert len(ctx) == 1
 
-    for selector in pyblish.backend.plugin.discover('selectors'):
-        for instance, error in selector().process(context=ctx):
-            assert error is None
+    for selector in pyblish.backend.plugin.discover(
+            'selectors', regex='SelectInstances$'):
+        selector().process_all(context=ctx)
 
     # At least one plugin will append a selector
     assert inst in ctx
     assert len(ctx) > 1
 
 
+@with_setup(setup, teardown)
 def test_plugins_by_instance():
     """Returns plugins compatible with instance"""
     inst = pyblish.backend.plugin.Instance('TestInstance')
@@ -189,13 +133,14 @@ def test_plugins_by_instance():
     assert len(plugins) > len(list(compatible))
 
 
+@with_setup(setup, teardown)
 def test_instances_by_plugin():
     """Returns instances compatible with plugin"""
     ctx = pyblish.backend.plugin.Context()
 
     # Generate two instances, only one of which will be
     # compatible with the given plugin below.
-    families = ('test.family', 'test.other_family')
+    families = (FAMILY, 'test.other_family')
     for family in families:
         inst = ctx.create_instance(
             name='TestInstance{0}'.format(families.index(family) + 1))
@@ -222,6 +167,7 @@ def test_instances_by_plugin():
     assert compatible[0].name == 'TestInstance1'
 
 
+@with_setup(setup, teardown)
 def test_print_plugin():
     """Printing plugin returns name of class"""
     plugins = pyblish.backend.plugin.discover('validators')
@@ -230,6 +176,7 @@ def test_print_plugin():
     assert plugin.__name__ == str(plugin())
 
 
+@with_setup(setup, teardown)
 def test_name_override():
     """Instances return either a data-member of name or its native name"""
     inst = pyblish.backend.plugin.Instance(name='my_name')
@@ -239,41 +186,14 @@ def test_name_override():
     assert inst.data('name') == 'overridden_name'
 
 
-# def test_conform():
-#     """Conform notifies external parties"""
-#     ctx = pyblish.backend.plugin.Context()
+@with_setup(setup_duplicate, teardown)
+def test_no_duplicate_plugins():
+    """Discovering plugins results in a single occurence of each plugin"""
 
-#     # Generate instance to report status about
-#     inst = pyblish.backend.plugin.Instance('TestInstance1')
-#     inst.config['family'] = 'test.family'
-#     inst.config['host'] = 'python'
-#     inst.config['assetId'] = ''
-#     inst.config[pyblish.backend.config.identifier] = True
+    plugins = pyblish.backend.plugin.discover(type='selectors')
 
-#     inst.add('test1_GRP')
-#     inst.add('test2_GRP')
-#     inst.add('test3_GRP')
-
-#     ctx.add(inst)
-
-#     raise NotImplementedError
-
-
-if __name__ == '__main__':
-    import logging
-    import pyblish
-    log = pyblish.setup_log()
-    log.setLevel(logging.DEBUG)
-
-    test_selection_interface()
-    test_validation_interface()
-    test_validation_failure()
-    test_extraction_interface()
-    test_extraction_failure()
-    test_plugin_interface()
-    test_selection_appends()
-    test_plugins_by_instance()
-    test_instances_by_plugin()
-    # test_conform()
-    test_print_plugin()
-    test_name_override()
+    # There are two plugins available, but one of them is
+    # hidden under the duplicate module name. As a result,
+    # only one of them is returned. A log message is printed
+    # to alert the user.
+    assert len(plugins) == 1
