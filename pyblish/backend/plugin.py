@@ -151,13 +151,27 @@ class Extractor(Plugin):
 
         """
 
+        self.log.info("Commiting instance: {0}".format(instance))
+
         date = time.strftime(pyblish.backend.config.date_format)
+
+        if not 'current_file' in instance.context.data():
+            raise ValueError(
+                "Missing metadata '{data}' in "
+                "instance: {instance}".format(
+                    data='current_file', instance=instance))
 
         workspace_dir = instance.context.data('workspace_dir')
         if not workspace_dir:
             # Project has not been set. Files will
             # instead end up next to the working file.
             workspace_dir = instance.context.data('current_file')
+
+        self.log.debug("Publishing dir is joined by: %s, %s and %s" % (
+                       workspace_dir,
+                       pyblish.backend.config.prefix,
+                       instance.data('family'))
+                       )
 
         published_dir = os.path.join(workspace_dir,
                                      pyblish.backend.config.prefix,
