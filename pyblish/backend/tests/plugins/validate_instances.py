@@ -13,20 +13,16 @@ class ValidateInstance(pyblish.backend.plugin.Validator):
     families = ['test.family']
     version = (0, 1, 0)
 
-    def process(self, context):
-        for instance in context:
-            misnamed = list()
+    def process_instance(self, instance):
+        misnamed = list()
 
-            for node in instance:
-                self.log.debug("Validating {0}".format(node))
-                if not re.match(r"^\w+_\w{3}?$", node):
-                    misnamed.append(node)
+        for node in instance:
+            self.log.debug("Validating {0}".format(node))
+            if not re.match(r"^\w+_\w{3}?$", node):
+                misnamed.append(node)
 
-            if misnamed:
-                yield instance, ValueError(
-                    "{0} was named incorrectly".format(node))
-            else:
-                yield instance, None
+        if misnamed:
+            raise ValueError("{0} was named incorrectly".format(node))
 
 
 @pyblish.backend.lib.log
@@ -37,5 +33,5 @@ class ValidateOtherInstance(pyblish.backend.plugin.Validator):
     families = ['test.other.family']
     version = (0, 1, 0)
 
-    def process(self, context):
-        yield None, None
+    def process_instance(self, instance):
+        return

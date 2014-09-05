@@ -58,19 +58,14 @@ registered_modules = list()
 log = logging.getLogger('pyblish.backend.plugin')
 
 
+@pyblish.backend.lib.log
 class Plugin(object):
-    """Abstract base-class for plugins
-
-    Attributes:
-        hosts: Hosts compatible with plugin
-        version: Current version of plugin
-
-    """
+    """Abstract base-class for plugins"""
 
     __metaclass__ = abc.ABCMeta
 
-    hosts = list()
-    version = (0, 0, 0)
+    hosts = list()       # Hosts compatible with plugin
+    version = (0, 0, 0)  # Current version of plugin
 
     def __str__(self):
         return type(self).__name__
@@ -78,10 +73,6 @@ class Plugin(object):
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
 
-    def __init__(self):
-        self.errors = list()
-
-    @abc.abstractmethod
     def process(self, context):
         """Perform processing upon context `context`
 
@@ -89,14 +80,74 @@ class Plugin(object):
             Generator, yielding per instance
 
         Yields:
-            Tuple of Instance and exception (if any)
+            Tuple (Instance, Exception)
 
         """
 
-        yield None, None
+        try:
+            self.process_context(context)
+
+        except Exception as err:
+            self.log.error(traceback.format_exc())
+            self.log.error("Could not process context: {0}".format(context))
+            yield None, err
+
+        else:
+            compatible = pyblish.backend.plugin.instances_by_plugin(
+                instances=context, plugin=self)
+
+            for instance in compatible:
+                try:
+                    self.process_instance(instance)
+                    err = None
+                except Exception as err:
+                    self.log.error(traceback.format_exc())
+                    self.log.error("Exception occured during "
+                                   "processing of instance {0}".format(
+                                       instance))
+                finally:
+                    yield instance, err
+
+    def process_context(self, context):
+        """Process context `context`
+
+        Implement this method in your subclasses whenever you need
+        to process the full context. The principal difference here
+        is that only one return value is required, exceptions are
+        handled gracefully by :meth:process above.
+
+        Returns:
+            None
+
+        Raises:
+            Any error
+
+        """
+
+    def process_instance(self, instance):
+        """Process individual, compatible instances
+
+        Implement this method in your subclasses to handle processing
+        of compatible instances. It is run once per instance and
+        distinguishes between instances compatible with the plugin's
+        family and host automatically.
+
+        Returns:
+            None
+
+        Raises:
+            Any error
+
+        """
 
     def process_all(self, context):
-        """Convenience method of the above :meth:process"""
+        """Convenience method of the above :meth:process
+
+        Return:
+            None
+
+        """
+
         for instance, error in self.process(context):
             if error is not None:
                 raise error
@@ -151,39 +202,53 @@ class Extractor(Plugin):
 
         """
 
-        self.log.info("Commiting instance: {0}".format(instance))
-
-        date = time.strftime(pyblish.backend.config.date_format)
-
-        if not 'current_file' in instance.context.data():
-            raise ValueError(
-                "Missing metadata '{data}' in "
-                "instance: {instance}".format(
-                    data='current_file', instance=instance))
+        if instance.context.data('current_file') is None:
+            raise ValueError("Cannot commit with data 'current_file'")
 
         workspace_dir = instance.context.data('workspace_dir')
         if not workspace_dir:
             # Project has not been set. Files will
             # instead end up next to the working file.
-            workspace_dir = instance.context.data('current_file')
+            current_file = instance.context.data('current_file')
+            workspace_dir = os.path.dirname(current_file)
 
-        self.log.debug("Publishing dir is joined by: %s, %s and %s" % (
-                       workspace_dir,
-                       pyblish.backend.config.prefix,
-                       instance.data('family'))
-                       )
+        date = instance.context.data('date')
 
-        published_dir = os.path.join(workspace_dir,
-                                     pyblish.backend.config.prefix,
-                                     instance.data('family'))
+        # These two are assumed from built-in plugins
+        assert date
+        assert workspace_dir
 
-        commit_dir = os.path.join(published_dir, date)
+        # Commit directory based on template, see config.json
+        variables = {'prefix': pyblish.backend.config.prefix,
+                     'date': date,
+                     'family': instance.data('family'),
+                     'instance': instance.data('name'),
+                     'user': instance.data('user')}
+
+        # Restore separators to those native to the current OS
+        commit_template = pyblish.backend.config.commit_template
+        commit_template = commit_template.replace('/', os.sep)
+
+        commit_dir = commit_template.format(**variables)
+        commit_dir = os.path.join(workspace_dir, commit_dir)
 
         self.log.info("Moving {0} relative working file..".format(instance))
-        shutil.copytree(path, commit_dir)
+
+        if os.path.isdir(commit_dir):
+            self.log.info("Existing directory found, merging..")
+            for fname in os.listdir(path):
+                abspath = os.path.join(path, fname)
+                commit_path = os.path.join(commit_dir, fname)
+                shutil.copy(abspath, commit_path)
+        else:
+            self.log.info("No existing directory found, creating..")
+            shutil.copytree(path, commit_dir)
 
         self.log.info("Clearing local cache..")
         shutil.rmtree(path)
+
+        # Persist path of commit within instance
+        instance.set_data('commit_dir', value=commit_dir)
 
         return commit_dir
 
@@ -192,11 +257,24 @@ class Conform(Plugin):
     families = list()
 
 
-class AbstractEntity(set):
+class AbstractEntity(list):
     __metaclass__ = abc.ABCMeta
+
+    def __repr__(self):
+        return u"%s(%r)" % (type(self).__name__, self.__str__())
+
+    def __str__(self):
+        return str([i for i in self])
 
     def __init__(self):
         self._data = dict()
+
+    def add(self, other):
+        if not other in self:
+            self.append(other)
+
+    def remove(self, other):
+        self.remove(other)
 
     def data(self, key=None, default=None):
         if key is None:
@@ -221,16 +299,17 @@ class Context(AbstractEntity):
         """Convenience method for the following.
 
         >>> ctx = Context()
-        >>> inst = Instance('name', context=ctx)
+        >>> inst = Instance('name', parent=ctx)
         >>> ctx.add(inst)
 
         """
 
-        instance = Instance(name, context=self)
+        instance = Instance(name, parent=self)
         self.add(instance)
         return instance
 
 
+@pyblish.backend.lib.log
 class Instance(AbstractEntity):
     """An individually publishable component within scene
 
@@ -242,35 +321,64 @@ class Instance(AbstractEntity):
 
     """
 
-    def __hash__(self):
-        """Instances are distinguished solely by their name
+    def __eq__(self, other):
+        return str(other) == str(self)
 
-        This is in contrast to Python sets in general which are mutable
-        and can thus not be part of another collection, such as lists
-        or other sets. Since we're collecting Instances within Context
-        they must be collectible and identifying them by name seems
-        appropriate.
+    def __ne__(self, other):
+        return str(other) != str(self)
+
+    def __hash__(self):
+        """Ensure instance is unique within list
+
+        Example:
+            >>> ctx = Context()
+            >>> inst1 = Instance(name='inst1')
+            >>> inst2 = Instance(name='inst2')
+            >>> ctx.add(inst1)
+            >>> inst2 in ctx
+            False
+            >>> ctx.add(inst2)
+            >>> inst2 in ctx
+            True
+            >>> inst_ = Instance(name='inst2')
+            >>> inst_ in ctx
+            True
 
         """
 
-        return hash(self.name)
-
-    def __repr__(self):
-        return u"%s(%r)" % (type(self).__name__, self.__str__())
+        return hash(str(self))
 
     def __str__(self):
         return str(self.name)
 
-    def __init__(self, name, context=None):
+    def __init__(self, name, parent=None):
         super(Instance, self).__init__()
         self.name = name
-        self.context = context
+        self.parent = parent
+
+    @property
+    def context(self):
+        """Return top-level parent; the context"""
+        parent = self.parent
+        while parent:
+            try:
+                parent = parent.parent
+            except:
+                break
+        assert isinstance(parent, Context)
+        return parent
 
     def data(self, key=None, default=None):
         """Treat `name` data-member as an override to native property
 
         If name is a data-member, it will be used wherever a name is requested.
         That way, names may be overridden via data.
+
+        Example:
+            >>> inst = Instance(name='test')
+            >>> assert inst.data('name') == 'test'
+            >>> inst.set_data('name', 'newname')
+            >>> assert inst.data('name') == 'newname'
 
         """
 
@@ -505,6 +613,10 @@ def _discover_type(type, regex=None):
                 # Try importing the module. If this fails,
                 # for whatever reason, log it and move on.
                 try:
+                    # Todo: This isn't fool-proof.
+                    # By inserting path, we can't be sure whether
+                    # the module we find is in the added path or
+                    # in a path previously added.
                     sys.path.insert(0, path)
                     module = importlib.import_module(mod_name)
 

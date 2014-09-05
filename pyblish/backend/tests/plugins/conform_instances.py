@@ -2,12 +2,25 @@
 
 
 import pyblish.backend.plugin
+from pyblish.vendor import mock
+
+api = mock.MagicMock()
 
 
 class ConformInstances(pyblish.backend.plugin.Conform):
-    def process(self, context):
-        for instance in pyblish.backend.plugin.instances_by_plugin(
-                instances=context, plugin=self):
-            print instance
+    hosts = ['python']
+    families = ['test.family']
+    version = (0, 1, 0)
 
-        yield None, None
+    def process_instance(self, instance):
+        uri = instance.data('assetId')
+
+        if uri:
+            # This instance has an associated entity
+            # in the database, emit event
+            message = "{0} was recently published".format(
+                instance.data('name'))
+            api.login(user='Test', password='testpass613')
+            api.notify(message, uri)
+
+            instance.set_data('notified', value=True)
