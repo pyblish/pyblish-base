@@ -1,6 +1,7 @@
 
 # Standard library
 import os
+import time
 import shutil
 import tempfile
 
@@ -197,3 +198,133 @@ def test_no_duplicate_plugins():
     # only one of them is returned. A log message is printed
     # to alert the user.
     assert len(plugins) == 1
+
+
+@raises(ValueError)
+@with_setup(setup_failing, teardown)
+def test_validation_failure():
+    """Validation throws exception upon failure"""
+
+    ctx = pyblish.backend.plugin.Context()
+
+    # Manually create instance and nodes, bypassing selection
+    inst = ctx.create_instance(name='test_instance')
+
+    inst.add('test_PLY')
+    inst.add('test_misnamed')
+
+    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data('family', value=FAMILY)
+
+    ctx.add(inst)
+
+    validator = pyblish.backend.plugin.discover(
+        type='validators', regex='^ValidateInstanceFail$')[0]
+
+    validator().process_all(ctx)
+
+
+@raises(ValueError)
+@with_setup(setup_failing, teardown)
+def test_extraction_failure():
+    """Extraction fails ok
+
+    When extraction fails, it is imperitative that other extractors
+    keep going and that the user is properly notified of the failure.
+
+    """
+    ctx = pyblish.backend.plugin.Context()
+
+    # Manually create instance and nodes, bypassing selection
+    inst = ctx.create_instance(name='test_instance')
+
+    inst.add('test_PLY')
+    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data('family', value=FAMILY)
+
+    ctx.add(inst)
+
+    # Assuming validations pass
+    extractor = pyblish.backend.plugin.discover(
+        type='extractors', regex='.*Fail$')[0]
+
+    # print pyblish.backend.plugin.registered_paths
+    print extractor
+    # print pyblish.backend.plugin.discover('extractors')
+    assert extractor.__name__ == "ExtractInstancesFail"
+    extractor().process_all(ctx)
+
+
+@raises(ValueError)
+@with_setup(setup_failing, teardown)
+def test_process_context_error():
+    """Processing context raises an exception"""
+
+    ctx = pyblish.backend.plugin.Context()
+
+    selectors = pyblish.backend.plugin.discover(
+        'selectors', regex='^SelectInstancesError$')
+
+    for selector in selectors:
+        selector().process_all(context=ctx)
+
+
+@with_setup(setup, teardown)
+def test_commit():
+    """pylish.backend.plugin.commit() works
+
+    Testing commit() involves creating temporary output,
+    committing said output and then checking that it
+    resides where we expected it to reside.
+
+    """
+
+    ctx = pyblish.backend.plugin.Context()
+    inst = ctx.create_instance(name='CommittedInstance')
+    inst.set_data('family', FAMILY)
+    inst.set_data(pyblish.backend.config.identifier, True)
+
+    try:
+        # This is where we'll write it first
+        temp_dir = tempfile.mkdtemp()
+        ctx.set_data('temp_dir', value=temp_dir)
+
+        # This is where the data will eventually end up
+        workspace = tempfile.mkdtemp()
+        current_file = os.path.join(workspace, 'document_name.txt')
+        ctx.set_data('current_file', value=current_file)
+
+        # Finally, we need a date
+        date = time.strftime(pyblish.backend.config.date_format)
+        ctx.set_data('date', value=date)
+
+        # And this is what we'll write
+        document_name = 'document_name'
+        document_content = 'document content'
+        document = {document_name: document_content}
+        inst.add(document)
+
+        document_extractor = pyblish.backend.plugin.discover(
+            'extractors', regex='^ExtractDocuments$')[0]
+
+        document_extractor().process_all(ctx)
+
+        for root, dirs, files in os.walk(workspace):
+            # The inner-most file is commited document
+            document_path = root
+            for fn in files:
+                document_path = os.path.join(document_path, fn)
+
+        basename = os.path.basename(document_path)
+        name, ext = os.path.splitext(basename)
+
+        assert name == document_name
+        with open(document_path) as f:
+            assert f.read() == document_content
+
+        # Data is persisted within each instance
+        assert inst.data('commit_dir') == os.path.dirname(document_path)
+
+    finally:
+        shutil.rmtree(temp_dir)
+        shutil.rmtree(workspace)
