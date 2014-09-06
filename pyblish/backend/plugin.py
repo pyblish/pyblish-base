@@ -84,29 +84,38 @@ class Plugin(object):
 
         """
 
+        debug = self.log.debug
+        error = self.log.error
+
         try:
             self.process_context(context)
 
         except Exception as err:
-            self.log.error(traceback.format_exc())
-            self.log.error("Could not process context: {0}".format(context))
+            error(traceback.format_exc())
+            error("Could not process context: {0}".format(context))
             yield None, err
 
         else:
-            compatible = pyblish.backend.plugin.instances_by_plugin(
+            compatible_instances = pyblish.backend.plugin.instances_by_plugin(
                 instances=context, plugin=self)
 
-            for instance in compatible:
-                try:
-                    self.process_instance(instance)
-                    err = None
-                except Exception as err:
-                    self.log.error(traceback.format_exc())
-                    self.log.error("Exception occured during "
-                                   "processing of instance {0}".format(
-                                       instance))
-                finally:
-                    yield instance, err
+            if not compatible_instances:
+                yield None, None
+
+            else:
+                for instance in compatible_instances:
+                    debug("\t- %s" % instance)
+
+                    try:
+                        self.process_instance(instance)
+                        err = None
+                    except Exception as err:
+                        error(traceback.format_exc())
+                        error("An exception occured during "
+                              "processing of instance {0}".format(
+                                  instance))
+                    finally:
+                        yield instance, err
 
     def process_context(self, context):
         """Process context `context`
@@ -495,12 +504,12 @@ def discover(type=None, regex=None):
     return plugins
 
 
-def plugins_by_instance(plugins, instance):
-    """Return compatible plugins `plugins` to instance `instance`
+def plugins_by_family(plugins, family):
+    """Return compatible plugins `plugins` to family `family`
 
     Arguments:
         plugins (list): List of plugins
-        instance (Instance): Instance with which to compare against
+        family (str): Family with which to compare against
 
     Returns:
         List of compatible plugins.
@@ -510,12 +519,29 @@ def plugins_by_instance(plugins, instance):
     compatible = list()
 
     for plugin in plugins:
-        family = instance.data('family')
-        host = instance.data('host')
-
         if hasattr(plugin, 'families') and family not in plugin.families:
             continue
 
+        compatible.append(plugin)
+
+    return compatible
+
+
+def plugins_by_host(plugins, host):
+    """Return compatible plugins `plugins` to host `host`
+
+    Arguments:
+        plugins (list): List of plugins
+        host (str): Host with which compatible plugins are returned
+
+    Returns:
+        List of compatible plugins.
+
+    """
+
+    compatible = list()
+
+    for plugin in plugins:
         # Basic accept wildcards
         # Todo: Expand to take partial wildcards e.g. '*Mesh'
         if '*' not in plugin.hosts and host not in plugin.hosts:
