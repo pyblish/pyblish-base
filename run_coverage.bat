@@ -1,0 +1,1 @@
+python -m pyblish.vendor.nose --exclude=vendor --cover-package=pyblish --where=. --with-doctest --with-coverage --cover-html --cover-erase
