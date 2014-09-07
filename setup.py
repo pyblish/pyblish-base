@@ -29,16 +29,23 @@ setup(
     name='pyblish',
     version=version,
     description='quality assurance for content',
-    long_description=open('README.txt').read(),
-    author='Abstract Factort and Contributors',
+    long_description=readme,
+    author='Abstract Factory and Contributors',
     author_email='marcus@abstractfactory.com',
     url='https://github.com/abstractfactory/pyblish',
     license='LGPL',
     packages=find_packages(),
-    include_package_data=True,
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'pyblish.backend': ['*.json']
+        'pyblish.backend': ['*.yaml',
+                            'plugins/*.py'],
+        'pyblish.backend.tests': ['plugins/*.py',
+                                  'plugins/duplicate/*.py',
+                                  'plugins/duplicate/copy1/*.py',
+                                  'plugins/duplicate/copy2/*.py',
+                                  'plugins/invalid/*.py',
+                                  'plugins/failing/*.py'],
+        'pyblish': ['plugins/*.py']
     },
 )
