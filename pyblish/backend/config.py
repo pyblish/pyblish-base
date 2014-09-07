@@ -33,6 +33,8 @@ import sys
 import json
 import logging
 
+from pyblish.vendor import yaml
+
 log = logging.getLogger('pyblish.backend.config')
 
 # Look for configuration in users HOME
@@ -40,11 +42,11 @@ home_dir = os.path.expanduser('~')
 package_dir = os.path.dirname(__file__)
 
 user_config_path = os.path.join(home_dir, '.pyblish')
-default_config_path = os.path.join(package_dir, 'config.json')
+default_config_path = os.path.join(package_dir, 'config.yaml')
 
 
 with open(default_config_path, 'r') as f:
-    config_dict = json.load(f)
+    config_dict = yaml.load(f)
 
 # Update configuration with user-configuration
 if os.path.isfile(user_config_path):

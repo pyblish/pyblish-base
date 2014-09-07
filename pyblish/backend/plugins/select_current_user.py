@@ -1,4 +1,4 @@
-"""Gether information about the local environment"""
+"""Inject the currently logged on user into the Context"""
 
 import getpass
 
@@ -13,6 +13,5 @@ class SelectCurrentUser(pyblish.backend.plugin.Selector):
     hosts = ['*']
     version = (0, 1, 0)
 
-    def process(self, context):
+    def process_context(self, context):
         context.set_data('user', value=getpass.getuser())
-        yield None, None

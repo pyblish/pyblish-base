@@ -1,8 +1,12 @@
+"""Validate naming convention (Demo)"""
+
 import re
 
+import pyblish.backend.lib
 import pyblish.backend.plugin
 
 
+@pyblish.backend.lib.log
 class ValidateNamingConvention(pyblish.backend.plugin.Validator):
     """Ensure each included node ends with a three-letter, upper-case type
 
@@ -16,37 +20,27 @@ class ValidateNamingConvention(pyblish.backend.plugin.Validator):
 
     """
 
-    families = ['model', 'animation', 'animRig']
-    hosts = ['maya']
-    version = (0, 1, 0)
+    families = ['demo.model']
+    hosts = ['*']
+    version = (0, 1, 1)
 
+    # Naming convention to test for
     pattern = re.compile("^\w+_\w{3}(Shape)?$")
 
-    def process(self, context):
+    def process_instance(self, instance):
         """Allow nodes of appropriate names through"""
+        mismatches = list()
+        for node in instance:
+            if not self.pattern.match(node):
+                self.log.debug("Misnamed: {0}".format(node))
+                mismatches.append(node)
 
-        for instance in pyblish.backend.plugin.instances_by_plugin(
-                instances=context, plugin=self):
-            mismatches = list()
-            for node in instance:
-                if not self.pattern.match(node):
-                    print "Appending %s" % node
-                    mismatches.append(node)
+        if mismatches:
+            msg = "The following nodes were misnamed\n"
+            for node in mismatches:
+                msg += "\t{0}\n".format(node)
 
-            if mismatches:
-                msg = "The following nodes were misnamed\n"
-                for node in mismatches:
-                    msg += "\t{0}\n".format(node)
+            err = ValueError(msg)
+            err.nodes = mismatches
 
-                exc = ValueError(msg)
-                exc.nodes = mismatches
-
-                yield instance, exc
-
-            else:
-                yield instance, None
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+            raise err

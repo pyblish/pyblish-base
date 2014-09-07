@@ -1,4 +1,4 @@
-"""Gether information about the local environment"""
+"""Inject the current working directory into Context"""
 
 import os
 
@@ -13,6 +13,5 @@ class SelectCurrentWorkingDirectory(pyblish.backend.plugin.Selector):
     hosts = ['*']
     version = (0, 1, 0)
 
-    def process(self, context):
+    def process_context(self, context):
         context.set_data('cwd', value=os.getcwd())
-        yield None, None
