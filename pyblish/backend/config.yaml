@@ -1,0 +1,37 @@
+
+# The identifier determines the predicate with which
+# to distinguish between content within a host that 
+# is publishable from that which is not.
+identifier: publishable
+
+# The prefix determines within which subdirectory
+# published instances are to be stored. This is
+# ultimately used within the `commit_dir` path
+# template below.
+prefix: published
+
+# Date template, this is used within the `commit_dir`
+# path template below.
+date_format: "%Y%m%d_%H%M%S"
+
+# Path template for commits. Available variables:
+# 	prefix: References "prefix" above
+# 	date: Date at which publishing was initiated
+#   family: Family of current instance
+# 	instance: Name of current instance
+# 	user: Currently logged on user
+#
+# Note: Forward-slash will be substituted with OS-separator.
+# 	E.g. on Windows that is \ and OSX is /
+commit_template: "{prefix}/{date}/{family}/{instance}"
+
+# The environment variable within which additional
+# plugins are stored and later retrieved at run-time.
+paths_environment_variable: PYBLISHPLUGINPATH
+
+# Regular expressions for plugins.
+# Modifying these will affect how plugins are discovered.
+validators_regex: ^validate_.*\.py$
+extractors_regex: ^extract_.*\.py$
+selectors_regex: ^select_.*\.py$
+conforms_regex: ^conform_.*\.py$

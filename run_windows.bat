@@ -1,1 +1,0 @@
-nosetests --exclude=vendor --cover-package=pyblish --where=. --with-doctest --with-coverage --cover-html --cover-erase
