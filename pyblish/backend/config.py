@@ -30,7 +30,6 @@ Attributes:
 
 import os
 import sys
-import json
 import logging
 
 from pyblish.vendor import yaml
@@ -52,7 +51,7 @@ with open(default_config_path, 'r') as f:
 if os.path.isfile(user_config_path):
     try:
         with open(user_config_path, 'r') as f:
-            config_dict.update(json.load(f))
+            config_dict.update(yaml.load(f))
     except:
         log.warning("Could not read user configuration @ {0}".format(
             user_config_path))

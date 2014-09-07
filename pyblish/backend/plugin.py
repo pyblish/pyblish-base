@@ -722,6 +722,6 @@ def _isvalid(plugin):
 
 # Register included plugins
 _package_path = pyblish.backend.lib.main_package_path()
-_plugins_path = os.path.join(_package_path, 'backend', 'plugins')
+_plugins_path = os.path.join(_package_path, 'plugins')
 _plugins_path = os.path.abspath(_plugins_path)
 register_plugin_path(_plugins_path)
