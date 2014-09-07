@@ -39,6 +39,14 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'pyblish.backend': ['*.json']
+        'pyblish.backend': ['*.yaml',
+                            'plugins/*.py'],
+        'pyblish.backend.tests': ['plugins/*.py',
+                                  'plugins/duplicate/*.py',
+                                  'plugins/duplicate/copy1/*.py',
+                                  'plugins/duplicate/copy2/*.py',
+                                  'plugins/invalid/*.py',
+                                  'plugins/failing/*.py'],
+        'pyblish': ['plugins/*.py']
     },
 )
