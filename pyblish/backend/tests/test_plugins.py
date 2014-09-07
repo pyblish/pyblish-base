@@ -10,9 +10,11 @@ import pyblish.backend.lib
 import pyblish.backend.config
 import pyblish.backend.plugin
 
+from pyblish.vendor import mock
+
 from pyblish.backend.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
-    setup_duplicate)
+    setup_duplicate, setup_invalid)
 from pyblish.vendor.nose.tools import raises, with_setup
 
 
@@ -120,18 +122,33 @@ def test_selection_appends():
 
 
 @with_setup(setup, teardown)
-def test_plugins_by_instance():
-    """Returns plugins compatible with instance"""
+def test_plugins_by_family():
+    """Returns plugins compatible with family"""
     inst = pyblish.backend.plugin.Instance('TestInstance')
     inst.set_data(pyblish.backend.config.identifier, value=True)
     inst.set_data('family', value=FAMILY)
-    inst.set_data('host', value='python')
 
     plugins = pyblish.backend.plugin.discover('validators')
-    compatible = pyblish.backend.plugin.plugins_by_instance(plugins, inst)
+    compatible = pyblish.backend.plugin.plugins_by_family(
+        plugins, family=FAMILY)
 
     # The filter will discard at least one plugin
-    assert len(plugins) > len(list(compatible))
+    assert len(plugins) > len(compatible)
+
+
+@with_setup(setup, teardown)
+def test_plugins_by_host():
+    """Returns plugins compatible with host"""
+    inst = pyblish.backend.plugin.Instance('TestInstance')
+    inst.set_data(pyblish.backend.config.identifier, value=True)
+
+    plugins = pyblish.backend.plugin.discover('validators')
+    compatible = pyblish.backend.plugin.plugins_by_host(
+        plugins, host='__unrecognised__')
+
+    # The filter will discard at least one plugin
+    print compatible
+    assert len(compatible) == 0
 
 
 @with_setup(setup, teardown)
@@ -328,3 +345,11 @@ def test_commit():
     finally:
         shutil.rmtree(temp_dir)
         shutil.rmtree(workspace)
+
+
+@with_setup(setup_invalid, teardown)
+@mock.patch('pyblish.backend.plugin.log')
+def test_invalid_plugins(mock_log):
+    """When an invalid plugin is found, an error is logged"""
+    pyblish.backend.plugin.discover('selectors')
+    assert mock_log.error.called

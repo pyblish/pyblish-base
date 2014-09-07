@@ -7,6 +7,3 @@ import pyblish.backend.plugin
 class SelectDuplicateInstance1(pyblish.backend.plugin.Selector):
     hosts = ['python']
     version = (0, 1, 0)
-
-    def process_context(self, context):
-        pass

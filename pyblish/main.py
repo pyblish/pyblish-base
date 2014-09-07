@@ -41,6 +41,19 @@ def process(type, context):
             yield instance, error
 
 
+def process_all(type, context):
+    """Convenience function of the above :meth:process
+
+    .. note:: Keep in mind that this won't continue if
+        there an error occurs.
+
+    """
+
+    for instance, error in process(type, context):
+        if error is not None:
+            raise error
+
+
 def select(context):
     """Convenience function for selecting using all available plugins"""
     for instance, error in process('selectors', context):
@@ -55,7 +68,7 @@ def validate(context):
     for instance, error in process('validators', context):
         processed.append(instance)
         if error is not None:
-            log.error(error)
+            raise error
 
     if not processed:
         log.warning("No validations were run")
