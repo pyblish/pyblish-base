@@ -25,7 +25,6 @@ import shutil
 import logging
 import inspect
 import warnings
-import importlib
 import traceback
 
 # Local library
@@ -229,7 +228,8 @@ class Extractor(Plugin):
         assert workspace_dir
 
         # Commit directory based on template, see config.json
-        variables = {'prefix': pyblish.backend.config.prefix,
+        variables = {'pyblish': pyblish.backend.lib.main_package_path(),
+                     'prefix': pyblish.backend.config.prefix,
                      'date': date,
                      'family': instance.data('family'),
                      'instance': instance.data('name'),
@@ -476,6 +476,42 @@ def deregister_all():
     registered_paths[:] = []
 
 
+def plugin_paths():
+    """Collect paths from sources
+
+    Returns:
+        list of paths in which plugins may be locat
+
+    """
+
+    paths = list()
+
+    # Accept registered paths.
+    paths.extend(registered_paths)
+    log.debug("Registered paths: %s" % registered_paths)
+
+    # Accept paths added via configuration.
+    for path_template in pyblish.backend.config.paths:
+        variables = {'pyblish': pyblish.backend.lib.main_package_path()}
+
+        plugin_path = path_template.format(**variables)
+        plugin_path = os.path.abspath(plugin_path)
+
+        log.debug("Appending path from config: %s" % plugin_path)
+        paths.append(plugin_path)
+
+    # Accept paths added via environment variable.
+    env_var = pyblish.backend.config.paths_environment_variable
+    env_val = os.environ.get(env_var)
+    if env_val:
+        sep = ';' if os.name == 'nt' else ':'
+        env_paths = env_val.split(sep)
+        paths.extend(env_paths)
+        log.debug("Paths from environment: %s" % env_paths)
+
+    return paths
+
+
 def discover(type=None, regex=None):
     """Find plugins within registered_paths plugin-paths
 
@@ -490,6 +526,8 @@ def discover(type=None, regex=None):
 
     """
 
+    paths = plugin_paths()
+
     if type is not None:
         types = [type]
     else:
@@ -501,6 +539,7 @@ def discover(type=None, regex=None):
     for type in types:
         try:
             plugins.extend(_discover_type(type=type,
+                                          paths=paths,
                                           regex=regex))
         except KeyError:
             raise ValueError("Type not recognised: {0}".format(type))
@@ -578,7 +617,7 @@ def instances_by_plugin(instances, plugin):
     return compatible
 
 
-def _discover_type(type, regex=None):
+def _discover_type(type, paths, regex=None):
     """Return plugins of type `type`
 
     Helper method for the above function :func:discover()
@@ -589,16 +628,6 @@ def _discover_type(type, regex=None):
     """
 
     plugins = dict()
-
-    paths = list(registered_paths)
-
-    # Accept paths added via Python and
-    # paths via environment variable.
-    env_var = pyblish.backend.config.paths_environment_variable
-    env_val = os.environ.get(env_var)
-    if env_val:
-        sep = ';' if os.name == 'nt' else ':'
-        paths.extend(env_val.split(sep))
 
     # Paths may point to the same location but be formatted
     # differently. Do a check here.
@@ -650,7 +679,8 @@ def _discover_type(type, regex=None):
                 # the module we find is in the added path or
                 # in a path previously added.
                 sys.path.insert(0, path)
-                module = importlib.import_module(mod_name)
+                module = pyblish.backend.lib.import_module(mod_name)
+                reload(module)
 
             except (ImportError, IndentationError) as e:
                 log.warning('"{mod}": Skipped ({msg})'.format(
@@ -720,8 +750,13 @@ def _isvalid(plugin):
     return True
 
 
-# Register included plugins
-_package_path = pyblish.backend.lib.main_package_path()
-_plugins_path = os.path.join(_package_path, 'plugins')
-_plugins_path = os.path.abspath(_plugins_path)
-register_plugin_path(_plugins_path)
+# # Register included plugins
+# for _path_template in pyblish.backend.config.paths:
+#     variables = {
+#         'pyblish': pyblish.backend.lib.main_package_path()
+#     }
+
+#     _plugins_path = _path_template.format(**variables)
+#     _plugins_path = os.path.abspath(_plugins_path)
+
+#     register_plugin_path(_plugins_path)

@@ -9,6 +9,7 @@ registered = pyblish.backend.plugin.registered_paths
 package_path = pyblish.backend.lib.main_package_path()
 plugin_path = os.path.join(package_path, 'backend', 'tests', 'plugins')
 pyblish.backend.plugin.deregister_all()
+pyblish.backend.config.paths[:] = []
 
 
 def setup():
