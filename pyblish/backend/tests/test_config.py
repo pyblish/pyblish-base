@@ -21,6 +21,14 @@ def _reload_config():
         pass
 
 
+def test_modifying_config_at_run_time():
+    """Altering config at run-time works"""
+    path = '/invalid/path'
+    pyblish.backend.config.paths.append(path)
+    assert path in pyblish.backend.plugin.plugin_paths()
+    pyblish.backend.config.paths.remove(path)
+
+
 def test_config():
     """Config works as expected"""
     config = pyblish.backend.config

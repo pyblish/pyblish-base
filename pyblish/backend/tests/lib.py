@@ -1,5 +1,6 @@
 import os
 import pyblish.backend.plugin
+import pyblish.backend.config
 
 # Setup
 HOST = 'python'
@@ -28,6 +29,9 @@ def setup_failing():
 
 def setup_duplicate():
     """Expose duplicate plugins to discovery mechanism"""
+    pyblish.backend.plugin.deregister_all()
+    pyblish.backend.config.paths[:] = []
+
     for copy in ('copy1', 'copy2'):
         path = os.path.join(plugin_path, 'duplicate', copy)
         pyblish.backend.plugin.register_plugin_path(path)

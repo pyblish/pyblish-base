@@ -11,8 +11,6 @@ with "validate_" and ends with ".py"
 Attributes:
     patterns: Regular expressions used for lookup of plugins.
     registered_paths: Set of all registered_paths plugin-paths
-    registered_modules: All loaded modules. (Used to ensure no module
-        ever has the same name as a module already loaded)
 
 """
 
@@ -53,7 +51,6 @@ patterns = {
 }
 
 registered_paths = list()
-registered_modules = list()
 
 log = logging.getLogger('pyblish.backend.plugin')
 
@@ -495,7 +492,7 @@ def plugin_paths():
         variables = {'pyblish': pyblish.backend.lib.main_package_path()}
 
         plugin_path = path_template.format(**variables)
-        plugin_path = os.path.abspath(plugin_path)
+        # plugin_path = os.path.abspath(plugin_path)
 
         log.debug("Appending path from config: %s" % plugin_path)
         paths.append(plugin_path)
@@ -656,12 +653,6 @@ def _discover_type(type, paths, regex=None):
 
             mod_name, suffix = os.path.splitext(fname)
 
-            if mod_name in registered_modules:
-                log.warning("Duplicate module name found: "
-                            "{dup} found in {mods}".format(
-                                dup=abspath, mods=registered_modules))
-                continue
-
             try:
                 pattern = patterns[type]
             except KeyError:
@@ -710,6 +701,7 @@ def _discover_type(type, paths, regex=None):
                     log.warning(
                         "Duplicate plugin "
                         "found: {cls}".format(cls=obj))
+                    continue
 
                 if regex is None or re.match(regex, obj.__name__):
                     plugins[obj.__name__] = obj

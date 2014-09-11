@@ -207,6 +207,8 @@ def test_name_override():
 @with_setup(setup_duplicate, teardown)
 def test_no_duplicate_plugins():
     """Discovering plugins results in a single occurence of each plugin"""
+    plugin_paths = pyblish.backend.plugin.plugin_paths()
+    assert len(plugin_paths) == 2, plugin_paths
 
     plugins = pyblish.backend.plugin.discover(type='selectors')
 
@@ -214,7 +216,7 @@ def test_no_duplicate_plugins():
     # hidden under the duplicate module name. As a result,
     # only one of them is returned. A log message is printed
     # to alert the user.
-    assert len(plugins) == 1
+    assert len(plugins) == 1, plugins
 
 
 @raises(ValueError)

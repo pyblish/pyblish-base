@@ -4,6 +4,6 @@ import pyblish.backend.plugin
 
 
 @pyblish.backend.lib.log
-class SelectDuplicateInstance1(pyblish.backend.plugin.Selector):
+class SelectDuplicateInstance(pyblish.backend.plugin.Selector):
     hosts = ['python']
     version = (0, 1, 0)
