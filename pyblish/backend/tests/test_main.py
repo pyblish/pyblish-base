@@ -1,29 +1,11 @@
-import os
-
 import pyblish.main
 import pyblish.backend.lib
 import pyblish.backend.config
 import pyblish.backend.plugin
 
-from pyblish.vendor import yaml
-
 from pyblish.backend.tests.lib import (
     setup, teardown, FAMILY, HOST, setup_failing)
 from pyblish.vendor.nose.tools import with_setup, raises
-
-
-@with_setup(setup, teardown)
-def test_config():
-    """Config works as expected"""
-    config = pyblish.backend.config
-    config_path = pyblish.backend.lib.main_package_path()
-    config_path = os.path.join(config_path, 'backend', 'config.yaml')
-
-    with open(config_path) as f:
-        manual_config = yaml.load(f)
-
-    for key, value in manual_config.iteritems():
-        assert getattr(config, key) == value
 
 
 @with_setup(setup, teardown)

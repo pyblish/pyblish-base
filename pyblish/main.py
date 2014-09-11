@@ -21,10 +21,10 @@ __all__ = ['process',
 
 
 def process(type, context):
-    """Perform process `type` upon context `context`
+    """Perform process step `process` upon context `context`
 
     Arguments:
-        type (str): Type of process to apply
+        process (str): Type of process to apply
         context (Context): Context upon which to appy process
 
     """
@@ -32,21 +32,23 @@ def process(type, context):
     assert isinstance(type, basestring)
     assert isinstance(context, pyblish.backend.plugin.Context)
 
-    for plugin in pyblish.backend.plugin.discover(type=type):
-        current_host = pyblish.backend.plugin.current_host()
-        if not '*' in plugin.hosts and not current_host in plugin.hosts:
-            continue
+    host = pyblish.backend.plugin.current_host()
+    plugins = pyblish.backend.plugin.discover(type=type)
+    compatible_plugins = pyblish.backend.plugin.plugins_by_host(plugins, host)
 
+    for plugin in compatible_plugins:
         for instance, error in plugin().process(context):
-            log.info("Running {process} with {plugin} on {subject}".format(
-                process=type,
-                plugin=plugin,
-                subject=getattr(instance, 'name', context)))
             yield instance, error
 
 
 def process_all(type, context):
-    """Convenience function of the above :meth:process"""
+    """Convenience function of the above :meth:process
+
+    .. note:: Keep in mind that this won't continue if
+        there an error occurs.
+
+    """
+
     for instance, error in process(type, context):
         if error is not None:
             raise error
@@ -54,31 +56,48 @@ def process_all(type, context):
 
 def select(context):
     """Convenience function for selecting using all available plugins"""
-    try:
-        process_all('selectors', context)
-    except Exception as error:
-        log.error(error)
+    for instance, error in process('selectors', context):
+        if error is not None:
+            log.error(error)
 
 
 def validate(context):
     """Convenience function for validation"""
-    process_all('validators', context)
+    processed = list()
+
+    for instance, error in process('validators', context):
+        processed.append(instance)
+        if error is not None:
+            raise error
+
+    if not processed:
+        log.warning("No validations were run")
 
 
 def extract(context):
     """Convenience function for extraction"""
-    try:
-        process_all('extractors', context)
-    except Exception as error:
-        log.error(error)
+    processed = list()
+
+    for instance, error in process('extractors', context):
+        processed.append(instance)
+        if error is not None:
+            log.error(error)
+
+    if not processed:
+        log.warning("Nothing was extracted")
 
 
 def conform(context):
     """Perform conform upon context `context`"""
-    try:
-        process_all('conforms', context)
-    except Exception as error:
-        log.error(error)
+    processed = list()
+
+    for instance, error in process('conforms', context):
+        processed.append(instance)
+        if error is not None:
+            log.error(error)
+
+    if not processed:
+        log.warning("Nothing was conformed")
 
 
 def publish_all(context=None):
@@ -113,6 +132,10 @@ def validate_all(context=None):
         context = pyblish.backend.plugin.Context()
 
     select(context)
+
+    if not context:
+        return log.info("No instances found.")
+
     validate(context)
 
     log.info("All instances valid")
