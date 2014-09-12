@@ -28,7 +28,6 @@ import traceback
 # Local library
 import pyblish.backend.lib
 import pyblish.backend.config
-import pyblish.backend.plugin
 
 
 __all__ = ['Plugin',
@@ -93,7 +92,7 @@ class Plugin(object):
             yield None, err
 
         else:
-            compatible_instances = pyblish.backend.plugin.instances_by_plugin(
+            compatible_instances = instances_by_plugin(
                 instances=context, plugin=self)
 
             if not compatible_instances:
@@ -106,11 +105,10 @@ class Plugin(object):
                     try:
                         self.process_instance(instance)
                         err = None
+
                     except Exception as err:
-                        error(traceback.format_exc())
-                        error("An exception occured during "
-                              "processing of instance {0}".format(
-                                  instance))
+                        err.traceback = traceback.format_exc()
+
                     finally:
                         yield instance, err
 
@@ -324,7 +322,7 @@ class Instance(AbstractEntity):
 
     Attributes:
         name (str): Name of instance, used in plugins
-        config (dict): Full configuration, as recorded onto objectSet.
+        parent (AbstractEntity): Optional parent of instance
 
     """
 
@@ -360,6 +358,8 @@ class Instance(AbstractEntity):
 
     def __init__(self, name, parent=None):
         super(Instance, self).__init__()
+        assert isinstance(name, basestring)
+        assert parent is None or isinstance(parent, AbstractEntity)
         self.name = name
         self.parent = parent
 

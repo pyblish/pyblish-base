@@ -10,5 +10,4 @@ class ValidateInstanceFail(pyblish.backend.plugin.Validator):
     version = (0, 1, 0)
 
     def process_instance(self, instance):
-        self.log.error("Failing")
         raise ValueError("Test fail")

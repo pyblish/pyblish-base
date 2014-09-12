@@ -3,9 +3,10 @@ import pyblish.backend.lib
 import pyblish.backend.config
 import pyblish.backend.plugin
 
+from pyblish.vendor.nose.tools import with_setup
+from pyblish.vendor import mock
 from pyblish.backend.tests.lib import (
     setup, teardown, FAMILY, HOST, setup_failing)
-from pyblish.vendor.nose.tools import with_setup, raises
 
 
 @with_setup(setup, teardown)
@@ -24,7 +25,10 @@ def test_main_interface():
     pyblish.main.process_all('selectors', ctx)
 
     pyblish.main.select(ctx)
-    pyblish.main.validate(ctx)
+
+    if not pyblish.main.validate(ctx):
+        return
+
     pyblish.main.extract(ctx)
     pyblish.main.conform(ctx)
 
@@ -44,10 +48,9 @@ def test_main_safe_processes_fail():
     pyblish.main.conform(ctx)
 
 
-@raises(ValueError)
 @with_setup(setup_failing, teardown)
 def test_main_validation_fail():
-    """Failing validation raises an exception"""
+    """Failing validation returns false"""
     ctx = pyblish.backend.plugin.Context()
 
     # Give validators something to validate
@@ -55,7 +58,7 @@ def test_main_validation_fail():
     inst.set_data('family', value=FAMILY)
     inst.set_data('host', value=HOST)
 
-    pyblish.main.validate(ctx)
+    assert pyblish.main.validate(ctx) is False
 
 
 if __name__ == '__main__':

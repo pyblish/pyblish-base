@@ -36,9 +36,9 @@ class ValidateNamingConvention(pyblish.backend.plugin.Validator):
                 mismatches.append(node)
 
         if mismatches:
-            msg = "The following nodes were misnamed\n"
+            msg = "The following nodes were misnamed"
             for node in mismatches:
-                msg += "\t{0}\n".format(node)
+                msg += "\n\t{0}".format(node)
 
             err = ValueError(msg)
             err.nodes = mismatches

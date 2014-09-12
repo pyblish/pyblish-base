@@ -64,14 +64,23 @@ def select(context):
 def validate(context):
     """Convenience function for validation"""
     processed = list()
+    errors = list()
 
     for instance, error in process('validators', context):
         processed.append(instance)
         if error is not None:
-            raise error
+            errors.append(error)
 
     if not processed:
         log.warning("No validations were run")
+
+    if errors:
+        log.warning("Some instances are not valid, see below.")
+        for error in errors:
+            log.warning("%s" % error)
+
+        return False
+    return True
 
 
 def extract(context):
@@ -118,7 +127,10 @@ def publish_all(context=None):
     if not context:
         return log.info("No instances found.")
 
-    validate(context)  # Will raise exception at failure
+    if not validate(context):
+        return log.warning("There were errors, "
+                           "see script editor for details")
+
     extract(context)
     conform(context)
 
