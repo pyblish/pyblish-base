@@ -5,7 +5,7 @@ python:
 install:
 - pip install coveralls
 script:
-- nosetests --with-doctest --with-coverage --exclude=vendor
+- nosetests -c .noserc
 - pip install git+git://github.com/abstractfactory/pyblish.git
 after_success:
 - coveralls

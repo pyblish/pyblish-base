@@ -7,6 +7,7 @@ sys.path.insert(0, path)
 
 from pyblish.vendor import nose
 
-argv = sys.argv[:]
-argv.extend(['--verbose', '--exclude=vendor', '--with-doctest'])
-nose.main(argv=argv)
+if __name__ == '__main__':
+    argv = sys.argv[:]
+    argv.extend(['--verbose', '--exclude=vendor', '--with-doctest'])
+    nose.main(argv=argv)
