@@ -1,4 +1,4 @@
-### ![](https://github.com/abstractfactory/pyblish/wiki/images/logo-long.png)
+### ![][logo]
 
 [![Build Status][travis]][travis_repo]
 [![Coverage Status][cover]][cover_repo]
@@ -23,3 +23,4 @@ For more information, see our [Getting Started Guide][web]
 [cover_repo]: https://coveralls.io/r/abstractfactory/pyblish?branch=master
 [pypi]: https://badge.fury.io/py/pyblish.svg
 [pypi_repo]: http://badge.fury.io/py/pyblish
+[logo]: https://github.com/abstractfactory/pyblish/wiki/images/logo-long.png
