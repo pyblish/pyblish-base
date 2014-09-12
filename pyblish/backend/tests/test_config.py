@@ -9,9 +9,6 @@ import pyblish.backend.plugin
 
 from pyblish.vendor import yaml
 
-from pyblish.backend.tests.lib import (
-    setup, teardown)
-
 
 def _reload_config():
     try:
@@ -38,8 +35,8 @@ def test_config():
     with open(config_path) as f:
         manual_config = yaml.load(f)
 
-    for key, value in manual_config.iteritems():
-        assert getattr(config, key) == value
+    variable = 'paths_environment_variable'
+    assert manual_config.get(variable) == getattr(config, variable)
 
 
 def test_user_config():
