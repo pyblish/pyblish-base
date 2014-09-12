@@ -263,37 +263,83 @@ class Conform(Plugin):
 
 
 class AbstractEntity(list):
-    __metaclass__ = abc.ABCMeta
 
     def __repr__(self):
-        return u"%s(%r)" % (type(self).__name__, self.__str__())
+        return u"%s.%s()" % (__name__, type(self).__name__)
 
     def __str__(self):
-        return str([i for i in self])
+        return "Context"
 
     def __init__(self):
         self._data = dict()
 
     def add(self, other):
+        """Add member to self
+
+        This is to mimic the interface of set()
+
+        """
+
         if not other in self:
-            self.append(other)
+            return self.append(other)
 
     def remove(self, other):
-        self.remove(other)
+        """Remove member from self
+
+        This is to mimic the interface of set()
+
+        """
+
+        index = self.index(other)
+        return self.pop(index)
 
     def data(self, key=None, default=None):
+        """Return data from `key`
+
+        Arguments:
+            key (str): Name of data to return
+            default (object): Optional, value returned if `name`
+                does not exist
+
+        """
+
         if key is None:
             return self._data
 
         return self._data.get(key, default)
 
     def set_data(self, key, value):
+        """Modify/insert data into entity
+
+        Arguments:
+            key (str): Name of data to add
+            value (object): Value of data to add
+
+        """
+
         self._data[key] = value
 
     def remove_data(self, key):
+        """Remove data from entity
+
+        Arguments;
+            key (str): Name of data to remove
+
+        """
+
         self._data.pop(key)
 
     def has_data(self, key):
+        """Check if entity has key
+
+        Arguments:
+            key (str): Key to check
+
+        Return:
+            True if it exists, False otherwise
+
+        """
+
         return key in self._data
 
 
@@ -301,11 +347,15 @@ class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
     def create_instance(self, name):
-        """Convenience method for the following.
+        """Convenience method of the following.
 
         >>> ctx = Context()
         >>> inst = Instance('name', parent=ctx)
         >>> ctx.add(inst)
+
+        Example:
+            >>> ctx = Context()
+            >>> inst = ctx.create_instance(name='Name')
 
         """
 
@@ -332,29 +382,11 @@ class Instance(AbstractEntity):
     def __ne__(self, other):
         return str(other) != str(self)
 
-    def __hash__(self):
-        """Ensure instance is unique within list
-
-        Example:
-            >>> ctx = Context()
-            >>> inst1 = Instance(name='inst1')
-            >>> inst2 = Instance(name='inst2')
-            >>> ctx.add(inst1)
-            >>> inst2 in ctx
-            False
-            >>> ctx.add(inst2)
-            >>> inst2 in ctx
-            True
-            >>> inst_ = Instance(name='inst2')
-            >>> inst_ in ctx
-            True
-
-        """
-
-        return hash(str(self))
+    def __repr__(self):
+        return u"%s.%s('%s')" % (__name__, type(self).__name__, self)
 
     def __str__(self):
-        return str(self.name)
+        return self.name
 
     def __init__(self, name, parent=None):
         super(Instance, self).__init__()
@@ -395,13 +427,6 @@ class Instance(AbstractEntity):
             return self.name
 
         return value
-
-    @property
-    def config(self):
-        warnings.warn("config deprecated, use .data() instead.",
-                      DeprecationWarning,
-                      stacklevel=2)
-        return self._data
 
 
 def current_host():

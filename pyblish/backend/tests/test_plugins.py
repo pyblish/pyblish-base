@@ -355,3 +355,47 @@ def test_invalid_plugins(mock_log):
     """When an invalid plugin is found, an error is logged"""
     pyblish.backend.plugin.discover('selectors')
     assert mock_log.error.called
+
+
+def test_entities_prints_nicely():
+    """Entities Context and Instance prints nicely"""
+    ctx = pyblish.backend.plugin.Context()
+    assert 'Context' in repr(ctx)
+    assert 'pyblish.backend.plugin' in repr(ctx)
+
+    inst = ctx.create_instance(name='Test')
+    assert 'Instance' in repr(inst)
+    assert 'pyblish.backend.plugin' in repr(inst)
+
+
+@raises(OSError)
+def test_register_invalid_path():
+    """Registering an invalid path raises an exception"""
+    pyblish.backend.plugin.register_plugin_path('NOT_EXIST')
+
+
+def test_deregister_path():
+    path = os.path.expanduser('~')
+    pyblish.backend.plugin.register_plugin_path(path)
+    assert path in pyblish.backend.plugin.registered_paths
+    pyblish.backend.plugin.deregister_plugin_path(path)
+    assert path not in pyblish.backend.plugin.registered_paths
+
+
+def test_environment_paths():
+    """Registering via the environment works"""
+    key = pyblish.backend.config.paths_environment_variable
+    path = '/test/path'
+    existing = os.environ.get(key)
+
+    try:
+        os.environ[key] = path
+        assert path in pyblish.backend.plugin.plugin_paths()
+    finally:
+        os.environ[key] = existing or ''
+
+
+@raises(ValueError)
+def test_discover_invalid_type():
+    """Discovering an invalid type raises an error"""
+    pyblish.backend.plugin.discover(type='INVALID')
