@@ -22,7 +22,6 @@ import abc
 import shutil
 import logging
 import inspect
-import warnings
 import traceback
 
 # Local library
@@ -655,6 +654,12 @@ def _discover_type(type, paths, regex=None):
     # differently. Do a check here.
     discovered_paths = list()
 
+    try:
+        print "Trying "
+        pattern = patterns[type]
+    except KeyError:
+        raise  # Handled by :func:discover()
+
     # Look through each registered path for potential plugins
     for path in paths:
         log.debug("Looking for plugins in: \n%s", path)
@@ -677,11 +682,6 @@ def _discover_type(type, paths, regex=None):
                 continue
 
             mod_name, suffix = os.path.splitext(fname)
-
-            try:
-                pattern = patterns[type]
-            except KeyError:
-                raise  # Handled below
 
             # Modules that don't match the regex aren't plugins.
             if not re.match(pattern, fname):
