@@ -6,14 +6,14 @@
 
 Plug-in driven automation framework for content.
 
-- [Documentation][web]
+- [Guide][guide]
 - [Usergroup][usergroup]
 - [Wiki][wiki]
 
-For more information, see our [Getting Started Guide][web]
+For more information, see our [Getting Started Guide][guide]
 
 
-[web]: http://pyblish.com
+[guide]: http://pyblish.com
 [usergroup]: https://groups.google.com/forum/#!forum/pyblish
 [wiki]: https://github.com/abstractfactory/pyblish/wiki
 
