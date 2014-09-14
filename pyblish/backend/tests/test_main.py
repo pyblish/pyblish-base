@@ -1,12 +1,13 @@
+
 import pyblish.main
 import pyblish.backend.lib
 import pyblish.backend.config
 import pyblish.backend.plugin
 
-from pyblish.vendor.nose.tools import with_setup
 from pyblish.vendor import mock
+from pyblish.vendor.nose.tools import with_setup
 from pyblish.backend.tests.lib import (
-    setup, teardown, FAMILY, HOST, setup_failing)
+    setup, teardown, FAMILY, HOST, setup_failing, setup_full)
 
 
 @with_setup(setup, teardown)
@@ -31,6 +32,51 @@ def test_main_interface():
 
     pyblish.main.extract(ctx)
     pyblish.main.conform(ctx)
+
+
+@with_setup(setup_full, teardown)
+def test_publish_all():
+    """publish_all() calls upon each convenience function"""
+    ctx = pyblish.backend.plugin.Context()
+    pyblish.main.publish_all(context=ctx)
+
+    for inst in ctx:
+        assert inst.data('selected') is True
+        assert inst.data('validated') is True
+        assert inst.data('extracted') is True
+        assert inst.data('conformed') is True
+
+
+@mock.patch('pyblish.main.log')
+def test_publish_all_no_instances(mock_log):
+    ctx = pyblish.backend.plugin.Context()
+    pyblish.main.publish_all(ctx)
+    assert mock_log.info.called
+    assert mock_log.info.call_args == mock.call('No instances found.')
+
+
+@with_setup(setup_full, teardown)
+def test_publish_all_no_context():
+    ctx = pyblish.main.publish_all()
+
+    for inst in ctx:
+        assert inst.data('selected') is True
+        assert inst.data('validated') is True
+        assert inst.data('extracted') is True
+        assert inst.data('conformed') is True
+
+
+@with_setup(setup_full, teardown)
+def test_validate_all():
+    """validate_all() calls upon two of the convenience functions"""
+    ctx = pyblish.backend.plugin.Context()
+    pyblish.main.validate_all(context=ctx)
+
+    for inst in ctx:
+        assert inst.data('selected') is True
+        assert inst.data('validated') is True
+        assert inst.data('extracted') is False
+        assert inst.data('conformed') is False
 
 
 @with_setup(setup_failing, teardown)

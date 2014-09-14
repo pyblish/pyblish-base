@@ -43,6 +43,12 @@ def setup_invalid():
     pyblish.backend.plugin.register_plugin_path(failing_path)
 
 
+def setup_full():
+    """Expose a full processing chain for testing"""
+    path = os.path.join(plugin_path, 'full')
+    pyblish.backend.plugin.register_plugin_path(path)
+
+
 def teardown():
     """Restore previously registered paths"""
     pyblish.backend.plugin.deregister_all()

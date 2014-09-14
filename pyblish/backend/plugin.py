@@ -655,7 +655,6 @@ def _discover_type(type, paths, regex=None):
     discovered_paths = list()
 
     try:
-        print "Trying "
         pattern = patterns[type]
     except KeyError:
         raise  # Handled by :func:discover()
@@ -765,15 +764,3 @@ def _isvalid(plugin):
         return False
 
     return True
-
-
-# # Register included plugins
-# for _path_template in pyblish.backend.config.paths:
-#     variables = {
-#         'pyblish': pyblish.backend.lib.main_package_path()
-#     }
-
-#     _plugins_path = _path_template.format(**variables)
-#     _plugins_path = os.path.abspath(_plugins_path)
-
-#     register_plugin_path(_plugins_path)

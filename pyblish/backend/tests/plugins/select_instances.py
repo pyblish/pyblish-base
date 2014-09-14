@@ -16,10 +16,12 @@ class SelectInstances(pyblish.backend.plugin.Selector):
         for node in ('node1_PLY', 'node2_PLY', 'node3_GRP'):
             instance.add(node)
 
-        for key, value in {'publishable': True,
-                           'family': 'test',
-                           'startFrame': 1001,
-                           'endFrame': 1025}.iteritems():
+        for key, value in {
+                'publishable': True,
+                'family': 'test',
+                'startFrame': 1001,
+                'endFrame': 1025
+                }.iteritems():
 
             instance.set_data(key, value)
 
