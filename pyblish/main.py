@@ -119,7 +119,7 @@ def publish_all(context=None):
 
     log.info("Publishing everything..")
 
-    if not context:
+    if context is None:
         context = pyblish.backend.plugin.Context()
 
     select(context)
@@ -140,7 +140,7 @@ def publish_all(context=None):
 
 
 def validate_all(context=None):
-    if not context:
+    if context is None:
         context = pyblish.backend.plugin.Context()
 
     select(context)
