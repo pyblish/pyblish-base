@@ -19,18 +19,14 @@ import os
 import re
 import sys
 import abc
-import time
 import shutil
 import logging
 import inspect
-import warnings
-import importlib
 import traceback
 
 # Local library
 import pyblish.backend.lib
 import pyblish.backend.config
-import pyblish.backend.plugin
 
 
 __all__ = ['Plugin',
@@ -53,7 +49,6 @@ patterns = {
 }
 
 registered_paths = list()
-registered_modules = list()
 
 log = logging.getLogger('pyblish.backend.plugin')
 
@@ -84,29 +79,37 @@ class Plugin(object):
 
         """
 
+        debug = self.log.debug
+        error = self.log.error
+
         try:
             self.process_context(context)
 
         except Exception as err:
-            self.log.error(traceback.format_exc())
-            self.log.error("Could not process context: {0}".format(context))
+            error(traceback.format_exc())
+            error("Could not process context: {0}".format(context))
             yield None, err
 
         else:
-            compatible = pyblish.backend.plugin.instances_by_plugin(
+            compatible_instances = instances_by_plugin(
                 instances=context, plugin=self)
 
-            for instance in compatible:
-                try:
-                    self.process_instance(instance)
-                    err = None
-                except Exception as err:
-                    self.log.error(traceback.format_exc())
-                    self.log.error("Exception occured during "
-                                   "processing of instance {0}".format(
-                                       instance))
-                finally:
-                    yield instance, err
+            if not compatible_instances:
+                yield None, None
+
+            else:
+                for instance in compatible_instances:
+                    debug("\t- %s" % instance)
+
+                    try:
+                        self.process_instance(instance)
+                        err = None
+
+                    except Exception as err:
+                        err.traceback = traceback.format_exc()
+
+                    finally:
+                        yield instance, err
 
     def process_context(self, context):
         """Process context `context`
@@ -219,7 +222,8 @@ class Extractor(Plugin):
         assert workspace_dir
 
         # Commit directory based on template, see config.json
-        variables = {'prefix': pyblish.backend.config.prefix,
+        variables = {'pyblish': pyblish.backend.lib.main_package_path(),
+                     'prefix': pyblish.backend.config.prefix,
                      'date': date,
                      'family': instance.data('family'),
                      'instance': instance.data('name'),
@@ -258,37 +262,83 @@ class Conform(Plugin):
 
 
 class AbstractEntity(list):
-    __metaclass__ = abc.ABCMeta
 
     def __repr__(self):
-        return u"%s(%r)" % (type(self).__name__, self.__str__())
+        return u"%s.%s()" % (__name__, type(self).__name__)
 
     def __str__(self):
-        return str([i for i in self])
+        return "Context"
 
     def __init__(self):
         self._data = dict()
 
     def add(self, other):
+        """Add member to self
+
+        This is to mimic the interface of set()
+
+        """
+
         if not other in self:
-            self.append(other)
+            return self.append(other)
 
     def remove(self, other):
-        self.remove(other)
+        """Remove member from self
+
+        This is to mimic the interface of set()
+
+        """
+
+        index = self.index(other)
+        return self.pop(index)
 
     def data(self, key=None, default=None):
+        """Return data from `key`
+
+        Arguments:
+            key (str): Name of data to return
+            default (object): Optional, value returned if `name`
+                does not exist
+
+        """
+
         if key is None:
             return self._data
 
         return self._data.get(key, default)
 
     def set_data(self, key, value):
+        """Modify/insert data into entity
+
+        Arguments:
+            key (str): Name of data to add
+            value (object): Value of data to add
+
+        """
+
         self._data[key] = value
 
     def remove_data(self, key):
+        """Remove data from entity
+
+        Arguments;
+            key (str): Name of data to remove
+
+        """
+
         self._data.pop(key)
 
     def has_data(self, key):
+        """Check if entity has key
+
+        Arguments:
+            key (str): Key to check
+
+        Return:
+            True if it exists, False otherwise
+
+        """
+
         return key in self._data
 
 
@@ -296,11 +346,15 @@ class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
     def create_instance(self, name):
-        """Convenience method for the following.
+        """Convenience method of the following.
 
         >>> ctx = Context()
         >>> inst = Instance('name', parent=ctx)
         >>> ctx.add(inst)
+
+        Example:
+            >>> ctx = Context()
+            >>> inst = ctx.create_instance(name='Name')
 
         """
 
@@ -317,7 +371,7 @@ class Instance(AbstractEntity):
 
     Attributes:
         name (str): Name of instance, used in plugins
-        config (dict): Full configuration, as recorded onto objectSet.
+        parent (AbstractEntity): Optional parent of instance
 
     """
 
@@ -327,32 +381,16 @@ class Instance(AbstractEntity):
     def __ne__(self, other):
         return str(other) != str(self)
 
-    def __hash__(self):
-        """Ensure instance is unique within list
-
-        Example:
-            >>> ctx = Context()
-            >>> inst1 = Instance(name='inst1')
-            >>> inst2 = Instance(name='inst2')
-            >>> ctx.add(inst1)
-            >>> inst2 in ctx
-            False
-            >>> ctx.add(inst2)
-            >>> inst2 in ctx
-            True
-            >>> inst_ = Instance(name='inst2')
-            >>> inst_ in ctx
-            True
-
-        """
-
-        return hash(str(self))
+    def __repr__(self):
+        return u"%s.%s('%s')" % (__name__, type(self).__name__, self)
 
     def __str__(self):
-        return str(self.name)
+        return self.name
 
     def __init__(self, name, parent=None):
         super(Instance, self).__init__()
+        assert isinstance(name, basestring)
+        assert parent is None or isinstance(parent, AbstractEntity)
         self.name = name
         self.parent = parent
 
@@ -388,13 +426,6 @@ class Instance(AbstractEntity):
             return self.name
 
         return value
-
-    @property
-    def config(self):
-        warnings.warn("config deprecated, use .data() instead.",
-                      DeprecationWarning,
-                      stacklevel=2)
-        return self._data
 
 
 def current_host():
@@ -466,6 +497,42 @@ def deregister_all():
     registered_paths[:] = []
 
 
+def plugin_paths():
+    """Collect paths from sources
+
+    Returns:
+        list of paths in which plugins may be locat
+
+    """
+
+    paths = list()
+
+    # Accept registered paths.
+    paths.extend(registered_paths)
+    log.debug("Registered paths: %s" % registered_paths)
+
+    # Accept paths added via configuration.
+    for path_template in pyblish.backend.config.paths:
+        variables = {'pyblish': pyblish.backend.lib.main_package_path()}
+
+        plugin_path = path_template.format(**variables)
+        # plugin_path = os.path.abspath(plugin_path)
+
+        log.debug("Appending path from config: %s" % plugin_path)
+        paths.append(plugin_path)
+
+    # Accept paths added via environment variable.
+    env_var = pyblish.backend.config.paths_environment_variable
+    env_val = os.environ.get(env_var)
+    if env_val:
+        sep = ';' if os.name == 'nt' else ':'
+        env_paths = env_val.split(sep)
+        paths.extend(env_paths)
+        log.debug("Paths from environment: %s" % env_paths)
+
+    return paths
+
+
 def discover(type=None, regex=None):
     """Find plugins within registered_paths plugin-paths
 
@@ -480,6 +547,8 @@ def discover(type=None, regex=None):
 
     """
 
+    paths = plugin_paths()
+
     if type is not None:
         types = [type]
     else:
@@ -489,18 +558,22 @@ def discover(type=None, regex=None):
 
     plugins = list()
     for type in types:
-        plugins.extend(_discover_type(type=type,
-                                      regex=regex))
+        try:
+            plugins.extend(_discover_type(type=type,
+                                          paths=paths,
+                                          regex=regex))
+        except KeyError:
+            raise ValueError("Type not recognised: {0}".format(type))
 
     return plugins
 
 
-def plugins_by_instance(plugins, instance):
-    """Return compatible plugins `plugins` to instance `instance`
+def plugins_by_family(plugins, family):
+    """Return compatible plugins `plugins` to family `family`
 
     Arguments:
         plugins (list): List of plugins
-        instance (Instance): Instance with which to compare against
+        family (str): Family with which to compare against
 
     Returns:
         List of compatible plugins.
@@ -510,12 +583,29 @@ def plugins_by_instance(plugins, instance):
     compatible = list()
 
     for plugin in plugins:
-        family = instance.data('family')
-        host = instance.data('host')
-
         if hasattr(plugin, 'families') and family not in plugin.families:
             continue
 
+        compatible.append(plugin)
+
+    return compatible
+
+
+def plugins_by_host(plugins, host):
+    """Return compatible plugins `plugins` to host `host`
+
+    Arguments:
+        plugins (list): List of plugins
+        host (str): Host with which compatible plugins are returned
+
+    Returns:
+        List of compatible plugins.
+
+    """
+
+    compatible = list()
+
+    for plugin in plugins:
         # Basic accept wildcards
         # Todo: Expand to take partial wildcards e.g. '*Mesh'
         if '*' not in plugin.hosts and host not in plugin.hosts:
@@ -548,123 +638,129 @@ def instances_by_plugin(instances, plugin):
     return compatible
 
 
-def _discover_type(type, regex=None):
+def _discover_type(type, paths, regex=None):
     """Return plugins of type `type`
 
     Helper method for the above function :func:discover()
 
+    Raises:
+        KeyError when `type` is unrecognised.
+
     """
 
+    plugins = dict()
+
+    # Paths may point to the same location but be formatted
+    # differently. Do a check here.
+    discovered_paths = list()
+
     try:
-        plugins = dict()
+        pattern = patterns[type]
+    except KeyError:
+        raise  # Handled by :func:discover()
 
-        paths = list(registered_paths)
+    # Look through each registered path for potential plugins
+    for path in paths:
+        log.debug("Looking for plugins in: \n%s", path)
 
-        # Accept paths added via Python and
-        # paths via environment variable.
-        env_var = pyblish.backend.config.paths_environment_variable
-        env_val = os.environ.get(env_var)
-        if env_val:
-            sep = ';' if os.name == 'nt' else ':'
-            paths.extend(env_val.split(sep))
+        normpath = os.path.normpath(path)
+        if normpath in discovered_paths:
+            log.warning("Duplicate path being discovered: {0}".format(
+                path))
+            continue
 
-        # Paths may point to the same location but be formatted
-        # differently. Do a check here.
-        discovered_paths = list()
+        discovered_paths.append(normpath)
 
-        # Look through each registered path for potential plugins
-        for path in paths:
-            log.debug("Looking for plugins in {0}".format(path))
+        # Look within each directory for available plugins.
+        # Plugins are modules which passes the regex test
+        # as per regexes provided by config.yaml.
+        for fname in os.listdir(path):
+            abspath = os.path.join(path, fname)
 
-            normpath = os.path.normpath(path)
-            if normpath in discovered_paths:
-                log.warning("Duplicate path being discovered: {0}".format(
-                    path))
+            if not os.path.isfile(abspath):
                 continue
 
-            discovered_paths.append(normpath)
+            mod_name, suffix = os.path.splitext(fname)
 
-            # Look within each directory for available plugins.
-            # Plugins are modules which passes the regex test
-            # as per regexes provided by config.yaml.
-            for fname in os.listdir(path):
-                abspath = os.path.join(path, fname)
+            # Modules that don't match the regex aren't plugins.
+            if not re.match(pattern, fname):
+                continue
 
-                if not os.path.isfile(abspath):
+            # Try importing the module. If this fails,
+            # for whatever reason, log it and move on.
+            try:
+                # Todo: This isn't fool-proof.
+                # By inserting path, we can't be sure whether
+                # the module we find is in the added path or
+                # in a path previously added.
+                sys.path.insert(0, path)
+                module = pyblish.backend.lib.import_module(mod_name)
+                reload(module)
+
+            except (ImportError, IndentationError) as e:
+                log.warning('"{mod}": Skipped ({msg})'.format(
+                    mod=mod_name, msg=e))
+                continue
+
+            finally:
+                # Restore sys.path
+                sys.path.remove(path)
+
+            for name in dir(module):
+                obj = getattr(module, name)
+                if not inspect.isclass(obj):
                     continue
 
-                mod_name, suffix = os.path.splitext(fname)
-
-                if mod_name in registered_modules:
-                    log.warning("Duplicate module name found: "
-                                "{dup} found in {mods}".format(
-                                    dup=abspath, mods=registered_modules))
+                # All plugins must be subclasses of Plugin
+                if not issubclass(obj, Plugin):
                     continue
 
-                try:
-                    pattern = patterns[type]
-                except KeyError:
-                    raise  # Handled below
-
-                # Modules that don't match the regex aren't plugins.
-                if not re.match(pattern, fname):
+                if not _isvalid(obj):
                     continue
 
-                # Try importing the module. If this fails,
-                # for whatever reason, log it and move on.
-                try:
-                    # Todo: This isn't fool-proof.
-                    # By inserting path, we can't be sure whether
-                    # the module we find is in the added path or
-                    # in a path previously added.
-                    sys.path.insert(0, path)
-                    module = importlib.import_module(mod_name)
-
-                except (ImportError, IndentationError) as e:
-                    log.warning('"{mod}": Skipped ({msg})'.format(
-                        mod=mod_name, msg=e))
+                # Finally, check that the plugin hasn't already been
+                # registered. This may indicate that a plugin has
+                # been created with identical name to another plugin.
+                if obj.__name__ in plugins:
+                    log.warning(
+                        "Duplicate plugin "
+                        "found: {cls}".format(cls=obj))
                     continue
 
-                finally:
-                    # Restore sys.path
-                    sys.path.remove(path)
+                if regex is None or re.match(regex, obj.__name__):
+                    plugins[obj.__name__] = obj
 
-                for name in dir(module):
-                    obj = getattr(module, name)
-                # for name, obj in inspect.getmembers(module):
-                    # getmembers will return members including attriutes
-                    # and eventual functions. We're only interested in
-                    # classes.
-                    if not inspect.isclass(obj):
-                        continue
-
-                    # All plugins must be subclasses of Plugin
-                    if not issubclass(obj, Plugin):
-                        continue
-
-                    # Finally, check that the plugin hasn't already been
-                    # registered. This may indicate that a plugin has
-                    # been created with identical name to another plugin.
-                    for plugin in plugins:
-                        if obj.__name__ == plugin:
-                            log.warning(
-                                "Comparing {old} - {new} - Duplicate plugin "
-                                "found: {cls}".format(
-                                    old=obj.__name__,
-                                    new=plugin,
-                                    cls=obj))
-
-                    if regex is None or re.match(regex, obj.__name__):
-                        plugins[obj.__name__] = obj
-
-        return plugins.values()
-
-    except KeyError:
-        raise ValueError("Type not recognised: {0}".format(type))
+    return plugins.values()
 
 
-# Register included plugin path
-_package_path = pyblish.backend.lib.main_package_path()
-_plugins_path = os.path.join(_package_path, 'backend', 'plugins')
-_plugins_path = os.path.abspath(_plugins_path)
-register_plugin_path(_plugins_path)
+def _isvalid(plugin):
+    """Validate plugin"""
+
+    # Helper functions
+    def has_families(_plugin):
+        if not getattr(_plugin, 'families'):
+            log.error("%s: Plugin not valid, missing families.", _plugin)
+            return False
+        return True
+
+    def has_hosts(_plugin):
+        if not getattr(_plugin, 'hosts'):
+            log.error("%s: Plugin not valid, missing hosts.", _plugin)
+            return False
+        return True
+
+    # Validations
+    if issubclass(plugin, Selector):
+        return has_hosts(plugin)
+
+    elif issubclass(plugin, Validator) or issubclass(plugin, Extractor):
+        return has_hosts(plugin) and has_families(plugin)
+
+    elif issubclass(plugin, Conform):
+        return has_families(plugin)
+
+    else:
+        log.error("%s: Is not a plugin", plugin)
+        return False
+
+    return True

@@ -25,7 +25,7 @@ class ValidateNamingConvention(pyblish.backend.plugin.Validator):
     version = (0, 1, 1)
 
     # Naming convention to test for
-    pattern = re.compile("^\w+_\w{3}(Shape)?$")
+    pattern = re.compile(".*_\w{3}(Shape)?$")
 
     def process_instance(self, instance):
         """Allow nodes of appropriate names through"""
@@ -36,9 +36,9 @@ class ValidateNamingConvention(pyblish.backend.plugin.Validator):
                 mismatches.append(node)
 
         if mismatches:
-            msg = "The following nodes were misnamed\n"
+            msg = "The following nodes were misnamed"
             for node in mismatches:
-                msg += "\t{0}\n".format(node)
+                msg += "\n\t{0}".format(node)
 
             err = ValueError(msg)
             err.nodes = mismatches

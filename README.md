@@ -1,41 +1,26 @@
-### ![](https://github.com/abstractfactory/pyblish/wiki/images/logo-long.png)
+### ![][logo]
 
-[![Build Status](https://travis-ci.org/abstractfactory/pyblish.svg?branch=master)](https://travis-ci.org/abstractfactory/pyblish)
-[![Coverage Status](https://coveralls.io/repos/abstractfactory/pyblish/badge.png?branch=master)](https://coveralls.io/r/abstractfactory/pyblish?branch=master)
+[![Build Status][travis]][travis_repo]
+[![Coverage Status][cover]][cover_repo]
+[![PyPI version][pypi]][pypi_repo]
 
-Feature film-strength quality assurance for content; built for platform, software and language agnosticism. Free, community-driven and licensed under LGPLv3.
+Plug-in driven automation framework for content.
 
+- [Guide][guide]
+- [Usergroup][usergroup]
 - [Wiki][wiki]
-- [Usergroup][]
-- [Documentation][docs]
-- [Website][web]
-- [PyPI][pypi]
 
-### Getting started
-
-```bash
-# Pyblish is in development, but will remain functional at all times.
-$ git clone https://github.com/abstractfactory/pyblish.git
-```
-
-### See also
-
-To get started quickly, have a look at one of the integrations for Pyblish.
-
-[![](https://github.com/abstractfactory/pyblish/wiki/images/maya-pyblish.png)][maya]
-
-[![](https://github.com/abstractfactory/pyblish/wiki/images/git-pyblish.png)][git]
-
-[![](https://github.com/abstractfactory/pyblish/wiki/images/asana-pyblish.png)][asana]
+For more information, see our [Getting Started Guide][guide]
 
 
-[pypi]: https://pypi.python.org/pypi/pyblish
-[Usergroup]: https://groups.google.com/forum/#!forum/pyblish
+[guide]: http://pyblish.com
+[usergroup]: https://groups.google.com/forum/#!forum/pyblish
 [wiki]: https://github.com/abstractfactory/pyblish/wiki
-[docs]: http://pyblish.readthedocs.org/en/latest/
-[web]: http://abstractfactory.github.io/pyblish/
 
-[maya]: https://github.com/abstractfactory/pyblish-maya
-[nuke]: https://github.com/abstractfactory/pyblish-nuke
-[asana]: https://github.com/abstractfactory/pyblish-asana
-[git]: https://github.com/abstractfactory/pyblish-git
+[travis]: https://travis-ci.org/abstractfactory/pyblish.svg?branch=master
+[travis_repo]: https://travis-ci.org/abstractfactory/pyblish
+[cover]: https://coveralls.io/repos/abstractfactory/pyblish/badge.png?branch=master
+[cover_repo]: https://coveralls.io/r/abstractfactory/pyblish?branch=master
+[pypi]: https://badge.fury.io/py/pyblish.svg
+[pypi_repo]: http://badge.fury.io/py/pyblish
+[logo]: https://github.com/abstractfactory/pyblish/wiki/images/logo-long.png

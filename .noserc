@@ -1,0 +1,8 @@
+[nosetests]
+verbosity=2
+with-doctest=1
+with-coverage=1
+cover-html=1
+cover-erase=1
+exclude=vendor
+cover-tests=1

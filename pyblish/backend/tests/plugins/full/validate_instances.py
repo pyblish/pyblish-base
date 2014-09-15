@@ -4,10 +4,10 @@ import pyblish.backend.plugin
 
 
 @pyblish.backend.lib.log
-class ValidateInstanceFail(pyblish.backend.plugin.Validator):
+class ValidateInstance(pyblish.backend.plugin.Validator):
     hosts = ['python']
-    families = ['test.family']
+    families = ['full']
     version = (0, 1, 0)
 
     def process_instance(self, instance):
-        raise ValueError("Test fail")
+        instance.set_data('validated', True)

@@ -15,6 +15,7 @@ prefix: published
 date_format: "%Y%m%d_%H%M%S"
 
 # Path template for commits. Available variables:
+#   pyblish: Absolute path to the main Pyblish package
 # 	prefix: References "prefix" above
 # 	date: Date at which publishing was initiated
 #   family: Family of current instance
@@ -25,8 +26,11 @@ date_format: "%Y%m%d_%H%M%S"
 # 	E.g. on Windows that is \ and OSX is /
 commit_template: "{prefix}/{date}/{family}/{instance}"
 
-# The environment variable within which additional
-# plugins are stored and later retrieved at run-time.
+# You can add to this list with paths to your custom plugins.
+paths: 
+    - "{pyblish}/plugins"
+
+# Or your can append paths to the environment variable.
 paths_environment_variable: PYBLISHPLUGINPATH
 
 # Regular expressions for plugins.

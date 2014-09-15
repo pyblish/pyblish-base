@@ -39,10 +39,23 @@ def test_data():
     assert ctx.has_data(key=key) is False
 
 
-if __name__ == '__main__':
-    import logging
-    import pyblish
-    log = pyblish.setup_log()
-    log.setLevel(logging.DEBUG)
+def test_add_remove_instances():
+    """Adding instances to context works"""
+    ctx = pyblish.backend.plugin.Context()
+    inst = pyblish.backend.plugin.Instance(name='Test', parent=ctx)
+    ctx.add(inst)
+    ctx.remove(inst)
 
-    test_data()
+
+def test_instance_equality():
+    """Instance equality works"""
+    inst1 = pyblish.backend.plugin.Instance('Test1')
+    inst2 = pyblish.backend.plugin.Instance('Test2')
+    inst3 = pyblish.backend.plugin.Instance('Test2')
+
+    assert inst1 != inst2
+    assert inst2 == inst3
+
+
+if __name__ == '__main__':
+    test_add_remove_instances()
