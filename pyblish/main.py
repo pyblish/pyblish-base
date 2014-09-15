@@ -100,7 +100,7 @@ def conform(context):
     """Perform conform upon context `context`"""
     processed = list()
 
-    for instance, error in process('conforms', context):
+    for instance, error in process('conformers', context):
         processed.append(instance)
         if error is not None:
             log.error(error)

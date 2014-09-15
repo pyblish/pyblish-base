@@ -6,11 +6,11 @@ executables is whether or not an extension matches a number of
 options, such as ".exe" or ".bat".
 
 In this system, the predicate is whether or not a fname starts
-with "validate_" and ends with ".py"
+with "validate" and ends with ".py"
 
 Attributes:
     patterns: Regular expressions used for lookup of plugins.
-    registered_paths: Set of all registered_paths plugin-paths
+    registered_paths: List of all registered_paths plugin-paths
 
 """
 
@@ -33,10 +33,11 @@ __all__ = ['Plugin',
            'Selector',
            'Validator',
            'Extractor',
-           'Conform',
+           'Conformer',
            'Context',
            'Instance',
            'discover',
+           'plugin_paths',
            'register_plugin_path',
            'deregister_plugin_path',
            'deregister_all']
@@ -45,7 +46,7 @@ patterns = {
     'validators': pyblish.backend.config.validators_regex,
     'extractors': pyblish.backend.config.extractors_regex,
     'selectors': pyblish.backend.config.selectors_regex,
-    'conforms': pyblish.backend.config.conforms_regex
+    'conformers': pyblish.backend.config.conformers_regex
 }
 
 registered_paths = list()
@@ -174,10 +175,11 @@ class Validator(Plugin):
 
 
 class Extractor(Plugin):
-    """Physically separate Instance from Host into corresponding Resources
+    """Physically separate Instance from Host into corresponding resources
 
-    Yields:
-        (Instance, Exception): Output path and exception
+    By convention, an extractor always positions files relative the
+    current working file. Use the convenience :meth:commit() to maintain
+    this convention.
 
     """
 
@@ -191,7 +193,7 @@ class Extractor(Plugin):
                 usually a temporary directory.
             instance (Instance): Instance located at `path`
 
-        Todo: Both `path` and `instance` are required for this operation,
+        .. note:: Both `path` and `instance` are required for this operation,
             but it doesn't make sense to include both as argument because
             they say pretty much the same thing.
 
@@ -257,11 +259,13 @@ class Extractor(Plugin):
         return commit_dir
 
 
-class Conform(Plugin):
+class Conformer(Plugin):
+    """Integrates publishes into a pipeline"""
     families = list()
 
 
 class AbstractEntity(list):
+    """Superclass for Context and Instance"""
 
     def __repr__(self):
         return u"%s.%s()" % (__name__, type(self).__name__)
@@ -369,6 +373,13 @@ class Instance(AbstractEntity):
 
     Examples include rigs, models.
 
+    Arguments:
+        name (str): Name of instance, typically used during
+            extraction as name of resulting files.
+        parent (AbstractEntity): Optional parent. This is
+            supplied automatically when creating instances with
+            :class:`Context.create_instance()`.
+
     Attributes:
         name (str): Name of instance, used in plugins
         parent (AbstractEntity): Optional parent of instance
@@ -466,9 +477,13 @@ def register_plugin_path(path):
     To register a new directory, run this command along with the absolute
     path to where you're plug-ins are located.
 
+    .. note:: The path must exist.
+
     Example:
-        >> my_plugins = '/home/marcus/pyblish_plugins'
-        >> register_plugin_path(my_plugins)
+        >>> import os
+        >>> my_plugins = os.path.expanduser('~')
+        >>> register_plugin_path(my_plugins)
+        >>> deregister_plugin_path(my_plugins)
 
     """
 
@@ -498,7 +513,14 @@ def deregister_all():
 
 
 def plugin_paths():
-    """Collect paths from sources
+    """Collect paths from all sources.
+
+    This function looks at the three potential sources of paths
+    and returns a list with all of them together.
+
+    The sources are: Those registered using :func:`register_plugin_path`,
+    those appended to the `PYBLISHPLUGINPATH` and those added to
+    the user-configuration.
 
     Returns:
         list of paths in which plugins may be locat
@@ -540,9 +562,9 @@ def discover(type=None, regex=None):
         type (str): Only return plugins of specified type
             E.g. validators, extractors. In None is
             specified, return all plugins.
-        regex (str): Limit results to those matching `regex`
-            Mathching is done on classes, as opposed to
-            filenames due to a file possibly hosting
+        regex (str): Limit results to those matching `regex`.
+            Matching is done on classes, as opposed to
+            filenames, due to a file possibly hosting
             multiple plugins.
 
     """
@@ -756,7 +778,7 @@ def _isvalid(plugin):
     elif issubclass(plugin, Validator) or issubclass(plugin, Extractor):
         return has_hosts(plugin) and has_families(plugin)
 
-    elif issubclass(plugin, Conform):
+    elif issubclass(plugin, Conformer):
         return has_families(plugin)
 
     else:

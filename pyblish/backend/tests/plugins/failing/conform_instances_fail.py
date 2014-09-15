@@ -7,7 +7,7 @@ from pyblish.vendor import mock
 api = mock.MagicMock()
 
 
-class ConformInstancesFail(pyblish.backend.plugin.Conform):
+class ConformInstancesFail(pyblish.backend.plugin.Conformer):
     hosts = ['python']
     families = ['test.family']
     version = (0, 1, 0)

@@ -3,38 +3,16 @@
 Reference
 =========
 
-Pyblish reference
+Most of what Pyblish provides can be found in the :mod:`pyblish.backend.plugin` module. In it are two central objects - Context and Instance - along with four processors - Selector, Validator, Extractor and Conformer.
 
-.. autosummary::
-   :nosignatures:
-   
-   ~pyblish.main
-   ~pyblish.backend.plugin
+The context is singular throughout the lifespan of a single publish and contains instances. An instance represents what may ultimately become one or more files on disk, such as a model or pointcache. A context then contains one or more of these, as governed by the contents of your current working file.
+
+The :mod:`main` module contains convenience functions, such as :mod:`main.select` that encapsulate multiple commands, such as :mod:`pyblish.backend.plugin.Context()` and :mod:`pyblish.backend.plugin.discover()`.
 
 
-pyblish.main
-------------
-
-.. automodule:: pyblish.main
-
-.. autofunction:: pyblish.main.pyblish_all
-.. autofunction:: pyblish.main.select
-.. autofunction:: pyblish.main.validate
-.. autofunction:: pyblish.main.extract
-.. autofunction:: pyblish.main.conform
-
-pyblish.backend.plugin
-----------------------
-
-.. automodule:: pyblish.backend.plugin
-
-.. autoclass:: pyblish.backend.plugin.Filter
-.. autoclass:: pyblish.backend.plugin.Context
-.. autoclass:: pyblish.backend.plugin.Instance
-.. autoclass:: pyblish.backend.plugin.Selector
-.. autoclass:: pyblish.backend.plugin.Validator
-.. autoclass:: pyblish.backend.plugin.Extractor
-.. autoclass:: pyblish.backend.plugin.Conform
-
-.. autofunction:: pyblish.backend.plugin.plugins_by_instance
-.. autofunction:: pyblish.backend.plugin.instances_by_plugin
+.. toctree::
+    :maxdepth: 1
+    
+    main
+    plugin
+    config
