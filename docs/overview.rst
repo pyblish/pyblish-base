@@ -1,8 +1,14 @@
 Overview
 ========
 
-Feature film-strength quality assurance for content; built for platform, software and language agnosticism. Free, community-driven and licensed under LGPLv3.
+Pyblish is a plug-in driven automation framework for content, licensed under LGPLv3.
 
-`See Wiki`_ for more information
+- `Guide`_
+- `Docs`_
+- `Wiki`_
+- `Repository`_
 
-.. _`See Wiki`: https://github.com/abstractfactory/pyblish/wiki
+.. _`Guide`: http://pyblish.com
+.. _`Docs`: http://docs.pyblish.com
+.. _`Wiki`: https://github.com/abstractfactory/pyblish/wiki
+.. _`Repository`: https://github.com/abstractfactory/pyblish
