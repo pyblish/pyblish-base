@@ -33,7 +33,7 @@ __all__ = ['Plugin',
            'Selector',
            'Validator',
            'Extractor',
-           'Conform',
+           'Conformer',
            'Context',
            'Instance',
            'discover',
@@ -45,7 +45,7 @@ patterns = {
     'validators': pyblish.backend.config.validators_regex,
     'extractors': pyblish.backend.config.extractors_regex,
     'selectors': pyblish.backend.config.selectors_regex,
-    'conforms': pyblish.backend.config.conforms_regex
+    'conformers': pyblish.backend.config.conformers_regex
 }
 
 registered_paths = list()
@@ -257,7 +257,7 @@ class Extractor(Plugin):
         return commit_dir
 
 
-class Conform(Plugin):
+class Conformer(Plugin):
     families = list()
 
 
@@ -756,7 +756,7 @@ def _isvalid(plugin):
     elif issubclass(plugin, Validator) or issubclass(plugin, Extractor):
         return has_hosts(plugin) and has_families(plugin)
 
-    elif issubclass(plugin, Conform):
+    elif issubclass(plugin, Conformer):
         return has_families(plugin)
 
     else:
