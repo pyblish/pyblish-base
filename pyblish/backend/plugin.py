@@ -555,7 +555,7 @@ def plugin_paths():
     return paths
 
 
-def discover(type=None, regex=None):
+def discover(type=None, regex=None, paths=None):
     """Find plugins within registered_paths plugin-paths
 
     Arguments:
@@ -569,7 +569,8 @@ def discover(type=None, regex=None):
 
     """
 
-    paths = plugin_paths()
+    if paths is None:
+        paths = plugin_paths()
 
     if type is not None:
         types = [type]
@@ -656,6 +657,8 @@ def instances_by_plugin(instances, plugin):
         if hasattr(plugin, 'families'):
             if instance.data('family') in plugin.families:
                 compatible.append(instance)
+            elif '*' in plugin.families:
+                compatible.append(instance)
 
     return compatible
 
@@ -720,7 +723,7 @@ def _discover_type(type, paths, regex=None):
                 reload(module)
 
             except (ImportError, IndentationError) as e:
-                log.warning('"{mod}": Skipped ({msg})'.format(
+                log.warning('Module: "{mod}" skipped ({msg})'.format(
                     mod=mod_name, msg=e))
                 continue
 

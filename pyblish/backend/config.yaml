@@ -16,14 +16,14 @@ date_format: "%Y%m%d_%H%M%S"
 
 # Path template for commits. Available variables:
 #   pyblish: Absolute path to the main Pyblish package
-# 	prefix: References "prefix" above
-# 	date: Date at which publishing was initiated
+#   prefix: References "prefix" above
+#   date: Date at which publishing was initiated
 #   family: Family of current instance
-# 	instance: Name of current instance
-# 	user: Currently logged on user
+#   instance: Name of current instance
+#   user: Currently logged on user
 #
 # Note: Forward-slash will be substituted with OS-separator.
-# 	E.g. on Windows that is \ and OSX is /
+#   E.g. on Windows that is \ and OSX is /
 commit_template: "{prefix}/{date}/{family}/{instance}"
 
 # You can add to this list with paths to your custom plugins.

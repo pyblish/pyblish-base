@@ -37,6 +37,14 @@ def setup_duplicate():
         pyblish.backend.plugin.register_plugin_path(path)
 
 
+def setup_wildcard():
+    pyblish.backend.plugin.deregister_all()
+    pyblish.backend.config.paths[:] = []
+
+    wildcard_path = os.path.join(plugin_path, 'wildcards')
+    pyblish.backend.plugin.register_plugin_path(wildcard_path)
+
+
 def setup_invalid():
     """Expose invalid plugins to discovery mechanism"""
     failing_path = os.path.join(plugin_path, 'invalid')
