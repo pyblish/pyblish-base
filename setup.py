@@ -38,14 +38,16 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'pyblish.backend': ['*.yaml',
-                            'plugins/*.py'],
+        'pyblish': ['plugins/*.py'],
+        'pyblish.backend': ['*.yaml'],
         'pyblish.backend.tests': ['plugins/*.py',
                                   'plugins/duplicate/*.py',
                                   'plugins/duplicate/copy1/*.py',
                                   'plugins/duplicate/copy2/*.py',
                                   'plugins/invalid/*.py',
-                                  'plugins/failing/*.py'],
-        'pyblish': ['plugins/*.py']
+                                  'plugins/failing/*.py']
+    },
+    entry_points={
+        'console_scripts': ['pyblish = pyblish.cli:main']
     },
 )

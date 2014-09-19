@@ -73,9 +73,8 @@ _help = {
         "messages. This can be useful for debugging."
     ),
     "data": (
-        "Initialise context with specified JSON formatted data. "
-        "E.g. "
-        "{\"myvalue\": 5, \"anotherValue\": True}"
+        "Initialise context with data. This takes two arguments, "
+        "key and value."
     )
 }
 
@@ -148,19 +147,24 @@ def _load_config():
 
     return False
 
+
 @click.group()
 @click.option("--verbose", default=False)
 @click.pass_context
 def main(ctx, verbose):
-    """Abstract Factory - Pyblish Command-line interface
+    """Pyblish command-line interface
+
+    Use the appropriate sub-command to initiate a publish.
 
     Use the --help flag of each subcommand to learn more
     about what it can do.
 
-    """
+    \b
+    Usage:
+        $ pyblish publish --help
+        $ pyblish test --help
 
-    if not ctx.obj:
-        ctx.obj = dict()
+    """
 
     ctx.obj['verbose'] = verbose
     verbose = verbose
@@ -182,7 +186,7 @@ def main(ctx, verbose):
               "plugin_paths",
               multiple=True,
               help=_help['plugin-path'])
-@click.option("-app",
+@click.option("-ap",
               "--add-plugin-path",
               "add_plugin_paths",
               multiple=True,
@@ -197,6 +201,11 @@ def main(ctx, verbose):
               type=click.Choice(LOG_LEVEL.keys()),
               default="warning",
               help=_help['logging-level'])
+@click.option("-d",
+              "--data",
+              nargs=2,
+              multiple=True,
+              help=_help['data'])
 @click.pass_context
 def publish(ctx,
             path,
@@ -205,8 +214,15 @@ def publish(ctx,
             plugin_paths,
             add_plugin_paths,
             delay,
-            logging_level):
+            logging_level,
+            data):
     """Publish instances of path.
+
+    \b
+    Arguments:
+        path: Optional path, either absolute or relative,
+            at which to initialise a publish. Defaults to
+            the current working directory.
 
     \b
     Usage:
@@ -228,6 +244,17 @@ def publish(ctx,
         return
 
     context = pyblish.backend.plugin.Context()
+
+    # Initialise context with data passed as argument
+    for key, value in data:
+        try:
+            yaml_loaded = yaml.load(value)
+        except ValueError:
+            click.echo("Data must be YAML formatted: "
+                       "--data %s %s" % (key, value))
+            return
+
+        context.set_data(str(key), yaml_loaded)
 
     # Load user config and data
     data_loaded = _load_data(context)
@@ -285,47 +312,32 @@ def publish(ctx,
 
 @click.command()
 @click.pass_context
-@click.argument("path")
-def select(ctx, *args, **kwargs):
-    """Select data from path"""
-    click.echo("Sub-command not yet implemented")
+def test(ctx):
+    """Run Pyblish test-suite.
+
+    Use this to test your installation to ensure all systems
+    are operational.
+
+    """
+
+    module_name = sys.modules[__name__].__file__
+    package_dir = os.path.dirname(module_name)
+    init_dir = os.path.join(package_dir, '__init__.py')
+
+    argv = [init_dir]
+    argv.extend(['pyblish',
+                 '--verbose',
+                 '--exclude=vendor',
+                 '--with-doctest'])
+    nose.run(argv=argv)
 
 
 @click.command()
 @click.pass_context
-@click.argument("path")
-def validate(ctx, *args, **kwargs):
-    """Validate data from path"""
-    click.echo("Sub-command not yet implemented")
-
-
-@click.command()
-@click.pass_context
-@click.argument("path")
-def extract(ctx, *args, **kwargs):
-    """Extract data from path"""
-    click.echo("Sub-command not yet implemented")
-
-
-@click.command()
-@click.pass_context
-@click.argument("path")
-def conform(ctx, *args, **kwargs):
-    """Conform data from path"""
-    click.echo("Sub-command not yet implemented")
-
-
-@click.command()
-@click.pass_context
-def test(ctx, all):
-    argv = sys.argv[:]
-    argv.extend(['--verbose', '--exclude=vendor', '--with-doctest'])
-    nose.main(argv=argv)
+def data(ctx):
+    pass
 
 
 main.add_command(publish)
-main.add_command(select)
-main.add_command(validate)
-main.add_command(extract)
-main.add_command(conform)
 main.add_command(test)
+# publish.add_command(data)

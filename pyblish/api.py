@@ -17,8 +17,34 @@ without breaking any of your tools.
 from pyblish.backend.plugin import (
     Context, Instance, discover, Plugin,
     Selector, Validator, Extractor, Conformer,
-    plugin_paths, registered_paths)
+    plugin_paths, registered_paths, register_plugin_path,
+    deregister_plugin_path, deregister_all)
 
 from pyblish.backend import config
 
 from pyblish.backend.lib import log
+
+# For forwards-compatibility
+Integrator = Conformer
+
+
+__all__ = [
+    'Context',
+    'Instance',
+
+    'Selector',
+    'Validator',
+    'Extractor',
+    'Conformer',
+
+    'discover',
+
+    'plugin_paths',
+    'registered_paths',
+    'register_plugin_path',
+    'deregister_plugin_path',
+    'deregister_all',
+
+    'config',
+    'log'
+]

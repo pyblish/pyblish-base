@@ -57,6 +57,15 @@ def setup_full():
     pyblish.backend.plugin.register_plugin_path(path)
 
 
+def setup_echo():
+    """Plugins that output information"""
+    pyblish.backend.plugin.deregister_all()
+    pyblish.backend.config.paths[:] = []
+
+    path = os.path.join(plugin_path, 'echo')
+    pyblish.backend.plugin.register_plugin_path(path)
+
+
 def teardown():
     """Restore previously registered paths"""
     pyblish.backend.plugin.deregister_all()
