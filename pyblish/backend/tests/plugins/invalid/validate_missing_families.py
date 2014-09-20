@@ -1,11 +1,10 @@
 """This plugin is incomplete and can't be used"""
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class ValidateMissingFamilies(pyblish.backend.plugin.Validator):
+@pyblish.log
+class ValidateMissingFamilies(pyblish.Validator):
     """Select instances"""
 
     hosts = ['python']

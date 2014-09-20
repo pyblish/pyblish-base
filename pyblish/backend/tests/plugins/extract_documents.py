@@ -1,12 +1,10 @@
 import os
 import tempfile
-
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class ExtractDocuments(pyblish.backend.plugin.Extractor):
+@pyblish.log
+class ExtractDocuments(pyblish.Extractor):
     """Extract instances"""
 
     hosts = ['python']

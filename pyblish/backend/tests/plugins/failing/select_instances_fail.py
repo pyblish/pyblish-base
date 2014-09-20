@@ -1,10 +1,9 @@
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class SelectInstancesError(pyblish.backend.plugin.Selector):
+@pyblish.log
+class SelectInstancesError(pyblish.Selector):
     hosts = ['python']
     version = (0, 1, 0)
 

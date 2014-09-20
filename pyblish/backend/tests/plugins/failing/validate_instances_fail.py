@@ -1,10 +1,9 @@
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class ValidateInstanceFail(pyblish.backend.plugin.Validator):
+@pyblish.log
+class ValidateInstanceFail(pyblish.Validator):
     hosts = ['python']
     families = ['test.family']
     version = (0, 1, 0)
