@@ -656,6 +656,8 @@ def instances_by_plugin(instances, plugin):
         if hasattr(plugin, 'families'):
             if instance.data('family') in plugin.families:
                 compatible.append(instance)
+            elif '*' in plugin.families:
+                compatible.append(instance)
 
     return compatible
 
