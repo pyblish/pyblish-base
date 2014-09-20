@@ -1,8 +1,6 @@
 
+import pyblish
 import pyblish.main
-import pyblish.backend.lib
-import pyblish.backend.config
-import pyblish.backend.plugin
 
 from pyblish.vendor import mock
 from pyblish.vendor.nose.tools import with_setup
@@ -13,7 +11,7 @@ from pyblish.backend.tests.lib import (
 @with_setup(setup, teardown)
 def test_main_interface():
     """Main interface works"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.Context()
     inst = ctx.create_instance(name='Test')
 
     inst.add('TestNode1_AST')
@@ -37,7 +35,7 @@ def test_main_interface():
 @with_setup(setup_full, teardown)
 def test_publish_all():
     """publish_all() calls upon each convenience function"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.Context()
     pyblish.main.publish_all(context=ctx)
 
     for inst in ctx:
@@ -49,7 +47,7 @@ def test_publish_all():
 
 @mock.patch('pyblish.main.log')
 def test_publish_all_no_instances(mock_log):
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.Context()
     pyblish.main.publish_all(ctx)
     assert mock_log.info.called
     assert mock_log.info.call_args == mock.call('No instances found.')
@@ -69,7 +67,7 @@ def test_publish_all_no_context():
 @with_setup(setup_full, teardown)
 def test_validate_all():
     """validate_all() calls upon two of the convenience functions"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.Context()
     pyblish.main.validate_all(context=ctx)
 
     for inst in ctx:
@@ -82,7 +80,7 @@ def test_validate_all():
 @with_setup(setup_failing, teardown)
 def test_main_safe_processes_fail():
     """Failing selection, extraction or conform merely logs a message"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.Context()
     pyblish.main.select(ctx)
 
     # Give plugins something to process
@@ -97,7 +95,7 @@ def test_main_safe_processes_fail():
 @with_setup(setup_failing, teardown)
 def test_main_validation_fail():
     """Failing validation returns false"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.Context()
 
     # Give validators something to validate
     inst = ctx.create_instance(name='TestInstance')

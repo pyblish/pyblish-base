@@ -1,10 +1,9 @@
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class ExtractInstancesFail(pyblish.backend.plugin.Extractor):
+@pyblish.log
+class ExtractInstancesFail(pyblish.Extractor):
     hosts = ['python']
     families = ['test.family']
     version = (0, 1, 0)

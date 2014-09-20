@@ -1,10 +1,9 @@
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class ValidateInstance(pyblish.backend.plugin.Validator):
+@pyblish.log
+class ValidateInstance(pyblish.Validator):
     hosts = ['python']
     families = ['full']
     version = (0, 1, 0)

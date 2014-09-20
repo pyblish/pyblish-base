@@ -1,10 +1,9 @@
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class ValidateOtherInstance(pyblish.backend.plugin.Validator):
+@pyblish.log
+class ValidateOtherInstance(pyblish.Validator):
     """All nodes ends with a three-letter extension"""
 
     hosts = ['python']

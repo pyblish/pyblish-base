@@ -1,10 +1,9 @@
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class ConformInstances(pyblish.backend.plugin.Conformer):
+@pyblish.log
+class ConformInstances(pyblish.Conformer):
     hosts = ['python']
     families = ['full']
     version = (0, 1, 0)

@@ -1,10 +1,9 @@
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class SelectInstances(pyblish.backend.plugin.Selector):
+@pyblish.log
+class SelectInstances(pyblish.Selector):
     hosts = ['python']
     version = (0, 1, 0)
 
