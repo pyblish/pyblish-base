@@ -82,8 +82,6 @@ _help = {
 def _setup_logging():
     log = logging.getLogger()
 
-    # log.setLevel(logging.DEBUG)
-    # log.setLevel(logging.INFO)
     log.setLevel(logging.WARNING)
 
     formatter = logging.Formatter('{tab}<log>: %(message)s'.format(tab=TAB))
@@ -165,6 +163,9 @@ def main(ctx, verbose):
         $ pyblish test --help
 
     """
+
+    if not ctx.obj:
+        ctx.obj = dict()
 
     ctx.obj['verbose'] = verbose
     verbose = verbose
@@ -333,11 +334,30 @@ def test(ctx):
 
 
 @click.command()
+@click.argument("package")
 @click.pass_context
-def data(ctx):
-    pass
+def install(ctx, package):
+    """Install Pyblish package via pip.
+
+    \b
+    Usage:
+        $ pyblish install maya
+        $ pyblish install napoleon
+
+    """
+
+    try:
+        import pip
+    except ImportError:
+        return click.echo("Error: 'install' requires pip")
+
+    version = tuple([int(n) for n in pip.__version__.split(".")])
+    if version < (1, 5):
+        return click.echo("Error: 'install' requires pip v 1.5 or higher")
+
+    pip.main(['install', "pyblish-" + package])
 
 
 main.add_command(publish)
 main.add_command(test)
-# publish.add_command(data)
+main.add_command(install)
