@@ -14,7 +14,7 @@ from pyblish.vendor import mock
 
 from pyblish.backend.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
-    setup_duplicate, setup_invalid)
+    setup_duplicate, setup_invalid, setup_wildcard)
 from pyblish.vendor.nose.tools import raises, with_setup
 
 
@@ -399,3 +399,14 @@ def test_environment_paths():
 def test_discover_invalid_type():
     """Discovering an invalid type raises an error"""
     pyblish.backend.plugin.discover(type='INVALID')
+
+
+@raises(ValueError)
+@with_setup(setup_wildcard, teardown)
+def test_wildcard_plugins():
+    """Wildcard plugins process instances without family"""
+    context = pyblish.backend.plugin.Context()
+
+    for type in ('selectors', 'validators'):
+        for plugin in pyblish.backend.plugin.discover(type=type):
+            plugin().process_all(context)
