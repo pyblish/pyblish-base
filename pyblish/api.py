@@ -14,15 +14,15 @@ without breaking any of your tools.
 
 """
 
-from pyblish.backend.plugin import (
+from .backend.plugin import (
     Context, Instance, discover, Plugin,
     Selector, Validator, Extractor, Conformer,
     plugin_paths, registered_paths, register_plugin_path,
     deregister_plugin_path, deregister_all)
 
-from pyblish.backend import config
+from .backend import config
 
-from pyblish.backend.lib import log
+from .backend.lib import log
 
 # For forwards-compatibility
 Integrator = Conformer
