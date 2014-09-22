@@ -10,7 +10,7 @@ with "validate" and ends with ".py"
 
 Attributes:
     patterns: Regular expressions used for lookup of plugins.
-    registered_paths: List of all registered_paths plugin-paths
+    _registered_paths: List of all _registered_paths plugin-paths
 
 """
 
@@ -38,6 +38,9 @@ __all__ = ['Plugin',
            'Instance',
            'discover',
            'plugin_paths',
+           'registered_paths',
+           'environment_paths',
+           'configured_paths',
            'register_plugin_path',
            'deregister_plugin_path',
            'deregister_all']
@@ -49,7 +52,7 @@ patterns = {
     'conformers': pyblish.backend.config.conformers_regex
 }
 
-registered_paths = list()
+_registered_paths = list()
 
 log = logging.getLogger('pyblish.backend.plugin')
 
@@ -490,26 +493,77 @@ def register_plugin_path(path):
     if not os.path.isdir(path):
         raise OSError("{0} does not exist".format(path))
 
-    if path in registered_paths:
+    processed_path = _post_process_path(path)
+
+    if processed_path in _registered_paths:
         return log.warning("Path already registered: {0}".format(path))
 
-    registered_paths.append(path)
+    _registered_paths.append(processed_path)
 
 
 def deregister_plugin_path(path):
-    """Remove a registered_paths path
+    """Remove a _registered_paths path
 
     Raises:
         KeyError if `path` isn't registered
 
     """
 
-    registered_paths.remove(path)
+    _registered_paths.remove(path)
 
 
 def deregister_all():
     """Mainly used in tests"""
-    registered_paths[:] = []
+    _registered_paths[:] = []
+
+
+def _post_process_path(path):
+    """Before using any incoming path, process it"""
+    return os.path.abspath(path)
+
+
+def registered_paths():
+    """Return paths added via registration"""
+    log.debug("Registered paths: %s" % _registered_paths)
+    return _registered_paths
+
+
+def configured_paths():
+    """Return paths added via configuration"""
+    paths = list()
+
+    for path_template in pyblish.backend.config.paths:
+        variables = {'pyblish': pyblish.backend.lib.main_package_path()}
+
+        plugin_path = path_template.format(**variables)
+
+        # Ensure path is absolute
+        plugin_path = _post_process_path(plugin_path)
+        paths.append(plugin_path)
+
+        log.debug("Appending path from config: %s" % plugin_path)
+
+    return paths
+
+
+def environment_paths():
+    """Return paths added via environment variable"""
+
+    paths = list()
+
+    env_var = pyblish.backend.config.paths_environment_variable
+    env_val = os.environ.get(env_var)
+    if env_val:
+        sep = ';' if os.name == 'nt' else ':'
+        env_paths = env_val.split(sep)
+
+        for path in env_paths:
+            plugin_path = _post_process_path(path)
+            paths.append(plugin_path)
+
+        log.debug("Paths from environment: %s" % env_paths)
+
+    return paths
 
 
 def plugin_paths():
@@ -530,33 +584,17 @@ def plugin_paths():
     paths = list()
 
     # Accept registered paths.
-    paths.extend(registered_paths)
-    log.debug("Registered paths: %s" % registered_paths)
-
-    # Accept paths added via configuration.
-    for path_template in pyblish.backend.config.paths:
-        variables = {'pyblish': pyblish.backend.lib.main_package_path()}
-
-        plugin_path = path_template.format(**variables)
-        # plugin_path = os.path.abspath(plugin_path)
-
-        log.debug("Appending path from config: %s" % plugin_path)
-        paths.append(plugin_path)
-
-    # Accept paths added via environment variable.
-    env_var = pyblish.backend.config.paths_environment_variable
-    env_val = os.environ.get(env_var)
-    if env_val:
-        sep = ';' if os.name == 'nt' else ':'
-        env_paths = env_val.split(sep)
-        paths.extend(env_paths)
-        log.debug("Paths from environment: %s" % env_paths)
+    for path in registered_paths() + configured_paths() + environment_paths():
+        processed_path = _post_process_path(path)
+        if processed_path in paths:
+            continue
+        paths.append(processed_path)
 
     return paths
 
 
 def discover(type=None, regex=None, paths=None):
-    """Find plugins within registered_paths plugin-paths
+    """Find plugins within _registered_paths plugin-paths
 
     Arguments:
         type (str): Only return plugins of specified type

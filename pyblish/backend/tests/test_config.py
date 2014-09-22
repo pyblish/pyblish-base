@@ -4,6 +4,7 @@ import shutil
 
 import pyblish
 import pyblish.backend.lib
+import pyblish.backend.plugin
 import pyblish.backend.config
 
 from pyblish.vendor import yaml
@@ -21,7 +22,8 @@ def test_modifying_config_at_run_time():
     """Altering config at run-time works"""
     path = '/invalid/path'
     pyblish.backend.config.paths.append(path)
-    assert path in pyblish.plugin_paths()
+    processed = pyblish.backend.plugin._post_process_path(path)
+    assert processed in pyblish.plugin_paths()
     pyblish.backend.config.paths.remove(path)
 
 
