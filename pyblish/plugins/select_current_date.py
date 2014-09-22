@@ -1,15 +1,11 @@
-"""Inject the current time into the Context"""
 
 import time
-
-import pyblish.backend.lib
-import pyblish.backend.plugin
-import pyblish.backend.config
+import pyblish
 
 
-@pyblish.backend.lib.log
-class SelectCurrentDate(pyblish.backend.plugin.Selector):
-    """Append the currently working directory"""
+@pyblish.log
+class SelectCurrentDate(pyblish.Selector):
+    """Inject the current time into the Context"""
 
     hosts = ['*']
     version = (0, 1, 0)
