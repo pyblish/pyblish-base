@@ -265,7 +265,7 @@ def test_extraction_failure():
     extractor = pyblish.backend.plugin.discover(
         type='extractors', regex='.*Fail$')[0]
 
-    # print pyblish.backend.plugin.registered_paths
+    # print pyblish.backend.plugin.registered_paths()
     print extractor
     # print pyblish.backend.plugin.discover('extractors')
     assert extractor.__name__ == "ExtractInstancesFail"
@@ -375,9 +375,9 @@ def test_register_invalid_path():
 def test_deregister_path():
     path = os.path.expanduser('~')
     pyblish.backend.plugin.register_plugin_path(path)
-    assert path in pyblish.backend.plugin.registered_paths
+    assert path in pyblish.backend.plugin.registered_paths()
     pyblish.backend.plugin.deregister_plugin_path(path)
-    assert path not in pyblish.backend.plugin.registered_paths
+    assert path not in pyblish.backend.plugin.registered_paths()
 
 
 def test_environment_paths():
@@ -388,7 +388,8 @@ def test_environment_paths():
 
     try:
         os.environ[key] = path
-        assert path in pyblish.backend.plugin.plugin_paths()
+        processed = pyblish.backend.plugin._post_process_path(path)
+        assert processed in pyblish.backend.plugin.plugin_paths()
     finally:
         os.environ[key] = existing or ''
 

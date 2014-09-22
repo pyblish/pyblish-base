@@ -25,10 +25,18 @@ classifiers = [
 ]
 
 
+tests_dir = os.path.abspath('pyblish/backend/tests/plugins')
+tests_package_data = list()
+for root, dirs, files in os.walk(tests_dir):
+    relpath = os.path.relpath(root, tests_dir)
+    relpath = relpath.replace("\\", "/")
+    tests_package_data.append("plugins/" + relpath.strip(".") + "/*.py")
+
+
 setup(
     name='pyblish',
     version=version,
-    description='quality assurance for content',
+    description='Plug-in driven automation framework for content',
     long_description=readme,
     author='Abstract Factory and Contributors',
     author_email='marcus@abstractfactory.com',
@@ -38,14 +46,8 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'pyblish.backend': ['*.yaml',
-                            'plugins/*.py'],
-        'pyblish.backend.tests': ['plugins/*.py',
-                                  'plugins/duplicate/*.py',
-                                  'plugins/duplicate/copy1/*.py',
-                                  'plugins/duplicate/copy2/*.py',
-                                  'plugins/invalid/*.py',
-                                  'plugins/failing/*.py'],
-        'pyblish': ['plugins/*.py']
-    },
+        'pyblish': ['plugins/*.py'],
+        'pyblish.backend': ['*.yaml'],
+        'pyblish.backend.tests': tests_package_data
+    }
 )

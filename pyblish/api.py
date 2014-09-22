@@ -17,8 +17,9 @@ without breaking any of your tools.
 from .backend.plugin import (
     Context, Instance, discover, Plugin,
     Selector, Validator, Extractor, Conformer,
-    plugin_paths, registered_paths, register_plugin_path,
-    deregister_plugin_path, deregister_all)
+    plugin_paths, register_plugin_path,
+    deregister_plugin_path, deregister_all,
+    registered_paths, environment_paths, configured_paths)
 
 from .backend import config
 
@@ -41,6 +42,8 @@ __all__ = [
 
     'plugin_paths',
     'registered_paths',
+    'configured_paths',
+    'environment_paths',
     'register_plugin_path',
     'deregister_plugin_path',
     'deregister_all',
