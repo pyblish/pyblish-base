@@ -1,4 +1,19 @@
-"""Pyblish command-line interface"""
+"""Pyblish command-line interface
+
+Usage:
+    $ pyblish --help
+
+Attributes:
+    CONFIG_PATH: Default location of user-configuration for
+        the Pyblish cli.
+    DATA_PATH: Default location of user-data for the cli.
+    SCREEN_WIDTH: Used in right-aligned printed elements.
+    TAB: Default tab-width.
+    LOG_LEVEL: Mapping between cli flags and logging flags.
+
+    intro_message: Message displayed during each command.
+
+"""
 
 
 import os
@@ -29,54 +44,14 @@ LOG_LEVEL = {
     "critical": logging.CRITICAL
 }
 
-intro_message = """Pyblish {version} - {command}
+intro_message = """pyblish version {version}
 
 Custom data @ {data_path}
 Custom configuration @ {config_path}
 
 Available plugin paths: {paths}
 
-Available plugins: {plugins}
-"""
-
-
-_help = {
-    "path": (
-        "Input path for publishing operation"
-    ),
-    "instance": (
-        "Only publish specified instance. "
-        "The default behaviour is to publish all instances "
-        "This may be called multiple times. "
-    ),
-    "config": (
-        "Absolute path to custom configuration file."
-    ),
-    "add-config": (
-        "Absolute path to configuration file to use in "
-        "augmenting the existing configuration."
-    ),
-    "plugin-path": (
-        "Replace all normally discovered paths with this "
-        "This may be called multiple times."
-    ),
-    "add-plugin-path": (
-        "Append to normally discovered paths."
-    ),
-    "delay": (
-        "Add an artificial delay to each plugin. Typically used "
-        "in debugging."
-    ),
-    "logging-level": (
-        "Specify with which level to produce logging messages."
-        "A value lower than the default 'warning' will produce more"
-        "messages. This can be useful for debugging."
-    ),
-    "data": (
-        "Initialise context with data. This takes two arguments, "
-        "key and value."
-    )
-}
+Available plugins: {plugins}"""
 
 
 def _setup_logging():
@@ -135,21 +110,114 @@ def _load_config():
     try:
         with open(CONFIG_PATH) as f:
             config = yaml.load(f)
-            for key, value in config.iteritems():
-                setattr(pyblish.api.config, key, value)
+
+            if config is not None:
+                for key, value in config.iteritems():
+                    setattr(pyblish.api.config, key, value)
 
             return True
 
     except IOError:
         pass
 
+    except pyblish.vendor.yaml.scanner.ScannerError:
+        raise
+
     return False
 
 
-@click.group()
-@click.option("--verbose", default=False)
+_help = yaml.load("""
+config: >
+    Absolute path to custom configuration file.
+
+add-config: >
+    Absolute path to configuration file to use in
+    augmenting the existing configuration.
+
+plugin-path: >
+    Replace all normally discovered paths with this
+    This may be called multiple times.
+
+add-plugin-path: >
+    Append to normally discovered paths.
+
+logging-level: >
+    Specify with which level to produce logging messages.
+    A value lower than the default 'warning' will produce more
+    messages. This can be useful for debugging.
+
+data: >
+    Initialise context with data. This takes two arguments,
+    key and value.
+
+verbose: >
+    Display detailed information. Useful for debugging purposes.
+
+version: >
+    Print the current version of Pyblish
+
+paths: >
+    Print all available paths
+
+registered-paths: >
+    Print only registered-paths
+
+environment-paths: >
+    Print only paths added via environment
+
+configured-paths: >
+    Print only paths added via configuration
+
+""")
+
+
+@click.group(invoke_without_command=True)
+@click.option("--verbose", is_flag=True, help=_help['verbose'])
+@click.option("--version", is_flag=True, help=_help['version'])
+@click.option("--paths", is_flag=True, help=_help['paths'])
+@click.option("--registered-paths", is_flag=True,
+              help=_help['registered-paths'])
+@click.option("--environment-paths", is_flag=True,
+              help=_help['environment-paths'])
+@click.option("--configured-paths", is_flag=True,
+              help=_help['configured-paths'])
+@click.option("-pp",
+              "--plugin-path",
+              "plugin_paths",
+              multiple=True,
+              help=_help['plugin-path'])
+@click.option("-ap",
+              "--add-plugin-path",
+              "add_plugin_paths",
+              multiple=True,
+              help=_help['add-plugin-path'])
+@click.option("-c",
+              "--config",
+              default=None,
+              help=_help['config'])
+@click.option("-d",
+              "--data",
+              nargs=2,
+              multiple=True,
+              help=_help['data'])
+@click.option("-ll",
+              "--logging-level",
+              type=click.Choice(LOG_LEVEL.keys()),
+              default="warning",
+              help=_help['logging-level'])
 @click.pass_context
-def main(ctx, verbose):
+def main(ctx,
+         verbose,
+         version,
+         paths,
+         environment_paths,
+         configured_paths,
+         registered_paths,
+         plugin_paths,
+         add_plugin_paths,
+         config,
+         data,
+         logging_level):
     """Pyblish command-line interface
 
     Use the appropriate sub-command to initiate a publish.
@@ -164,11 +232,118 @@ def main(ctx, verbose):
 
     """
 
+    logging.getLogger().setLevel(LOG_LEVEL[logging_level])
+
+    config_loaded = _load_config()
+
+    # Process top-level arguments
+    if version:
+        click.echo("pyblish version %s" % pyblish.version)
+
+    # Visualise available paths
+    if any([paths, environment_paths, registered_paths, configured_paths]):
+        click.echo()  # Newline
+        click.echo("Available paths:")
+
+        _paths = list()
+
+        if paths:
+            environment_paths = True
+            registered_paths = True
+            configured_paths = True
+
+        for _func, _typ in {
+                pyblish.environment_paths: 'environment',
+                pyblish.configured_paths: 'configured',
+                pyblish.registered_paths: 'registered'}.iteritems():
+
+            if _typ == 'environment' and not environment_paths:
+                continue
+
+            if _typ == 'configured' and not configured_paths:
+                continue
+
+            if _typ == 'registered' and not registered_paths:
+                continue
+
+            for path in _func():
+                click.echo("{tab}{path} ({typ})".format(
+                    tab=TAB, path=path, typ=_typ))
+                _paths.append(path)
+
+        if not _paths:
+            click.echo("{tab}None".format(tab=TAB))
+
+    # Respond to sub-commands
     if not ctx.obj:
         ctx.obj = dict()
 
+    # Initialise context with data passed as argument
+    context = pyblish.backend.plugin.Context()
+
+    for key, value in data:
+        try:
+            yaml_loaded = yaml.load(value)
+        except ValueError as err:
+            click.echo("Data must be YAML formatted: "
+                       "--data %s %s" % (key, value))
+            ctx.obj['error'] = err
+        else:
+            context.set_data(str(key), yaml_loaded)
+
+    # Load user data
+    data_loaded = _load_data(context)
+
+    # Resolve plugin paths from both defaults and those
+    # passed as argument via `plugin_paths` and `add_plugin_paths`
+    if not plugin_paths:
+        plugin_paths = pyblish.api.plugin_paths()
+
+    for plugin_path in add_plugin_paths:
+        processed_path = pyblish.backend.plugin._post_process_path(plugin_path)
+        if processed_path in plugin_paths:
+            click.echo("Warning: path already present: %s" % plugin_path)
+            continue
+        plugin_paths.append(processed_path)
+
+    try:
+        available_plugins = pyblish.api.discover(paths=plugin_paths)
+    except OSError as err:
+        click.echo('Error: Registered path "%s" could not '
+                   'be found.' % err.filename)
+        ctx.obj['error'] = err
+        return
+
+    if verbose:
+        click.echo(
+            intro_message.format(
+                version=pyblish.version,
+                config_path=CONFIG_PATH if config_loaded else "None",
+                data_path=DATA_PATH if data_loaded else "None",
+                paths=_format_paths(plugin_paths),
+                plugins=_format_plugins(available_plugins))
+        )
+
+    # Pass data to sub-commands
     ctx.obj['verbose'] = verbose
-    verbose = verbose
+    ctx.obj['context'] = context
+    ctx.obj['plugin_paths'] = plugin_paths
+
+
+_help = yaml.load("""
+path: >
+    Input path for publishing operation
+
+instance: >
+    Only publish specified instance. The default behaviour
+    is to publish all instances. This may be called multiple
+    times.
+
+delay: >
+    Add an artificial delay to each plugin. Typically used
+    in debugging.
+
+""")
 
 
 @click.command()
@@ -178,45 +353,16 @@ def main(ctx, verbose):
               "instances",
               multiple=True,
               help=_help['instance'])
-@click.option("-c",
-              "--config",
-              default=None,
-              help=_help['config'])
-@click.option("-pp",
-              "--plugin-path",
-              "plugin_paths",
-              multiple=True,
-              help=_help['plugin-path'])
-@click.option("-ap",
-              "--add-plugin-path",
-              "add_plugin_paths",
-              multiple=True,
-              help=_help['add-plugin-path'])
 @click.option("-de",
               "--delay",
               default=None,
               type=float,
               help=_help['delay'])
-@click.option("-ll",
-              "--logging-level",
-              type=click.Choice(LOG_LEVEL.keys()),
-              default="warning",
-              help=_help['logging-level'])
-@click.option("-d",
-              "--data",
-              nargs=2,
-              multiple=True,
-              help=_help['data'])
 @click.pass_context
 def publish(ctx,
             path,
             instances,
-            config,
-            plugin_paths,
-            add_plugin_paths,
-            delay,
-            logging_level,
-            data):
+            delay):
     """Publish instances of path.
 
     \b
@@ -232,10 +378,13 @@ def publish(ctx,
 
     """
 
-    log = _setup_logging()
-    log.setLevel(LOG_LEVEL[logging_level])
+    _setup_logging()
 
-    _start_time = time.time()
+    if 'error' in ctx.obj:
+        # Halt execution if an error has occurec in main()
+        return click.echo("publish: An error has occured.")
+
+    _start_time = time.time()  # Benchmark
 
     # Resolve incoming path argument into an absolute path
     path = os.path.abspath(path)
@@ -244,59 +393,26 @@ def publish(ctx,
         click.echo("Path did not exist: %s" % path)
         return
 
-    context = pyblish.backend.plugin.Context()
-
-    # Initialise context with data passed as argument
-    for key, value in data:
-        try:
-            yaml_loaded = yaml.load(value)
-        except ValueError:
-            click.echo("Data must be YAML formatted: "
-                       "--data %s %s" % (key, value))
-            return
-
-        context.set_data(str(key), yaml_loaded)
-
-    # Load user config and data
-    data_loaded = _load_data(context)
-    config_loaded = _load_config()
-
     # Use `path` argument as initial data for context
+    context = ctx.obj['context']
+
     if os.path.isdir(path):
         context.set_data('current_dir', path)
     else:
         context.set_data('current_file', path)
 
-    # Resolve plugin paths from both defaults and those
-    # passed as argument via `plugin_paths` and `add_plugin_paths`
-    if not plugin_paths:
-        plugin_paths = pyblish.api.plugin_paths()
-
-    for plugin_path in add_plugin_paths:
-        plugin_paths.append(plugin_path)
-
-    # Collect available plugins for visualisation in terminal.
-    # .. note:: this isn't actually used for processing.
-    available_plugins = pyblish.api.discover(paths=plugin_paths)
-
-    click.echo(
-        intro_message.format(
-            version=pyblish.version,
-            command='publish',
-            config_path=CONFIG_PATH if config_loaded else "None",
-            data_path=DATA_PATH if data_loaded else "None",
-            paths=_format_paths(plugin_paths),
-            plugins=_format_plugins(available_plugins))
-    )
-
     # Begin processing
+    click.echo()  # newline
     for typ in ('selectors',
                 'validators',
                 'extractors',
                 'conformers'):
 
-        for plugin in pyblish.backend.plugin.discover(typ,
-                                                      paths=plugin_paths):
+        paths = ctx.obj['plugin_paths']
+        plugins = pyblish.backend.plugin.discover(typ, paths=paths)
+        errors = {}
+
+        for plugin in plugins:
             click.echo("%s..." % plugin.__name__)
 
             if delay:
@@ -304,7 +420,17 @@ def publish(ctx,
 
             for instance, error in plugin().process(context):
                 if error is not None:
-                    print error, instance
+                    errors[error] = instance
+
+            if errors and typ not in ('extractors', 'conformers'):
+                # Before proceeding with extraction, ensure
+                # that there are no failed validators.
+                click.echo()  # newline
+                click.echo("There were errors:")
+                for error, instance in errors.iteritems():
+                    click.echo("{tab}Instance('%s'): %s".format(tab=TAB)
+                               % (instance, error))
+                return
 
     click.echo()
     click.echo("-" * 80)
@@ -323,13 +449,12 @@ def test(ctx):
 
     module_name = sys.modules[__name__].__file__
     package_dir = os.path.dirname(module_name)
-    init_dir = os.path.join(package_dir, '__init__.py')
+    os.chdir(package_dir)
 
-    argv = [init_dir]
-    argv.extend(['pyblish',
-                 '--verbose',
-                 '--exclude=vendor',
-                 '--with-doctest'])
+    argv = [package_dir,
+            '--exclude=vendor',
+            '--with-doctest',
+            '--verbose']
     nose.run(argv=argv)
 
 
@@ -358,6 +483,56 @@ def install(ctx, package):
     pip.main(['install', "pyblish-" + package])
 
 
+@click.command()
+@click.argument("package")
+@click.pass_context
+def uninstall(ctx, package):
+    """Uninstall Pyblish package via pip.
+
+    \b
+    Usage:
+        $ pyblish uninstall maya
+        $ pyblish uninstall napoleon
+
+    """
+
+    try:
+        import pip
+    except ImportError:
+        return click.echo("Error: 'uninstall' requires pip")
+
+    version = tuple([int(n) for n in pip.__version__.split(".")])
+    if version < (1, 5):
+        return click.echo("Error: 'uninstall' requires pip v 1.5 or higher")
+
+    pip.main(['uninstall', "pyblish-" + package])
+
+
+@click.command()
+@click.pass_context
+def packages(ctx):
+    """List available packages for Pyblish
+
+    \b
+    Usage:
+        $ pyblish packages
+
+    """
+
+    try:
+        import pip
+    except ImportError:
+        return click.echo("Error: 'packages' requires pip")
+
+    version = tuple([int(n) for n in pip.__version__.split(".")])
+    if version < (1, 5):
+        return click.echo("Error: 'packages' requires pip v 1.5 or higher")
+
+    pip.main(['search', "pyblish"])
+
+
 main.add_command(publish)
 main.add_command(test)
 main.add_command(install)
+main.add_command(uninstall)
+main.add_command(packages)
