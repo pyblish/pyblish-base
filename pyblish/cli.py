@@ -15,7 +15,6 @@ Attributes:
 
 """
 
-
 import os
 import sys
 import time
@@ -245,6 +244,7 @@ def main(ctx,
         click.echo()  # Newline
         click.echo("Available paths:")
 
+        _setup_logging()
         _paths = list()
 
         if paths:
@@ -279,7 +279,7 @@ def main(ctx,
         ctx.obj = dict()
 
     # Initialise context with data passed as argument
-    context = pyblish.backend.plugin.Context()
+    context = pyblish.api.Context()
 
     for key, value in data:
         try:
@@ -530,6 +530,17 @@ def packages(ctx):
 
     pip.main(['search', "pyblish"])
 
+
+@click.command()
+@click.pass_context
+def config(ctx):
+    """List available config
+
+    \b
+    Usage:
+        $ pyblish config
+
+    """
 
 main.add_command(publish)
 main.add_command(test)
