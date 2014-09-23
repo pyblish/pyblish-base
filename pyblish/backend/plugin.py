@@ -26,7 +26,11 @@ import traceback
 
 # Local library
 import pyblish.backend.lib
-import pyblish.backend.config
+from pyblish.backend import config
+
+
+# Initiate configuration from disk
+config.load()
 
 
 __all__ = ['Plugin',
@@ -46,10 +50,10 @@ __all__ = ['Plugin',
            'deregister_all']
 
 patterns = {
-    'validators': pyblish.backend.config.validators_regex,
-    'extractors': pyblish.backend.config.extractors_regex,
-    'selectors': pyblish.backend.config.selectors_regex,
-    'conformers': pyblish.backend.config.conformers_regex
+    'validators': config.data('validators_regex'),
+    'extractors': config.data('extractors_regex'),
+    'selectors': config.data('selectors_regex'),
+    'conformers': config.data('conformers_regex')
 }
 
 _registered_paths = list()
@@ -226,16 +230,16 @@ class Extractor(Plugin):
         assert date
         assert workspace_dir
 
-        # Commit directory based on template, see config.json
+        # Commit directory based on template, see config.yaml
         variables = {'pyblish': pyblish.backend.lib.main_package_path(),
-                     'prefix': pyblish.backend.config.prefix,
+                     'prefix': config.data('prefix'),
                      'date': date,
                      'family': instance.data('family'),
                      'instance': instance.data('name'),
                      'user': instance.data('user')}
 
         # Restore separators to those native to the current OS
-        commit_template = pyblish.backend.config.commit_template
+        commit_template = config.data('commit_template')
         commit_template = commit_template.replace('/', os.sep)
 
         commit_dir = commit_template.format(**variables)
@@ -532,7 +536,7 @@ def configured_paths():
     """Return paths added via configuration"""
     paths = list()
 
-    for path_template in pyblish.backend.config.paths:
+    for path_template in config.data('paths'):
         variables = {'pyblish': pyblish.backend.lib.main_package_path()}
 
         plugin_path = path_template.format(**variables)
@@ -551,7 +555,7 @@ def environment_paths():
 
     paths = list()
 
-    env_var = pyblish.backend.config.paths_environment_variable
+    env_var = config.data('paths_environment_variable')
     env_val = os.environ.get(env_var)
     if env_val:
         sep = ';' if os.name == 'nt' else ':'

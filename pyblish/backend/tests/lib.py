@@ -10,7 +10,7 @@ registered = pyblish.backend.plugin.registered_paths()
 package_path = pyblish.backend.lib.main_package_path()
 plugin_path = os.path.join(package_path, 'backend', 'tests', 'plugins')
 pyblish.backend.plugin.deregister_all()
-pyblish.backend.config.paths[:] = []
+pyblish.backend.config.set_data('paths', [])
 
 
 def setup():
@@ -30,7 +30,7 @@ def setup_failing():
 def setup_duplicate():
     """Expose duplicate plugins to discovery mechanism"""
     pyblish.backend.plugin.deregister_all()
-    pyblish.backend.config.paths[:] = []
+    pyblish.backend.config.set_data('paths', [])
 
     for copy in ('copy1', 'copy2'):
         path = os.path.join(plugin_path, 'duplicate', copy)
@@ -39,7 +39,7 @@ def setup_duplicate():
 
 def setup_wildcard():
     pyblish.backend.plugin.deregister_all()
-    pyblish.backend.config.paths[:] = []
+    pyblish.backend.config.set_data('paths', [])
 
     wildcard_path = os.path.join(plugin_path, 'wildcards')
     pyblish.backend.plugin.register_plugin_path(wildcard_path)
@@ -60,7 +60,7 @@ def setup_full():
 def setup_echo():
     """Plugins that output information"""
     pyblish.backend.plugin.deregister_all()
-    pyblish.backend.config.paths[:] = []
+    pyblish.backend.config.set_data('paths', [])
 
     path = os.path.join(plugin_path, 'echo')
     pyblish.backend.plugin.register_plugin_path(path)

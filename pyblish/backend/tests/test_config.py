@@ -1,35 +1,26 @@
 import os
-import sys
 import shutil
 
 import pyblish
 import pyblish.backend.lib
 import pyblish.backend.plugin
-import pyblish.backend.config
 
+from pyblish.backend import config
 from pyblish.vendor import yaml
-
-
-def _reload_config():
-    try:
-        sys.modules.pop('pyblish.backend.config')
-        import pyblish.backend.config
-    except ValueError:
-        pass
 
 
 def test_modifying_config_at_run_time():
     """Altering config at run-time works"""
     path = '/invalid/path'
-    pyblish.backend.config.paths.append(path)
+    paths = config.data('paths')
+    config.set_data('paths', paths + [path])
     processed = pyblish.backend.plugin._post_process_path(path)
     assert processed in pyblish.plugin_paths()
-    pyblish.backend.config.paths.remove(path)
+    config.set_data('paths', paths)
 
 
 def test_config():
     """Config works as expected"""
-    config = pyblish.backend.config
     config_path = pyblish.backend.lib.main_package_path()
     config_path = os.path.join(config_path, 'backend', 'config.yaml')
 
@@ -37,12 +28,12 @@ def test_config():
         manual_config = yaml.load(f)
 
     variable = 'paths_environment_variable'
-    assert manual_config.get(variable) == getattr(config, variable)
+    assert manual_config.get(variable) == config.data(variable)
 
 
 def test_user_config():
     """User config augments default config"""
-    user_config_path = pyblish.backend.config.USERCONFIGPATH
+    user_config_path = config.data('USERCONFIGPATH')
     remove_config_file = False
 
     try:
@@ -52,14 +43,14 @@ def test_user_config():
                 yaml.dump({'test_variable': 'test_value'}, f)
 
         # Force a reload of configuration
-        _reload_config()
+        config.load_user()
 
         with open(user_config_path, 'r') as f:
             user_config = yaml.load(f)
 
         assert user_config
         for variable in user_config:
-            assert getattr(pyblish.backend.config, variable, None)
+            assert config.data(variable)
 
     finally:
         if remove_config_file:
@@ -68,7 +59,7 @@ def test_user_config():
 
 def test_custom_paths():
     """Adding custom paths via user-config works"""
-    user_config_path = pyblish.backend.config.USERCONFIGPATH
+    user_config_path = config.data('USERCONFIGPATH')
 
     package_path = pyblish.backend.lib.main_package_path()
     custom_path = os.path.join(package_path,
@@ -88,9 +79,9 @@ def test_custom_paths():
             yaml.dump({'paths': [custom_path]}, f)
 
         # Force a reload of configuration
-        _reload_config()
+        config.load_user()
 
-        paths = getattr(pyblish.backend.config, 'paths', None)
+        paths = config.data('paths')
         assert paths
 
         plugins = pyblish.discover('validators')

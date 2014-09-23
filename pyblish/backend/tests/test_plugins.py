@@ -6,8 +6,8 @@ import shutil
 import tempfile
 
 # Local library
-import pyblish
 import pyblish.backend.plugin
+from pyblish.backend import config
 
 from pyblish.vendor import mock
 from pyblish.backend.tests.lib import (
@@ -50,7 +50,7 @@ def test_validation_interface():
     inst.add('test_node1_PLY')
     inst.add('test_node2_PLY')
     inst.add('test_node3_GRP')
-    inst.set_data(pyblish.config.identifier, value=True)
+    inst.set_data(config.data('identifier'), value=True)
     inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
@@ -72,7 +72,7 @@ def test_extraction_interface():
     inst = ctx.create_instance(name='test_instance')
 
     inst.add('test_PLY')
-    inst.set_data(pyblish.config.identifier, value=True)
+    inst.set_data(config.data('identifier'), value=True)
     inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
@@ -106,7 +106,7 @@ def test_selection_appends():
     inst = ctx.create_instance(name='MyInstance')
     inst.add('node1')
     inst.add('node2')
-    inst.set_data(pyblish.config.identifier, value=True)
+    inst.set_data(config.data('identifier'), value=True)
 
     assert len(ctx) == 1
 
@@ -123,7 +123,7 @@ def test_selection_appends():
 def test_plugins_by_family():
     """Returns plugins compatible with family"""
     inst = pyblish.backend.plugin.Instance('TestInstance')
-    inst.set_data(pyblish.config.identifier, value=True)
+    inst.set_data(config.data('identifier'), value=True)
     inst.set_data('family', value=FAMILY)
 
     plugins = pyblish.backend.plugin.discover('validators')
@@ -138,7 +138,7 @@ def test_plugins_by_family():
 def test_plugins_by_host():
     """Returns plugins compatible with host"""
     inst = pyblish.backend.plugin.Instance('TestInstance')
-    inst.set_data(pyblish.config.identifier, value=True)
+    inst.set_data(config.data('identifier'), value=True)
 
     plugins = pyblish.backend.plugin.discover('validators')
     compatible = pyblish.backend.plugin.plugins_by_host(
@@ -161,7 +161,7 @@ def test_instances_by_plugin():
         inst = ctx.create_instance(
             name='TestInstance{0}'.format(families.index(family) + 1))
 
-        inst.set_data(pyblish.config.identifier, value=True)
+        inst.set_data(config.data('identifier'), value=True)
         inst.set_data('family', value=family)
         inst.set_data('host', value='python')
 
@@ -230,7 +230,7 @@ def test_validation_failure():
     inst.add('test_PLY')
     inst.add('test_misnamed')
 
-    inst.set_data(pyblish.config.identifier, value=True)
+    inst.set_data(config.data('identifier'), value=True)
     inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
@@ -256,7 +256,7 @@ def test_extraction_failure():
     inst = ctx.create_instance(name='test_instance')
 
     inst.add('test_PLY')
-    inst.set_data(pyblish.config.identifier, value=True)
+    inst.set_data(config.data('identifier'), value=True)
     inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
@@ -299,7 +299,7 @@ def test_commit():
     ctx = pyblish.backend.plugin.Context()
     inst = ctx.create_instance(name='CommittedInstance')
     inst.set_data('family', FAMILY)
-    inst.set_data(pyblish.backend.config.identifier, True)
+    inst.set_data(config.data('identifier'), True)
 
     try:
         # This is where we'll write it first
@@ -312,7 +312,7 @@ def test_commit():
         ctx.set_data('current_file', value=current_file)
 
         # Finally, we need a date
-        date = time.strftime(pyblish.backend.config.date_format)
+        date = time.strftime(config.data('date_format'))
         ctx.set_data('date', value=date)
 
         # And this is what we'll write
@@ -382,7 +382,7 @@ def test_deregister_path():
 
 def test_environment_paths():
     """Registering via the environment works"""
-    key = pyblish.backend.config.paths_environment_variable
+    key = config.data('paths_environment_variable')
     path = '/test/path'
     existing = os.environ.get(key)
 

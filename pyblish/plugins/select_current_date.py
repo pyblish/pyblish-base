@@ -12,5 +12,5 @@ class SelectCurrentDate(pyblish.Selector):
 
     def process_context(self, context):
         """Formatting is coming from configuration"""
-        date = time.strftime(pyblish.backend.config.date_format)
+        date = time.strftime(pyblish.config.data('date_format'))
         context.set_data('date', value=date)

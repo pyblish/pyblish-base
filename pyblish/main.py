@@ -6,7 +6,6 @@ from __future__ import absolute_import
 import logging
 
 # Local library
-import pyblish.backend.config
 import pyblish.backend.plugin
 
 log = logging.getLogger('pyblish.main')
