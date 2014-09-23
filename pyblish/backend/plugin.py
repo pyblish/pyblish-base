@@ -25,12 +25,10 @@ import inspect
 import traceback
 
 # Local library
+import pyblish
 import pyblish.backend.lib
-from pyblish.backend import config
 
-
-# Initiate configuration from disk
-config.load()
+config = pyblish.Config()
 
 
 __all__ = ['Plugin',
@@ -50,10 +48,10 @@ __all__ = ['Plugin',
            'deregister_all']
 
 patterns = {
-    'validators': config.data('validators_regex'),
-    'extractors': config.data('extractors_regex'),
-    'selectors': config.data('selectors_regex'),
-    'conformers': config.data('conformers_regex')
+    'validators': config['validators_regex'],
+    'extractors': config['extractors_regex'],
+    'selectors': config['selectors_regex'],
+    'conformers': config['conformers_regex']
 }
 
 _registered_paths = list()
@@ -232,14 +230,14 @@ class Extractor(Plugin):
 
         # Commit directory based on template, see config.yaml
         variables = {'pyblish': pyblish.backend.lib.main_package_path(),
-                     'prefix': config.data('prefix'),
+                     'prefix': config['prefix'],
                      'date': date,
                      'family': instance.data('family'),
                      'instance': instance.data('name'),
                      'user': instance.data('user')}
 
         # Restore separators to those native to the current OS
-        commit_template = config.data('commit_template')
+        commit_template = config['commit_template']
         commit_template = commit_template.replace('/', os.sep)
 
         commit_dir = commit_template.format(**variables)
@@ -536,7 +534,7 @@ def configured_paths():
     """Return paths added via configuration"""
     paths = list()
 
-    for path_template in config.data('paths'):
+    for path_template in config['paths']:
         variables = {'pyblish': pyblish.backend.lib.main_package_path()}
 
         plugin_path = path_template.format(**variables)
@@ -555,7 +553,7 @@ def environment_paths():
 
     paths = list()
 
-    env_var = config.data('paths_environment_variable')
+    env_var = config['paths_environment_variable']
     env_val = os.environ.get(env_var)
     if env_val:
         sep = ';' if os.name == 'nt' else ':'

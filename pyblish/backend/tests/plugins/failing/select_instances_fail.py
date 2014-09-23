@@ -1,9 +1,9 @@
 
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class SelectInstancesError(pyblish.Selector):
+@pyblish.api.log
+class SelectInstancesError(pyblish.api.Selector):
     hosts = ['python']
     version = (0, 1, 0)
 

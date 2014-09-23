@@ -1,9 +1,9 @@
 
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class ExtractInstances(pyblish.Extractor):
+@pyblish.api.log
+class ExtractInstances(pyblish.api.Extractor):
     """Extract instances"""
 
     hosts = ['python']

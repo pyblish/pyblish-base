@@ -1,10 +1,10 @@
 
 import getpass
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class SelectCurrentUser(pyblish.Selector):
+@pyblish.api.log
+class SelectCurrentUser(pyblish.api.Selector):
     """Inject the currently logged on user into the Context"""
 
     hosts = ['*']

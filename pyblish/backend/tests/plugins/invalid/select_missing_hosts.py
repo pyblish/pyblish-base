@@ -1,10 +1,10 @@
 """This plugin is incomplete and can't be used"""
 
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class SelectMissingHosts(pyblish.Selector):
+@pyblish.api.log
+class SelectMissingHosts(pyblish.api.Selector):
     """Select instances"""
 
     version = (0, 1, 0)

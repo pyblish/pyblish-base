@@ -1,9 +1,9 @@
 
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class ValidateInstanceFail(pyblish.Validator):
+@pyblish.api.log
+class ValidateInstanceFail(pyblish.api.Validator):
     hosts = ['python']
     families = ['test.family']
     version = (0, 1, 0)

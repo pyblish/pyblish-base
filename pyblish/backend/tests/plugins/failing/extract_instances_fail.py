@@ -1,9 +1,9 @@
 
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class ExtractInstancesFail(pyblish.Extractor):
+@pyblish.api.log
+class ExtractInstancesFail(pyblish.api.Extractor):
     hosts = ['python']
     families = ['test.family']
     version = (0, 1, 0)

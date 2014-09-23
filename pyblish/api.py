@@ -21,12 +21,13 @@ from .backend.plugin import (
     deregister_plugin_path, deregister_all,
     registered_paths, environment_paths, configured_paths)
 
-from .backend import config
+from . import Config
 from .backend.lib import log
 
 # For forwards-compatibility
 Integrator = Conformer
 
+config = Config()
 
 __all__ = [
     'Context',

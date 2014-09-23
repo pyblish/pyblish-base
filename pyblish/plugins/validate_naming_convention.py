@@ -1,10 +1,10 @@
 
 import re
-import pyblish
+import pyblish.api
 
 
-@pyblish.backend.lib.log
-class ValidateNamingConvention(pyblish.Validator):
+@pyblish.api.log
+class ValidateNamingConvention(pyblish.api.Validator):
     """Ensure each included node ends with a three-letter, upper-case type
 
     Example:

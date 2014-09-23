@@ -1,9 +1,9 @@
 
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class SelectInstances(pyblish.Selector):
+@pyblish.api.log
+class SelectInstances(pyblish.api.Selector):
     """Select instances"""
 
     hosts = ['python']
