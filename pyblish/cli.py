@@ -53,8 +53,8 @@ Available plugin paths: {paths}
 Available plugins: {plugins}"""
 
 
-def _setup_logging():
-    log = logging.getLogger()
+def _setup_logging(root=''):
+    log = logging.getLogger(root)
 
     log.setLevel(logging.WARNING)
 
@@ -542,8 +542,27 @@ def config(ctx):
 
     """
 
+    pyblish.config.load_lazy()
+    click.echo("Pyblish configuration:")
+
+    for key, value in pyblish.config.data().iteritems():
+        if key in pyblish.config.custom_data():
+            source = 'custom'
+        elif key in pyblish.config.user_data():
+            source = 'user'
+        else:
+            source = 'default'
+
+        entry = "{tab}{k} = {v}".format(
+            tab=TAB, k=key, v=value, s=source)
+        entry += " " * (SCREEN_WIDTH - len(entry) - len(source))
+        entry += source
+        click.echo(entry)
+
+
 main.add_command(publish)
 main.add_command(test)
 main.add_command(install)
 main.add_command(uninstall)
 main.add_command(packages)
+main.add_command(config)

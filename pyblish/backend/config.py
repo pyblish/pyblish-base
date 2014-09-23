@@ -1,21 +1,5 @@
 """Pyblish configuration
 
-Usage:
-    To alter the configuration of Pyblish to suit your needs,
-    simply create your own copy at <HOME>/.pyblish as a JSON-
-    formatted, plain-text file. E.g.
-
-    # .pyblish
-    {
-        "identifier": "MyIdentifier"
-    }
-
-    Members of the configuration is then accessed via dot-
-    notation.
-
-    >>> import pyblish.backend.config
-    >>> assert pyblish.backend.config.identifier == 'publishable'
-
 Attributes:
     Attributes present within the config.json file:
 
@@ -30,38 +14,105 @@ Attributes:
 
 import os
 import sys
-import logging
 
 from pyblish.vendor import yaml
 
-log = logging.getLogger('pyblish.backend.config')
+
+__all__ = ['load_default',
+           'load_user',
+           'load_custom',
+           'load',
+           'load_lazy',
+           'data',
+           'set_data',
+           'has_data']
+
+
+DEFAULTCONFIG = "config.yaml"
+USERCONFIG = ".pyblish"
 
 # Look for configuration in users HOME
-home_dir = os.path.expanduser('~')
-package_dir = os.path.dirname(__file__)
+_home_dir = os.path.expanduser('~')
+_package_dir = os.path.dirname(__file__)
 
-user_config_path = os.path.join(home_dir, '.pyblish')
-default_config_path = os.path.join(package_dir, 'config.yaml')
+_user_config_path = os.path.join(_home_dir, USERCONFIG)
+_default_config_path = os.path.join(_package_dir, DEFAULTCONFIG)
+
+_data = dict()
+
+# Append to _data
+_data['USERCONFIG'] = USERCONFIG
+_data['DEFAULTCONFIG'] = DEFAULTCONFIG
+_data['USERCONFIGPATH'] = _user_config_path
+_data['DEFAULTCONFIGPATH'] = _default_config_path
 
 
-with open(default_config_path, 'r') as f:
-    config_dict = yaml.load(f)
+def load_default():
+    """Load default configuration from package dir"""
+    with open(_default_config_path, 'r') as f:
+        _data.update(yaml.load(f))
 
-# Update configuration with user-configuration
-if os.path.isfile(user_config_path):
-    try:
-        with open(user_config_path, 'r') as f:
-            config_dict.update(yaml.load(f))
-    except:
-        log.warning("Could not read user configuration @ {0}".format(
-            user_config_path))
 
-# Append to config_dict
-config_dict['USERCONFIGPATH'] = user_config_path
-config_dict['DEFAULTCONFIGPATH'] = default_config_path
+def load_user():
+    """Load user configuration from HOME directory"""
+    if os.path.isfile(_user_config_path):
+        try:
+            with open(_user_config_path, 'r') as f:
+                _data.update(yaml.load(f))
+        except:
+            sys.stderr.write("Error: Could not read user configuration "
+                             "@ {0}\n".format(_user_config_path))
 
-# Wrap config up in a class, so that we may access
-# members directly, using dot-notation.
-config_obj = type('Config', (object,), config_dict)
 
-sys.modules[__name__] = config_obj
+def load_custom(path):
+    """Load configuration from file at `path`"""
+    with open(path, 'r') as f:
+        _data.update(yaml.load(f))
+
+
+def load():
+    """Load default and user configuration"""
+    load_default()
+    load_user()
+
+
+def load_lazy():
+    """Load configuration if it hasn't already been loaded"""
+    if not _data:
+        load()
+
+
+def data(key=None):
+    """Return `key` from configuration.
+
+    Arguments:
+        key (str): Optional key to look for in config.
+            If no key is given, all configuration is
+            returned as dict.
+
+    """
+
+    if key is None:
+        return _data
+    assert isinstance(key, basestring)
+    return _data.get(key)
+
+
+def set_data(key, value):
+    """Set temporary configuration
+
+    .. note:: This will not be persisted.
+
+    Arguments:
+        key (str): Key to set
+        value (object): Value of key. May be of any type.
+
+    """
+
+    assert isinstance(key, basestring)
+    _data[key] = value
+
+
+def has_data(key):
+    """Return True is `key` exists, otherwise return False"""
+    return key in _data
