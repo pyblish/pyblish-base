@@ -762,9 +762,9 @@ def _discover_type(type, paths, regex=None):
                 module = pyblish.backend.lib.import_module(mod_name)
                 reload(module)
 
-            except (ImportError, IndentationError) as e:
+            except Exception as err:
                 log.warning('Module: "{mod}" skipped ({msg})'.format(
-                    mod=mod_name, msg=e))
+                    mod=mod_name, msg=err))
                 continue
 
             finally:

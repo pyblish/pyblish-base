@@ -22,11 +22,14 @@ import logging
 
 import pyblish.api
 import pyblish.version
+import pyblish.backend.lib
 import pyblish.backend.plugin
 
 from pyblish.vendor import yaml
 from pyblish.vendor import nose
 from pyblish.vendor import click
+
+main_log = pyblish.backend.lib.setup_log(level=logging.ERROR)
 
 
 # Constants
@@ -47,13 +50,16 @@ intro_message = """pyblish version {version}
 
 Custom data @ {data_path}
 Custom configuration @ {config_path}
+User Configuration @ {user_path}
 
-Available plugin paths: {paths}
+Available plugin paths:
+{paths}
 
-Available plugins: {plugins}"""
+Available plugins:
+{plugins}"""
 
 
-def _setup_logging(root=''):
+def _setup_log(root=''):
     log = logging.getLogger(root)
 
     log.setLevel(logging.WARNING)
@@ -71,15 +77,15 @@ def _format_paths(paths):
     """Return paths at one new each"""
     message = ''
     for path in paths:
-        message += "\n{0}- {1}".format(TAB, path)
-    return message
+        message += "{0}- {1}\n".format(TAB, path)
+    return message[:-1]  # Discard last newline
 
 
 def _format_plugins(plugins):
     message = ''
     for plugin in plugins:
-        message += "\n{0}- {1}".format(TAB, plugin.__name__)
-    return message
+        message += "{0}- {1}\n".format(TAB, plugin.__name__)
+    return message[:-1]
 
 
 def _format_time(start, finish):
@@ -111,8 +117,7 @@ def _load_config():
             config = yaml.load(f)
 
             if config is not None:
-                for key, value in config.iteritems():
-                    setattr(pyblish.api.config, key, value)
+                pyblish.api.config.update(config)
 
             return True
 
@@ -156,7 +161,10 @@ version: >
     Print the current version of Pyblish
 
 paths: >
-    Print all available paths
+    List all available paths
+
+plugins: >
+    List all available plugins
 
 registered-paths: >
     Print only registered-paths
@@ -174,6 +182,7 @@ configured-paths: >
 @click.option("--verbose", is_flag=True, help=_help['verbose'])
 @click.option("--version", is_flag=True, help=_help['version'])
 @click.option("--paths", is_flag=True, help=_help['paths'])
+@click.option("--plugins", is_flag=True, help=_help['plugins'])
 @click.option("--registered-paths", is_flag=True,
               help=_help['registered-paths'])
 @click.option("--environment-paths", is_flag=True,
@@ -202,13 +211,14 @@ configured-paths: >
 @click.option("-ll",
               "--logging-level",
               type=click.Choice(LOG_LEVEL.keys()),
-              default="warning",
+              default="error",
               help=_help['logging-level'])
 @click.pass_context
 def main(ctx,
          verbose,
          version,
          paths,
+         plugins,
          environment_paths,
          configured_paths,
          registered_paths,
@@ -231,7 +241,8 @@ def main(ctx,
 
     """
 
-    logging.getLogger().setLevel(LOG_LEVEL[logging_level])
+    level = LOG_LEVEL[logging_level]
+    logging.getLogger().setLevel(level)
 
     config_loaded = _load_config()
 
@@ -244,7 +255,7 @@ def main(ctx,
         click.echo()  # Newline
         click.echo("Available paths:")
 
-        _setup_logging()
+        _setup_log()
         _paths = list()
 
         if paths:
@@ -253,9 +264,9 @@ def main(ctx,
             configured_paths = True
 
         for _func, _typ in {
-                pyblish.environment_paths: 'environment',
-                pyblish.configured_paths: 'configured',
-                pyblish.registered_paths: 'registered'}.iteritems():
+                pyblish.api.environment_paths: 'environment',
+                pyblish.api.configured_paths: 'configured',
+                pyblish.api.registered_paths: 'registered'}.iteritems():
 
             if _typ == 'environment' and not environment_paths:
                 continue
@@ -314,12 +325,21 @@ def main(ctx,
         ctx.obj['error'] = err
         return
 
+    if plugins:
+        click.echo()  # newline
+        click.echo("Available plugins:")
+        click.echo(_format_plugins(available_plugins))
+
+    user_config_path = pyblish.api.config['USERCONFIGPATH']
+    has_user_config = os.path.isfile(user_config_path)
+
     if verbose:
         click.echo(
             intro_message.format(
                 version=pyblish.version,
                 config_path=CONFIG_PATH if config_loaded else "None",
                 data_path=DATA_PATH if data_loaded else "None",
+                user_path=user_config_path if has_user_config else "None",
                 paths=_format_paths(plugin_paths),
                 plugins=_format_plugins(available_plugins))
         )
@@ -378,7 +398,7 @@ def publish(ctx,
 
     """
 
-    _setup_logging()
+    _setup_log()
 
     if 'error' in ctx.obj:
         # Halt execution if an error has occurec in main()
@@ -409,7 +429,7 @@ def publish(ctx,
                 'conformers'):
 
         paths = ctx.obj['plugin_paths']
-        plugins = pyblish.backend.plugin.discover(typ, paths=paths)
+        plugins = pyblish.api.discover(typ, paths=paths)
         errors = {}
 
         for plugin in plugins:
@@ -455,6 +475,9 @@ def test(ctx):
             '--exclude=vendor',
             '--with-doctest',
             '--verbose']
+
+    main_log.setLevel(logging.CRITICAL)
+
     nose.run(argv=argv)
 
 
@@ -542,13 +565,11 @@ def config(ctx):
 
     """
 
-    pyblish.config.load_lazy()
+    click.echo()  # newline
     click.echo("Pyblish configuration:")
 
-    for key, value in pyblish.config.data().iteritems():
-        if key in pyblish.config.custom_data():
-            source = 'custom'
-        elif key in pyblish.config.user_data():
+    for key, value in sorted(pyblish.api.config.iteritems()):
+        if key in pyblish.api.config.user:
             source = 'user'
         else:
             source = 'default'
