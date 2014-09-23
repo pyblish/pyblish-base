@@ -1,7 +1,7 @@
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class SelectDuplicateInstance(pyblish.Selector):
+@pyblish.api.log
+class SelectDuplicateInstance(pyblish.api.Selector):
     hosts = ['python']
     version = (0, 1, 0)
