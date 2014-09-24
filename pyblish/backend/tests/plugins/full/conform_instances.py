@@ -1,9 +1,9 @@
 
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class ConformInstances(pyblish.Conformer):
+@pyblish.api.log
+class ConformInstances(pyblish.api.Conformer):
     hosts = ['python']
     families = ['full']
     version = (0, 1, 0)

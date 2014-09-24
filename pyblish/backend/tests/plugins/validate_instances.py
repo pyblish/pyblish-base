@@ -1,10 +1,10 @@
 
 import re
-import pyblish
+import pyblish.api
 
 
-@pyblish.log
-class ValidateInstance(pyblish.Validator):
+@pyblish.api.log
+class ValidateInstance(pyblish.api.Validator):
     """All nodes ends with a three-letter extension"""
 
     hosts = ['python']

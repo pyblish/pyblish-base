@@ -1,0 +1,12 @@
+pyblish Changelog
+=================
+
+This contains all major version changes between pyblish releases.
+
+Version 1.0.5
+-------------
+
+- Redefined and simplified configuration
+- Moving API from root package to namespace "api"
+- Initial version of command-line interface (cli)
+- Initial version of package-control using cli

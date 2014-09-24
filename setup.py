@@ -49,5 +49,8 @@ setup(
         'pyblish': ['plugins/*.py'],
         'pyblish.backend': ['*.yaml'],
         'pyblish.backend.tests': tests_package_data
-    }
+    },
+    entry_points={
+        'console_scripts': ['pyblish = pyblish.cli:main']
+    },
 )

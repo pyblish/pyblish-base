@@ -36,15 +36,13 @@ def get_formatter():
     return formatter
 
 
-def setup_log(root='pyblish'):
+def setup_log(root='pyblish', level=logging.DEBUG):
     log = logging.getLogger(root)
 
     if log.handlers:
         return log.handlers[0]
 
-    log.setLevel(logging.DEBUG)
-    # log.setLevel(logging.INFO)
-    # log.setLevel(logging.WARNING)
+    log.setLevel(level)
 
     formatter = get_formatter()
     stream_handler = logging.StreamHandler()
