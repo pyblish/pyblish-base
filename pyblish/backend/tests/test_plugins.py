@@ -6,15 +6,13 @@ import shutil
 import tempfile
 
 # Local library
-import pyblish.backend.lib
-import pyblish.backend.config
+import pyblish
 import pyblish.backend.plugin
 
 from pyblish.vendor import mock
-
 from pyblish.backend.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
-    setup_duplicate, setup_invalid)
+    setup_duplicate, setup_invalid, setup_wildcard)
 from pyblish.vendor.nose.tools import raises, with_setup
 
 
@@ -52,7 +50,7 @@ def test_validation_interface():
     inst.add('test_node1_PLY')
     inst.add('test_node2_PLY')
     inst.add('test_node3_GRP')
-    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data(pyblish.config.identifier, value=True)
     inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
@@ -74,7 +72,7 @@ def test_extraction_interface():
     inst = ctx.create_instance(name='test_instance')
 
     inst.add('test_PLY')
-    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data(pyblish.config.identifier, value=True)
     inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
@@ -108,7 +106,7 @@ def test_selection_appends():
     inst = ctx.create_instance(name='MyInstance')
     inst.add('node1')
     inst.add('node2')
-    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data(pyblish.config.identifier, value=True)
 
     assert len(ctx) == 1
 
@@ -125,7 +123,7 @@ def test_selection_appends():
 def test_plugins_by_family():
     """Returns plugins compatible with family"""
     inst = pyblish.backend.plugin.Instance('TestInstance')
-    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data(pyblish.config.identifier, value=True)
     inst.set_data('family', value=FAMILY)
 
     plugins = pyblish.backend.plugin.discover('validators')
@@ -140,7 +138,7 @@ def test_plugins_by_family():
 def test_plugins_by_host():
     """Returns plugins compatible with host"""
     inst = pyblish.backend.plugin.Instance('TestInstance')
-    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data(pyblish.config.identifier, value=True)
 
     plugins = pyblish.backend.plugin.discover('validators')
     compatible = pyblish.backend.plugin.plugins_by_host(
@@ -163,7 +161,7 @@ def test_instances_by_plugin():
         inst = ctx.create_instance(
             name='TestInstance{0}'.format(families.index(family) + 1))
 
-        inst.set_data(pyblish.backend.config.identifier, value=True)
+        inst.set_data(pyblish.config.identifier, value=True)
         inst.set_data('family', value=family)
         inst.set_data('host', value='python')
 
@@ -232,7 +230,7 @@ def test_validation_failure():
     inst.add('test_PLY')
     inst.add('test_misnamed')
 
-    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data(pyblish.config.identifier, value=True)
     inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
@@ -258,7 +256,7 @@ def test_extraction_failure():
     inst = ctx.create_instance(name='test_instance')
 
     inst.add('test_PLY')
-    inst.set_data(pyblish.backend.config.identifier, value=True)
+    inst.set_data(pyblish.config.identifier, value=True)
     inst.set_data('family', value=FAMILY)
 
     ctx.add(inst)
@@ -267,7 +265,7 @@ def test_extraction_failure():
     extractor = pyblish.backend.plugin.discover(
         type='extractors', regex='.*Fail$')[0]
 
-    # print pyblish.backend.plugin.registered_paths
+    # print pyblish.backend.plugin.registered_paths()
     print extractor
     # print pyblish.backend.plugin.discover('extractors')
     assert extractor.__name__ == "ExtractInstancesFail"
@@ -377,9 +375,9 @@ def test_register_invalid_path():
 def test_deregister_path():
     path = os.path.expanduser('~')
     pyblish.backend.plugin.register_plugin_path(path)
-    assert path in pyblish.backend.plugin.registered_paths
+    assert path in pyblish.backend.plugin.registered_paths()
     pyblish.backend.plugin.deregister_plugin_path(path)
-    assert path not in pyblish.backend.plugin.registered_paths
+    assert path not in pyblish.backend.plugin.registered_paths()
 
 
 def test_environment_paths():
@@ -390,7 +388,8 @@ def test_environment_paths():
 
     try:
         os.environ[key] = path
-        assert path in pyblish.backend.plugin.plugin_paths()
+        processed = pyblish.backend.plugin._post_process_path(path)
+        assert processed in pyblish.backend.plugin.plugin_paths()
     finally:
         os.environ[key] = existing or ''
 
@@ -399,3 +398,14 @@ def test_environment_paths():
 def test_discover_invalid_type():
     """Discovering an invalid type raises an error"""
     pyblish.backend.plugin.discover(type='INVALID')
+
+
+@raises(ValueError)
+@with_setup(setup_wildcard, teardown)
+def test_wildcard_plugins():
+    """Wildcard plugins process instances without family"""
+    context = pyblish.backend.plugin.Context()
+
+    for type in ('selectors', 'validators'):
+        for plugin in pyblish.backend.plugin.discover(type=type):
+            plugin().process_all(context)

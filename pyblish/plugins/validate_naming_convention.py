@@ -1,13 +1,9 @@
-"""Validate naming convention (Demo)"""
-
 import re
-
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
 @pyblish.backend.lib.log
-class ValidateNamingConvention(pyblish.backend.plugin.Validator):
+class ValidateNamingConvention(pyblish.Validator):
     """Ensure each included node ends with a three-letter, upper-case type
 
     Example:

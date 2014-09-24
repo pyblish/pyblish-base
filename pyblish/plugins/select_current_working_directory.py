@@ -1,14 +1,11 @@
-"""Inject the current working directory into Context"""
 
 import os
-
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class SelectCurrentWorkingDirectory(pyblish.backend.plugin.Selector):
-    """Append the currently working directory"""
+@pyblish.log
+class SelectCurrentWorkingDirectory(pyblish.Selector):
+    """Inject the current working directory into Context"""
 
     hosts = ['*']
     version = (0, 1, 0)

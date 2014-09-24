@@ -1,13 +1,12 @@
 """Mockup of potential integration with 3rd-party task managment suite"""
 
-
-import pyblish.backend.plugin
+import pyblish
 from pyblish.vendor import mock
 
 api = mock.MagicMock()
 
 
-class ConformInstances(pyblish.backend.plugin.Conformer):
+class ConformInstances(pyblish.Conformer):
     hosts = ['python']
     families = ['test.family']
     version = (0, 1, 0)

@@ -1,10 +1,9 @@
 
-import pyblish.backend.lib
-import pyblish.backend.plugin
+import pyblish
 
 
-@pyblish.backend.lib.log
-class ExtractInstances(pyblish.backend.plugin.Extractor):
+@pyblish.log
+class ExtractInstances(pyblish.Extractor):
     """Extract instances"""
 
     hosts = ['python']

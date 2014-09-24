@@ -2,10 +2,10 @@ import os
 import sys
 import shutil
 
-import pyblish.main
+import pyblish
 import pyblish.backend.lib
-import pyblish.backend.config
 import pyblish.backend.plugin
+import pyblish.backend.config
 
 from pyblish.vendor import yaml
 
@@ -22,7 +22,8 @@ def test_modifying_config_at_run_time():
     """Altering config at run-time works"""
     path = '/invalid/path'
     pyblish.backend.config.paths.append(path)
-    assert path in pyblish.backend.plugin.plugin_paths()
+    processed = pyblish.backend.plugin._post_process_path(path)
+    assert processed in pyblish.plugin_paths()
     pyblish.backend.config.paths.remove(path)
 
 
@@ -92,7 +93,7 @@ def test_custom_paths():
         paths = getattr(pyblish.backend.config, 'paths', None)
         assert paths
 
-        plugins = pyblish.backend.plugin.discover('validators')
+        plugins = pyblish.discover('validators')
         plugin_names = [p.__name__ for p in plugins]
         assert 'ValidateCustomInstance' in plugin_names
 
