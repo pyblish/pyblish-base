@@ -272,12 +272,6 @@ class Conformer(Plugin):
 class AbstractEntity(list):
     """Superclass for Context and Instance"""
 
-    def __repr__(self):
-        return u"%s.%s()" % (__name__, type(self).__name__)
-
-    def __str__(self):
-        return "Context"
-
     def __init__(self):
         self._data = dict()
 
@@ -404,10 +398,10 @@ class Instance(AbstractEntity):
     """
 
     def __eq__(self, other):
-        return str(other) == str(self)
+        return self.name == getattr(other, 'name', None)
 
     def __ne__(self, other):
-        return str(other) != str(self)
+        return self.name != getattr(other, 'name', None)
 
     def __repr__(self):
         return u"%s.%s('%s')" % (__name__, type(self).__name__, self)
@@ -464,7 +458,7 @@ def current_host():
 
     Example:
         >> # Running within Autodesk Maya
-        >> host()
+        >> current_host()
         'maya'
         >> # Running within Sidefx Houdini
         >> current_host()
@@ -766,10 +760,6 @@ def _discover_type(type, paths, regex=None):
             # Try importing the module. If this fails,
             # for whatever reason, log it and move on.
             try:
-                # Todo: This isn't fool-proof.
-                # By inserting path, we can't be sure whether
-                # the module we find is in the added path or
-                # in a path previously added.
                 sys.path.insert(0, path)
                 module = pyblish.backend.lib.import_module(mod_name)
                 reload(module)

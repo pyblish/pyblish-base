@@ -362,9 +362,6 @@ def test_invalid_plugins(mock_log):
 def test_entities_prints_nicely():
     """Entities Context and Instance prints nicely"""
     ctx = pyblish.backend.plugin.Context()
-    assert 'Context' in repr(ctx)
-    assert 'pyblish.backend.plugin' in repr(ctx)
-
     inst = ctx.create_instance(name='Test')
     assert 'Instance' in repr(inst)
     assert 'pyblish.backend.plugin' in repr(inst)

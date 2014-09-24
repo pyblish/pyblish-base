@@ -19,7 +19,8 @@ from .backend.plugin import (
     Selector, Validator, Extractor, Conformer,
     plugin_paths, register_plugin_path,
     deregister_plugin_path, deregister_all,
-    registered_paths, environment_paths, configured_paths)
+    registered_paths, environment_paths, configured_paths,
+    plugins_by_family, plugins_by_host, instances_by_plugin)
 
 from . import Config
 from .backend.lib import log
