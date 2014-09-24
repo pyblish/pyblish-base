@@ -40,6 +40,7 @@ __all__ = [
     'Conformer',
 
     'discover',
+    'Config',
 
     'plugin_paths',
     'registered_paths',
@@ -48,6 +49,9 @@ __all__ = [
     'register_plugin_path',
     'deregister_plugin_path',
     'deregister_all',
+    'plugins_by_family',
+    'plugins_by_host',
+    'instances_by_plugin',
 
     'config',
 
