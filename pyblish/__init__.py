@@ -10,6 +10,8 @@ from .vendor import yaml
 class Config(dict):
     """Wrapper for config.yaml, user and custom configuration
 
+    .. note:: Config is a singleton.
+
     Usage:
         >> config = Config()
         >> for key, value in config.iteritems():
@@ -32,7 +34,7 @@ class Config(dict):
     user = dict()  # User configuration data
 
     def __new__(cls, *args, **kwargs):
-        if not cls._instance:
+        if cls._instance is None:
             cls._instance = super(Config, cls).__new__(
                 cls, *args, **kwargs)
         return cls._instance

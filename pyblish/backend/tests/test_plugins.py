@@ -6,7 +6,6 @@ import shutil
 import tempfile
 
 # Local library
-import pyblish
 import pyblish.backend.plugin
 
 from pyblish.vendor import mock

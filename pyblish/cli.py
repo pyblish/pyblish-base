@@ -29,12 +29,21 @@ from pyblish.vendor import yaml
 from pyblish.vendor import nose
 from pyblish.vendor import click
 
-main_log = pyblish.backend.lib.setup_log(level=logging.ERROR)
+try:
+    # Used in package control sub-commands
+    import pip
+except ImportError:
+    pip = None
 
+log = logging.getLogger()
+main_log = pyblish.backend.lib.setup_log(level=logging.ERROR)
 
 # Constants
 CONFIG_PATH = os.path.join(os.getcwd(), 'config.yaml')
 DATA_PATH = os.path.join(os.getcwd(), 'data.yaml')
+
+PATH_TEMPLATE = "{tab}{path} <{typ}>"
+LOG_TEMPATE = "{tab}<log>: %(message)s"
 
 SCREEN_WIDTH = 80
 TAB = "    "
@@ -64,7 +73,7 @@ def _setup_log(root=''):
 
     log.setLevel(logging.WARNING)
 
-    formatter = logging.Formatter('{tab}<log>: %(message)s'.format(tab=TAB))
+    formatter = logging.Formatter(LOG_TEMPATE.format(tab=TAB))
 
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
@@ -241,6 +250,8 @@ def main(ctx,
 
     """
 
+    _setup_log()
+
     level = LOG_LEVEL[logging_level]
     logging.getLogger().setLevel(level)
 
@@ -248,42 +259,7 @@ def main(ctx,
 
     # Process top-level arguments
     if version:
-        click.echo("pyblish version %s" % pyblish.version)
-
-    # Visualise available paths
-    if any([paths, environment_paths, registered_paths, configured_paths]):
-        click.echo()  # Newline
-        click.echo("Available paths:")
-
-        _setup_log()
-        _paths = list()
-
-        if paths:
-            environment_paths = True
-            registered_paths = True
-            configured_paths = True
-
-        for _func, _typ in {
-                pyblish.api.environment_paths: 'environment',
-                pyblish.api.configured_paths: 'configured',
-                pyblish.api.registered_paths: 'registered'}.iteritems():
-
-            if _typ == 'environment' and not environment_paths:
-                continue
-
-            if _typ == 'configured' and not configured_paths:
-                continue
-
-            if _typ == 'registered' and not registered_paths:
-                continue
-
-            for path in _func():
-                click.echo("{tab}{path} ({typ})".format(
-                    tab=TAB, path=path, typ=_typ))
-                _paths.append(path)
-
-        if not _paths:
-            click.echo("{tab}None".format(tab=TAB))
+        click.echo("pyblish version %s" % pyblish.__version__)
 
     # Respond to sub-commands
     if not ctx.obj:
@@ -295,9 +271,9 @@ def main(ctx,
     for key, value in data:
         try:
             yaml_loaded = yaml.load(value)
-        except ValueError as err:
-            click.echo("Data must be YAML formatted: "
-                       "--data %s %s" % (key, value))
+        except Exception as err:
+            log.error("Error: Data must be YAML formatted: "
+                      "--data %s %s" % (key, value))
             ctx.obj['error'] = err
         else:
             context.set_data(str(key), yaml_loaded)
@@ -313,17 +289,16 @@ def main(ctx,
     for plugin_path in add_plugin_paths:
         processed_path = pyblish.backend.plugin._post_process_path(plugin_path)
         if processed_path in plugin_paths:
-            click.echo("Warning: path already present: %s" % plugin_path)
+            log.warning("path already present: %s" % plugin_path)
             continue
         plugin_paths.append(processed_path)
 
     try:
         available_plugins = pyblish.api.discover(paths=plugin_paths)
     except OSError as err:
-        click.echo('Error: Registered path "%s" could not '
-                   'be found.' % err.filename)
+        log.error('Error: Registered path "%s" could not '
+                  'be found.' % err.filename)
         ctx.obj['error'] = err
-        return
 
     if plugins:
         click.echo()  # newline
@@ -336,13 +311,55 @@ def main(ctx,
     if verbose:
         click.echo(
             intro_message.format(
-                version=pyblish.version,
+                version=pyblish.__version__,
                 config_path=CONFIG_PATH if config_loaded else "None",
                 data_path=DATA_PATH if data_loaded else "None",
                 user_path=user_config_path if has_user_config else "None",
                 paths=_format_paths(plugin_paths),
                 plugins=_format_plugins(available_plugins))
         )
+
+    # Visualise available paths
+    if any([paths, environment_paths, registered_paths, configured_paths]):
+        click.echo()  # Newline
+        click.echo("Available paths:")
+
+        _paths = list()
+
+        if paths:
+            environment_paths = True
+            registered_paths = True
+            configured_paths = True
+
+        for path in plugin_paths:
+
+            # Determine the source of each path
+            _typ = 'custom'
+            if path in pyblish.api.environment_paths():
+                _typ = 'environment'
+
+            elif path in pyblish.api.registered_paths():
+                _typ = 'registered'
+
+            elif path in pyblish.api.configured_paths():
+                _typ = 'configured'
+
+            # Only display queried paths
+            if _typ == 'environment' and not environment_paths:
+                continue
+
+            if _typ == 'configured' and not configured_paths:
+                continue
+
+            if _typ == 'registered' and not registered_paths:
+                continue
+
+            click.echo(PATH_TEMPLATE.format(
+                tab=TAB, path=path, typ=_typ))
+            _paths.append(path)
+
+        if not _paths:
+            click.echo("{tab}None".format(tab=TAB))
 
     # Pass data to sub-commands
     ctx.obj['verbose'] = verbose
@@ -398,11 +415,10 @@ def publish(ctx,
 
     """
 
-    _setup_log()
-
     if 'error' in ctx.obj:
         # Halt execution if an error has occurec in main()
-        return click.echo("publish: An error has occured.")
+        log.error("publish: An error has occured.")
+        return -1
 
     _start_time = time.time()  # Benchmark
 
@@ -410,8 +426,8 @@ def publish(ctx,
     path = os.path.abspath(path)
 
     if not os.path.exists(path):
-        click.echo("Path did not exist: %s" % path)
-        return
+        log.error("Path did not exist: %s" % path)
+        return -1
 
     # Use `path` argument as initial data for context
     context = ctx.obj['context']
@@ -450,11 +466,13 @@ def publish(ctx,
                 for error, instance in errors.iteritems():
                     click.echo("{tab}Instance('%s'): %s".format(tab=TAB)
                                % (instance, error))
-                return
+                return -1
 
     click.echo()
     click.echo("-" * 80)
     click.echo(_format_time(_start_time, time.time()))
+
+    return 0
 
 
 @click.command()
@@ -467,6 +485,9 @@ def test(ctx):
 
     """
 
+    # Mute log during tests
+    log.handlers[:] = []
+
     module_name = sys.modules[__name__].__file__
     package_dir = os.path.dirname(module_name)
     os.chdir(package_dir)
@@ -478,7 +499,7 @@ def test(ctx):
 
     main_log.setLevel(logging.CRITICAL)
 
-    nose.run(argv=argv)
+    return nose.run(argv=argv)
 
 
 @click.command()
@@ -494,16 +515,16 @@ def install(ctx, package):
 
     """
 
-    try:
-        import pip
-    except ImportError:
-        return click.echo("Error: 'install' requires pip")
+    if not pip:
+        click.echo("Error: 'install' requires pip")
+        return -1
 
     version = tuple([int(n) for n in pip.__version__.split(".")])
     if version < (1, 5):
-        return click.echo("Error: 'install' requires pip v 1.5 or higher")
+        click.echo("Error: 'install' requires pip v 1.5 or higher")
+        return -1
 
-    pip.main(['install', "pyblish-" + package])
+    return pip.main(['install', "pyblish-" + package])
 
 
 @click.command()
@@ -519,22 +540,22 @@ def uninstall(ctx, package):
 
     """
 
-    try:
-        import pip
-    except ImportError:
-        return click.echo("Error: 'uninstall' requires pip")
+    if not pip:
+        click.echo("Error: 'uninstall' requires pip")
+        return -1
 
     version = tuple([int(n) for n in pip.__version__.split(".")])
     if version < (1, 5):
-        return click.echo("Error: 'uninstall' requires pip v 1.5 or higher")
+        click.echo("Error: 'uninstall' requires pip v 1.5 or higher")
+        return -1
 
-    pip.main(['uninstall', "pyblish-" + package])
+    return pip.main(['uninstall', "pyblish-" + package])
 
 
 @click.command()
 @click.pass_context
 def packages(ctx):
-    """List available packages for Pyblish
+    """List available packages for Pyblish.
 
     \b
     Usage:
@@ -542,22 +563,22 @@ def packages(ctx):
 
     """
 
-    try:
-        import pip
-    except ImportError:
-        return click.echo("Error: 'packages' requires pip")
+    if not pip:
+        click.echo("Error: 'packages' requires pip")
+        return -1
 
     version = tuple([int(n) for n in pip.__version__.split(".")])
     if version < (1, 5):
-        return click.echo("Error: 'packages' requires pip v 1.5 or higher")
+        click.echo("Error: 'packages' requires pip v 1.5 or higher")
+        return -1
 
-    pip.main(['search', "pyblish"])
+    return pip.main(['search', "pyblish"])
 
 
 @click.command()
 @click.pass_context
 def config(ctx):
-    """List available config
+    """List available config.
 
     \b
     Usage:

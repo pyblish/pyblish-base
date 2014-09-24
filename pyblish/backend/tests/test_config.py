@@ -12,7 +12,7 @@ def setup():
 
 
 def teardown():
-    pyblish.Config().reset()
+    pyblish.Config()._instance = None
 
 
 @with_setup(setup, teardown)

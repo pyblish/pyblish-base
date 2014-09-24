@@ -80,6 +80,11 @@ def setup_echo():
 
 def teardown():
     """Restore previously REGISTERED paths"""
+
+    # Clear singletons
+    pyblish.backend.plugin.Context._instance = None
+    pyblish.Config._instance = None
+
     pyblish.backend.plugin.deregister_all()
     for path in REGISTERED:
         pyblish.backend.plugin.register_plugin_path(path)

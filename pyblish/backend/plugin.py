@@ -352,7 +352,19 @@ class AbstractEntity(list):
 
 
 class Context(AbstractEntity):
-    """Maintain a collection of Instances"""
+    """Maintain a collection of Instances
+
+    .. note:: Context is a singleton.
+
+    """
+
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Context, cls).__new__(
+                cls, *args, **kwargs)
+        return cls._instance
 
     def create_instance(self, name):
         """Convenience method of the following.

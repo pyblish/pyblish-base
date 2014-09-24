@@ -19,6 +19,12 @@ pyblish.backend.plugin.deregister_all()
 pyblish.backend.plugin.register_plugin_path(plugin_path)
 
 
+def test_singleton():
+    """Context is a singleton"""
+    ctx = pyblish.backend.plugin.Context()
+    assert ctx is pyblish.backend.plugin.Context()
+
+
 def test_data():
     """The data() interface works"""
 
