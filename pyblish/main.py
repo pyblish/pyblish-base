@@ -119,21 +119,27 @@ def publish_all(context=None):
     log.info("Publishing everything..")
 
     if context is None:
+        pyblish.backend.plugin.Context.delete()
         context = pyblish.backend.plugin.Context()
 
-    select(context)
+    try:
+        select(context)
 
-    if not context:
-        return log.info("No instances found.")
+        if not context:
+            return log.info("No instances found.")
 
-    if not validate(context):
-        return log.warning("There were errors, "
-                           "see script editor for details")
+        if not validate(context):
+            return log.warning("There were errors, "
+                               "see script editor for details")
 
-    extract(context)
-    conform(context)
+        extract(context)
+        conform(context)
 
-    log.info("Finished successfully")
+        log.info("Finished successfully")
+
+    finally:
+        # Clear out any traces of Context upon completion
+        pyblish.backend.plugin.Context.delete()
 
     return context
 

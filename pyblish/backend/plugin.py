@@ -360,6 +360,11 @@ class Context(AbstractEntity):
                 cls, *args, **kwargs)
         return cls._instance
 
+    @classmethod
+    def delete(cls):
+        """Force re-instantiation of context"""
+        cls._instance = None
+
     def create_instance(self, name):
         """Convenience method of the following.
 
