@@ -77,6 +77,17 @@ class Plugin(object):
     def process(self, context):
         """Perform processing upon context `context`
 
+        process() retruns a generator with (instance, error), with
+        error defaulted to `None`. Each error is injected with a
+        stack-trace of what went wrong, accessible via error.traceback.
+
+        If an instance contains the data "publish" and that data is
+        `False` the instance will not be processed.
+
+        Injected data during processing:
+            __is_processed__: Whether or not the instance was processed
+            __processed_by__: Plugins which processed the given instance
+
         Returns:
             Generator, yielding per instance
 
@@ -85,15 +96,11 @@ class Plugin(object):
 
         """
 
-        debug = self.log.debug
-        error = self.log.error
-
         try:
             self.process_context(context)
 
         except Exception as err:
-            error(traceback.format_exc())
-            error("Could not process context: {0}".format(context))
+            self.log.error("Could not process context: {0}".format(context))
             yield None, err
 
         else:
@@ -105,7 +112,21 @@ class Plugin(object):
 
             else:
                 for instance in compatible_instances:
-                    debug("\t- %s" % instance)
+                    if instance.has_data('publish'):
+                        if instance.data('publish', default=True) is False:
+                            self.log.info("Skipping %s" % instance)
+                            continue
+
+                    elif not config['publish_by_default']:
+                        self.log.info("Skipping %s" % instance)
+
+                    self.log.debug("Processing instance: %s" % instance)
+
+                    # Inject data
+                    processed_by = instance.data('__processed_by__') or list()
+                    processed_by.append(type(self))
+                    instance.set_data('__processed_by__', processed_by)
+                    instance.set_data('__is_processed__', True)
 
                     try:
                         self.process_instance(instance)
@@ -228,12 +249,21 @@ class Extractor(Plugin):
         assert date
         assert workspace_dir
 
+        # Remove invalid characters from output name
+        name = instance.data('name')
+        valid_name = pyblish.backend.lib.format_filename(name)
+        if name != valid_name:
+            self.log.info("Formatting instance name: "
+                          "\"%s\"-> \"%s\""
+                          % (name, valid_name))
+            name = valid_name
+
         # Commit directory based on template, see config.yaml
         variables = {'pyblish': pyblish.backend.lib.main_package_path(),
                      'prefix': config['prefix'],
                      'date': date,
                      'family': instance.data('family'),
-                     'instance': instance.data('name'),
+                     'instance': name,
                      'user': instance.data('user')}
 
         # Restore separators to those native to the current OS
@@ -737,8 +767,6 @@ def _discover_type(type, paths, regex=None):
 
     # Look through each registered path for potential plugins
     for path in paths:
-        log.debug("Looking for plugins in: \n%s", path)
-
         normpath = os.path.normpath(path)
         if normpath in discovered_paths:
             log.warning("Duplicate path being discovered: {0}".format(

@@ -1,11 +1,11 @@
 import os
 import sys
+import re
 import logging
-import inspect
 
 
 def log(cls):
-    """Attach logger to `cls`
+    """Decorator for attaching a logger to the class `cls`
 
     Loggers inherit the syntax {module}.{submodule}
 
@@ -24,6 +24,30 @@ def log(cls):
     logname = "%s.%s" % (module, name)
     cls.log = logging.getLogger(logname)
     return cls
+
+
+def format_filename(filename):
+    """Convert arbitrary string to valid filename
+
+    Modified copy from django.utils.text.get_valid_filename()
+
+    Returns the given string converted to a string that can be used for a clean
+    filename. Specifically, leading and trailing spaces are removed; other
+    spaces are converted to underscores; and anything that is not a unicode
+    alphanumeric, dash, underscore, or dot, is removed.
+
+    Usage:
+        >>> format_filename("john's portrait in 2004.jpg")
+        'johns_portrait_in_2004.jpg'
+        >>> format_filename("something^_SD.dda.//fd/ad.exe")
+        'something_SD.dda.fdad.exe'
+        >>> format_filename("Napoleon_:namespaces_GRP|group1_GRP")
+        'Napoleon_namespaces_GRPgroup1_GRP'
+
+    """
+
+    filename = filename.strip().replace(' ', '_')
+    return re.sub(r'(?u)[^-\w.]', '', filename)
 
 
 def get_formatter():
@@ -54,7 +78,7 @@ def setup_log(root='pyblish', level=logging.DEBUG):
 
 def main_package_path():
     """Return path of main pyblish package"""
-    lib_py_path = os.path.abspath(inspect.stack()[0][1])
+    lib_py_path = sys.modules[__name__].__file__
     backend_path = os.path.dirname(lib_py_path)
     package_path = os.path.dirname(backend_path)
     return package_path
