@@ -207,11 +207,14 @@ def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
             elif isinstance(exception, pyblish.api.SelectionError):
                 log.error("Selection failed")
 
+            elif isinstance(exception, pyblish.api.NoInstancesError):
+                log.warning("No instances were found")
+
         else:
             if num_processed_instances:
 
                 log_ = log.info
-                status = "without errors"
+                status = "successfully without errors"
                 if non_critical_errors:
                     log_ = log.warning
                     status = "with errors"
