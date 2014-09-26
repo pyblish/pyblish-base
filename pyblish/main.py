@@ -238,6 +238,40 @@ def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
 publish_all = publish
 
 
+def _format_error(instance, error):
+    """Format outputted error message
+
+    Including:
+        - Instance involved in error
+        - File name in which the error occurred
+        - Function/method of error
+        - Line number of error
+
+    Arguments:
+        instance (pyblish.api.Instance): Instance involved in error
+        error (Exception): Error to format
+
+    Returns:
+        Error as pretty-formatted string
+
+    """
+
+    traceback = getattr(error, 'traceback', None)
+
+    if traceback:
+        fname, line_number, func, exc = traceback
+        traceback = ("(Line {line} in \"{file}\" "
+                     "@ \"{func}\"".format(line=line_number,
+                                           file=fname,
+                                           func=func))
+
+    return "{tab}{i}: {e} {tb}".format(
+        tab=TAB,
+        i=instance,
+        e=error,
+        tb=traceback if traceback else '')
+
+
 def _publish(context, types, delay):
     """Implementation of publish()"""
 
@@ -298,9 +332,8 @@ def _publish(context, types, delay):
                 # that there are no failed validators.
                 log.warning("There were errors:")
                 for error, instance in errors.iteritems():
-                    log.error("{tab}{i}: {e}".format(tab=TAB,
-                                                     i=instance,
-                                                     e=error))
+                    error_message = _format_error(instance, error)
+                    log.error(error_message)
                     non_critical_errors = True
 
                 if typ not in ('extractors', 'conformers'):

@@ -135,11 +135,12 @@ class Plugin(object):
                     except Exception as err:
                         try:
                             _, _, exc_tb = sys.exc_info()
-                            err.line_number = exc_tb.tb_lineno
+                            err.traceback = traceback.extract_tb(
+                                exc_tb)[-1]
                         except:
-                            err.line_number = None
+                            pass
 
-                        err.traceback = traceback.format_exc()
+                        # err.traceback = traceback.format_exc()
 
                     finally:
                         yield instance, err
