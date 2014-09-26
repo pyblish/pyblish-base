@@ -133,6 +133,12 @@ class Plugin(object):
                         err = None
 
                     except Exception as err:
+                        try:
+                            _, _, exc_tb = sys.exc_info()
+                            err.line_number = exc_tb.tb_lineno
+                        except:
+                            err.line_number = None
+
                         err.traceback = traceback.format_exc()
 
                     finally:
@@ -284,9 +290,6 @@ class Extractor(Plugin):
         else:
             self.log.info("No existing directory found, creating..")
             shutil.copytree(path, commit_dir)
-
-        self.log.info("Clearing local cache..")
-        shutil.rmtree(path)
 
         # Persist path of commit within instance
         instance.set_data('commit_dir', value=commit_dir)
