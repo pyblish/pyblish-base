@@ -24,7 +24,10 @@ from .backend.plugin import (
 
 from . import Config as _Config
 from .backend.lib import log, format_filename
-from .error import ValidationError, SelectionError, NoInstancesError
+from .error import (
+    PyblishError, SelectionError,
+    ValidationError, ExtractionError, ConformError,
+    NoInstancesError)
 
 # For forwards-compatibility
 Integrator = Conformer
@@ -63,7 +66,10 @@ __all__ = [
     'format_filename',
 
     # Exceptions
-    'ValidationError',
+    'PyblishError',
     'SelectionError',
+    'ValidationError',
+    'ExtractionError',
+    'ConformError',
     'NoInstancesError'
 ]

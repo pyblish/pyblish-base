@@ -1,10 +1,22 @@
-class NoInstancesError(Exception):
+class PyblishError(Exception):
     pass
 
 
-class ValidationError(Exception):
+class NoInstancesError(PyblishError):
     pass
 
 
-class SelectionError(Exception):
+class ValidationError(PyblishError):
+    pass
+
+
+class SelectionError(PyblishError):
+    pass
+
+
+class ExtractionError(PyblishError):
+    pass
+
+
+class ConformError(PyblishError):
     pass
