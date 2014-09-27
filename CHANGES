@@ -3,6 +3,14 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.0.7
+-------------
+
+- Improved logging of pyblish.main.publish()
+- Refactored backend/frontend; frontends now in their own
+	individual repositories.
+- Added landscape.io code-quality badge
+
 Version 1.0.6
 -------------
 

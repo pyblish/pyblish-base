@@ -79,8 +79,7 @@ def setup_log(root='pyblish', level=logging.DEBUG):
 def main_package_path():
     """Return path of main pyblish package"""
     lib_py_path = sys.modules[__name__].__file__
-    backend_path = os.path.dirname(lib_py_path)
-    package_path = os.path.dirname(backend_path)
+    package_path = os.path.dirname(lib_py_path)
     return package_path
 
 

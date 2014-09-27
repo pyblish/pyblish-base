@@ -21,9 +21,9 @@ import time
 import logging
 
 import pyblish.api
+import pyblish.lib
+import pyblish.plugin
 import pyblish.version
-import pyblish.backend.lib
-import pyblish.backend.plugin
 
 from pyblish.vendor import yaml
 from pyblish.vendor import nose
@@ -36,7 +36,7 @@ except ImportError:
     pip = None
 
 log = logging.getLogger()
-main_log = pyblish.backend.lib.setup_log(level=logging.ERROR)
+main_log = pyblish.lib.setup_log(level=logging.ERROR)
 
 # Constants
 CONFIG_PATH = os.path.join(os.getcwd(), 'config.yaml')
@@ -287,7 +287,7 @@ def main(ctx,
         plugin_paths = pyblish.api.plugin_paths()
 
     for plugin_path in add_plugin_paths:
-        processed_path = pyblish.backend.plugin._post_process_path(plugin_path)
+        processed_path = pyblish.plugin._post_process_path(plugin_path)
         if processed_path in plugin_paths:
             log.warning("path already present: %s" % plugin_path)
             continue

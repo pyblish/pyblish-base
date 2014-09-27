@@ -3,6 +3,7 @@
 [![Build Status][travis]][travis_repo]
 [![Coverage Status][cover]][cover_repo]
 [![PyPI version][pypi]][pypi_repo]
+[![Code Health][landscape]][landscape_repo]
 
 Plug-in driven automation framework for content.
 
@@ -13,6 +14,7 @@ Plug-in driven automation framework for content.
 For more information, see our [Getting Started Guide][guide]
 
 
+[logo]: https://github.com/abstractfactory/pyblish/wiki/images/logo-long.png
 [guide]: http://pyblish.com
 [usergroup]: https://groups.google.com/forum/#!forum/pyblish
 [wiki]: https://github.com/abstractfactory/pyblish/wiki
@@ -23,4 +25,5 @@ For more information, see our [Getting Started Guide][guide]
 [cover_repo]: https://coveralls.io/r/abstractfactory/pyblish?branch=master
 [pypi]: https://badge.fury.io/py/pyblish.svg
 [pypi_repo]: http://badge.fury.io/py/pyblish
-[logo]: https://github.com/abstractfactory/pyblish/wiki/images/logo-long.png
+[landscape]: https://landscape.io/github/abstractfactory/pyblish/master/landscape.png
+[landscape_repo]: https://landscape.io/github/abstractfactory/pyblish/master

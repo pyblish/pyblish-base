@@ -14,7 +14,7 @@ without breaking any of your tools.
 
 """
 
-from .backend.plugin import (
+from .plugin import (
     Context, Instance, discover,
     Selector, Validator, Extractor, Conformer,
     plugin_paths, register_plugin_path,
@@ -23,7 +23,7 @@ from .backend.plugin import (
     plugins_by_family, plugins_by_host, instances_by_plugin)
 
 from . import Config as _Config
-from .backend.lib import log, format_filename
+from .lib import log, format_filename
 from .error import (
     PyblishError, SelectionError,
     ValidationError, ExtractionError, ConformError,
