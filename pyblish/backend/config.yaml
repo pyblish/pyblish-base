@@ -6,13 +6,18 @@ identifier: publishable
 
 # The prefix determines within which subdirectory
 # published instances are to be stored. This is
-# ultimately used within the `commit_dir` path
-# template below.
+# ultimately used within the `commit_template`
+# path template below.
 prefix: published
 
-# Date template, this is used within the `commit_dir`
-# path template below.
+# Date template, this is used within the
+# `commit_template` path template below.
 date_format: "%Y%m%d_%H%M%S"
+
+# Should instances without a "publish" data member
+# be published? To disable an instance, add "publish"
+# and set it to `false`.
+publish_by_default: true
 
 # Path template for commits. Available variables:
 #   pyblish: Absolute path to the main Pyblish package

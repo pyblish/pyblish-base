@@ -22,25 +22,31 @@ from .backend.plugin import (
     registered_paths, environment_paths, configured_paths,
     plugins_by_family, plugins_by_host, instances_by_plugin)
 
-from . import Config
-from .backend.lib import log
+from . import Config as _Config
+from .backend.lib import log, format_filename
+from .error import (
+    PyblishError, SelectionError,
+    ValidationError, ExtractionError, ConformError,
+    NoInstancesError)
 
 # For forwards-compatibility
 Integrator = Conformer
 
-config = Config()
+config = _Config()
 
 __all__ = [
+    # Base objects
     'Context',
     'Instance',
 
+    # Plug-ins
     'Selector',
     'Validator',
     'Extractor',
     'Conformer',
 
+    # Plug-in utilities
     'discover',
-
     'plugin_paths',
     'registered_paths',
     'configured_paths',
@@ -48,8 +54,22 @@ __all__ = [
     'register_plugin_path',
     'deregister_plugin_path',
     'deregister_all',
+    'plugins_by_family',
+    'plugins_by_host',
+    'instances_by_plugin',
 
+    # Configuration
     'config',
 
-    'log'
+    # Decorators
+    'log',
+    'format_filename',
+
+    # Exceptions
+    'PyblishError',
+    'SelectionError',
+    'ValidationError',
+    'ExtractionError',
+    'ConformError',
+    'NoInstancesError'
 ]
