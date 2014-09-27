@@ -1,7 +1,7 @@
 import os
 
 import pyblish
-import pyblish.backend.lib
+import pyblish.lib
 
 from pyblish.vendor import yaml
 from pyblish.vendor.nose.tools import with_setup
@@ -41,8 +41,8 @@ def test_config_init():
     """Config is reading from configuration"""
     config = pyblish.Config()
 
-    config_path = pyblish.backend.lib.main_package_path()
-    config_path = os.path.join(config_path, 'backend', 'config.yaml')
+    config_path = pyblish.lib.main_package_path()
+    config_path = os.path.join(config_path, 'config.yaml')
 
     with open(config_path) as f:
         manual_config = yaml.load(f)

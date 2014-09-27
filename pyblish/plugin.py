@@ -26,7 +26,7 @@ import traceback
 
 # Local library
 import pyblish
-import pyblish.backend.lib
+import pyblish.lib
 
 config = pyblish.Config()
 
@@ -56,10 +56,10 @@ patterns = {
 
 _registered_paths = list()
 
-log = logging.getLogger('pyblish.backend.plugin')
+log = logging.getLogger('pyblish.plugin')
 
 
-@pyblish.backend.lib.log
+@pyblish.lib.log
 class Plugin(object):
     """Abstract base-class for plugins"""
 
@@ -258,7 +258,7 @@ class Extractor(Plugin):
 
         # Remove invalid characters from output name
         name = instance.data('name')
-        valid_name = pyblish.backend.lib.format_filename(name)
+        valid_name = pyblish.lib.format_filename(name)
         if name != valid_name:
             self.log.info("Formatting instance name: "
                           "\"%s\"-> \"%s\""
@@ -266,7 +266,7 @@ class Extractor(Plugin):
             name = valid_name
 
         # Commit directory based on template, see config.yaml
-        variables = {'pyblish': pyblish.backend.lib.main_package_path(),
+        variables = {'pyblish': pyblish.lib.main_package_path(),
                      'prefix': config['prefix'],
                      'date': date,
                      'family': instance.data('family'),
@@ -417,7 +417,7 @@ class Context(AbstractEntity):
         return instance
 
 
-@pyblish.backend.lib.log
+@pyblish.lib.log
 class Instance(AbstractEntity):
     """An individually publishable component within scene
 
@@ -580,7 +580,7 @@ def configured_paths():
     paths = list()
 
     for path_template in config['paths']:
-        variables = {'pyblish': pyblish.backend.lib.main_package_path()}
+        variables = {'pyblish': pyblish.lib.main_package_path()}
 
         plugin_path = path_template.format(**variables)
 
@@ -798,7 +798,7 @@ def _discover_type(type, paths, regex=None):
             # for whatever reason, log it and move on.
             try:
                 sys.path.insert(0, path)
-                module = pyblish.backend.lib.import_module(mod_name)
+                module = pyblish.lib.import_module(mod_name)
                 reload(module)
 
             except Exception as err:

@@ -26,7 +26,7 @@ class Config(dict):
     HOMEDIR = os.path.expanduser('~')
     PACKAGEDIR = os.path.dirname(__file__)
     USERCONFIGPATH = os.path.join(HOMEDIR, USERCONFIG)
-    DEFAULTCONFIGPATH = os.path.join(PACKAGEDIR, 'backend', DEFAULTCONFIG)
+    DEFAULTCONFIGPATH = os.path.join(PACKAGEDIR, DEFAULTCONFIG)
 
     log = logging.getLogger('pyblish.Config')
 

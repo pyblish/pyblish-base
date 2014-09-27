@@ -6,12 +6,12 @@ import shutil
 import tempfile
 
 # Local library
-import pyblish.backend.plugin
+import pyblish.plugin
 
 from pyblish.vendor import mock
 from pyblish.vendor import yaml
 
-from pyblish.backend.tests.lib import (
+from pyblish.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
     setup_duplicate, setup_invalid, setup_wildcard)
 from pyblish.vendor.nose.tools import raises, with_setup
@@ -24,9 +24,9 @@ config = pyblish.Config()
 def test_selection_interface():
     """The interface of selection works fine"""
 
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
-    selectors = pyblish.backend.plugin.discover(
+    selectors = pyblish.plugin.discover(
         type='selectors',
         regex='SelectInstances$')
 
@@ -47,7 +47,7 @@ def test_selection_interface():
 @with_setup(setup, teardown)
 def test_validation_interface():
     """The interface of validation works fine"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
     inst = ctx.create_instance(name='test_instance')
@@ -59,7 +59,7 @@ def test_validation_interface():
 
     ctx.add(inst)
 
-    validator = pyblish.backend.plugin.discover(
+    validator = pyblish.plugin.discover(
         type='validators',
         regex="^ValidateInstance$")[0]
 
@@ -70,7 +70,7 @@ def test_validation_interface():
 @with_setup(setup, teardown)
 def test_extraction_interface():
     """The interface of extractors works fine"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
     inst = ctx.create_instance(name='test_instance')
@@ -83,7 +83,7 @@ def test_extraction_interface():
 
     # Assuming validations pass
 
-    extractor = pyblish.backend.plugin.discover(
+    extractor = pyblish.plugin.discover(
         type='extractors', regex='.*ExtractInstances$')[0]
     assert extractor.__name__ == "ExtractInstances"
 
@@ -94,9 +94,9 @@ def test_extraction_interface():
 def test_plugin_interface():
     """All plugins share interface"""
 
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
-    for plugin in pyblish.backend.plugin.discover():
+    for plugin in pyblish.plugin.discover():
         for instance, error in plugin().process(ctx):
             assert (error is None) or isinstance(error, Exception)
 
@@ -105,7 +105,7 @@ def test_plugin_interface():
 def test_selection_appends():
     """Selectors append, rather than replace existing instances"""
 
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
     inst = ctx.create_instance(name='MyInstance')
     inst.add('node1')
@@ -114,7 +114,7 @@ def test_selection_appends():
 
     assert len(ctx) == 1
 
-    for selector in pyblish.backend.plugin.discover(
+    for selector in pyblish.plugin.discover(
             'selectors', regex='SelectInstances$'):
         selector().process_all(context=ctx)
 
@@ -126,12 +126,12 @@ def test_selection_appends():
 @with_setup(setup, teardown)
 def test_plugins_by_family():
     """Returns plugins compatible with family"""
-    inst = pyblish.backend.plugin.Instance('TestInstance')
+    inst = pyblish.plugin.Instance('TestInstance')
     inst.set_data(config['identifier'], value=True)
     inst.set_data('family', value=FAMILY)
 
-    plugins = pyblish.backend.plugin.discover('validators')
-    compatible = pyblish.backend.plugin.plugins_by_family(
+    plugins = pyblish.plugin.discover('validators')
+    compatible = pyblish.plugin.plugins_by_family(
         plugins, family=FAMILY)
 
     # The filter will discard at least one plugin
@@ -141,11 +141,11 @@ def test_plugins_by_family():
 @with_setup(setup, teardown)
 def test_plugins_by_host():
     """Returns plugins compatible with host"""
-    inst = pyblish.backend.plugin.Instance('TestInstance')
+    inst = pyblish.plugin.Instance('TestInstance')
     inst.set_data(config['identifier'], value=True)
 
-    plugins = pyblish.backend.plugin.discover('validators')
-    compatible = pyblish.backend.plugin.plugins_by_host(
+    plugins = pyblish.plugin.discover('validators')
+    compatible = pyblish.plugin.plugins_by_host(
         plugins, host='__unrecognised__')
 
     # The filter will discard at least one plugin
@@ -156,7 +156,7 @@ def test_plugins_by_host():
 @with_setup(setup, teardown)
 def test_instances_by_plugin():
     """Returns instances compatible with plugin"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
     # Generate two instances, only one of which will be
     # compatible with the given plugin below.
@@ -171,7 +171,7 @@ def test_instances_by_plugin():
 
         ctx.add(inst)
 
-    plugins = pyblish.backend.plugin.discover('validators')
+    plugins = pyblish.plugin.discover('validators')
     plugins_dict = dict()
 
     for plugin in plugins:
@@ -179,7 +179,7 @@ def test_instances_by_plugin():
 
     plugin = plugins_dict['ValidateInstance']
 
-    compatible = pyblish.backend.plugin.instances_by_plugin(
+    compatible = pyblish.plugin.instances_by_plugin(
         instances=ctx, plugin=plugin)
 
     # This plugin is only compatible with
@@ -190,7 +190,7 @@ def test_instances_by_plugin():
 @with_setup(setup, teardown)
 def test_print_plugin():
     """Printing plugin returns name of class"""
-    plugins = pyblish.backend.plugin.discover('validators')
+    plugins = pyblish.plugin.discover('validators')
     plugin = plugins[0]
     assert plugin.__name__ in repr(plugin())
     assert plugin.__name__ == str(plugin())
@@ -199,7 +199,7 @@ def test_print_plugin():
 @with_setup(setup, teardown)
 def test_name_override():
     """Instances return either a data-member of name or its native name"""
-    inst = pyblish.backend.plugin.Instance(name='my_name')
+    inst = pyblish.plugin.Instance(name='my_name')
     assert inst.data('name') == 'my_name'
 
     inst.set_data('name', value='overridden_name')
@@ -209,10 +209,10 @@ def test_name_override():
 @with_setup(setup_duplicate, teardown)
 def test_no_duplicate_plugins():
     """Discovering plugins results in a single occurence of each plugin"""
-    plugin_paths = pyblish.backend.plugin.plugin_paths()
+    plugin_paths = pyblish.plugin.plugin_paths()
     assert len(plugin_paths) == 2, plugin_paths
 
-    plugins = pyblish.backend.plugin.discover(type='selectors')
+    plugins = pyblish.plugin.discover(type='selectors')
 
     # There are two plugins available, but one of them is
     # hidden under the duplicate module name. As a result,
@@ -226,7 +226,7 @@ def test_no_duplicate_plugins():
 def test_validation_failure():
     """Validation throws exception upon failure"""
 
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
     inst = ctx.create_instance(name='test_instance')
@@ -239,7 +239,7 @@ def test_validation_failure():
 
     ctx.add(inst)
 
-    validator = pyblish.backend.plugin.discover(
+    validator = pyblish.plugin.discover(
         type='validators', regex='^ValidateInstanceFail$')[0]
 
     validator().process_all(ctx)
@@ -254,7 +254,7 @@ def test_extraction_failure():
     keep going and that the user is properly notified of the failure.
 
     """
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
     # Manually create instance and nodes, bypassing selection
     inst = ctx.create_instance(name='test_instance')
@@ -266,12 +266,10 @@ def test_extraction_failure():
     ctx.add(inst)
 
     # Assuming validations pass
-    extractor = pyblish.backend.plugin.discover(
+    extractor = pyblish.plugin.discover(
         type='extractors', regex='.*Fail$')[0]
 
-    # print pyblish.backend.plugin.registered_paths()
     print extractor
-    # print pyblish.backend.plugin.discover('extractors')
     assert extractor.__name__ == "ExtractInstancesFail"
     extractor().process_all(ctx)
 
@@ -281,9 +279,9 @@ def test_extraction_failure():
 def test_process_context_error():
     """Processing context raises an exception"""
 
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
 
-    selectors = pyblish.backend.plugin.discover(
+    selectors = pyblish.plugin.discover(
         'selectors', regex='^SelectInstancesError$')
 
     for selector in selectors:
@@ -292,7 +290,7 @@ def test_process_context_error():
 
 @with_setup(setup, teardown)
 def test_commit():
-    """pylish.backend.plugin.commit() works
+    """pylish.plugin.commit() works
 
     Testing commit() involves creating temporary output,
     committing said output and then checking that it
@@ -300,7 +298,7 @@ def test_commit():
 
     """
 
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
     inst = ctx.create_instance(name='CommittedInstance')
     inst.set_data('family', FAMILY)
     inst.set_data(config['identifier'], True)
@@ -325,7 +323,7 @@ def test_commit():
         document = {document_name: document_content}
         inst.add(document)
 
-        document_extractor = pyblish.backend.plugin.discover(
+        document_extractor = pyblish.plugin.discover(
             'extractors', regex='^ExtractDocuments$')[0]
 
         document_extractor().process_all(ctx)
@@ -352,33 +350,33 @@ def test_commit():
 
 
 @with_setup(setup_invalid, teardown)
-@mock.patch('pyblish.backend.plugin.log')
+@mock.patch('pyblish.plugin.log')
 def test_invalid_plugins(mock_log):
     """When an invalid plugin is found, an error is logged"""
-    pyblish.backend.plugin.discover('selectors')
+    pyblish.plugin.discover('selectors')
     assert mock_log.error.called
 
 
 def test_entities_prints_nicely():
     """Entities Context and Instance prints nicely"""
-    ctx = pyblish.backend.plugin.Context()
+    ctx = pyblish.plugin.Context()
     inst = ctx.create_instance(name='Test')
     assert 'Instance' in repr(inst)
-    assert 'pyblish.backend.plugin' in repr(inst)
+    assert 'pyblish.plugin' in repr(inst)
 
 
 @raises(OSError)
 def test_register_invalid_path():
     """Registering an invalid path raises an exception"""
-    pyblish.backend.plugin.register_plugin_path('NOT_EXIST')
+    pyblish.plugin.register_plugin_path('NOT_EXIST')
 
 
 def test_deregister_path():
     path = os.path.expanduser('~')
-    pyblish.backend.plugin.register_plugin_path(path)
-    assert path in pyblish.backend.plugin.registered_paths()
-    pyblish.backend.plugin.deregister_plugin_path(path)
-    assert path not in pyblish.backend.plugin.registered_paths()
+    pyblish.plugin.register_plugin_path(path)
+    assert path in pyblish.plugin.registered_paths()
+    pyblish.plugin.deregister_plugin_path(path)
+    assert path not in pyblish.plugin.registered_paths()
 
 
 def test_environment_paths():
@@ -389,8 +387,8 @@ def test_environment_paths():
 
     try:
         os.environ[key] = path
-        processed = pyblish.backend.plugin._post_process_path(path)
-        assert processed in pyblish.backend.plugin.plugin_paths()
+        processed = pyblish.plugin._post_process_path(path)
+        assert processed in pyblish.plugin.plugin_paths()
     finally:
         os.environ[key] = existing or ''
 
@@ -398,17 +396,17 @@ def test_environment_paths():
 @raises(ValueError)
 def test_discover_invalid_type():
     """Discovering an invalid type raises an error"""
-    pyblish.backend.plugin.discover(type='INVALID')
+    pyblish.plugin.discover(type='INVALID')
 
 
 @raises(ValueError)
 @with_setup(setup_wildcard, teardown)
 def test_wildcard_plugins():
     """Wildcard plugins process instances without family"""
-    context = pyblish.backend.plugin.Context()
+    context = pyblish.plugin.Context()
 
     for type in ('selectors', 'validators'):
-        for plugin in pyblish.backend.plugin.discover(type=type):
+        for plugin in pyblish.plugin.discover(type=type):
             plugin().process_all(context)
 
 
@@ -417,9 +415,8 @@ def test_custom_paths():
     """Adding custom paths via user-config works"""
     user_config_path = config['USERCONFIGPATH']
 
-    package_path = pyblish.backend.lib.main_package_path()
+    package_path = pyblish.lib.main_package_path()
     custom_path = os.path.join(package_path,
-                               'backend',
                                'tests',
                                'plugins',
                                'custom')
@@ -439,7 +436,7 @@ def test_custom_paths():
         paths = config['paths']
         assert paths
 
-        plugins = pyblish.backend.plugin.discover('validators')
+        plugins = pyblish.plugin.discover('validators')
         plugin_names = [p.__name__ for p in plugins]
         assert 'ValidateCustomInstance' in plugin_names
 
