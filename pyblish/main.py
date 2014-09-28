@@ -316,7 +316,15 @@ def _publish(context, types, delay):
             raise pyblish.api.NoInstancesError
 
         for plugin in plugins:
-            print "{plugin}...".format(tab=TAB, plugin=plugin.__name__)
+            # Use nice-name, fallback to class-name
+            if hasattr(plugin, 'name'):
+                name = "%s (%s)" % (plugin.__name__, plugin.name)
+            else:
+                name = plugin.__name__
+
+            print "{plugin}...".format(
+                tab=TAB,
+                plugin=name)
 
             errors = {}
 
