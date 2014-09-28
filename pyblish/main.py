@@ -118,15 +118,15 @@ def _format_summary(context):
         commit_dir = instance.data('commit_dir')
         conform_dirs = instance.data('conform_dirs')
 
-        _message = "{tab}- \"{inst}\" processed by:".format(
+        _message = "{tab}- \"{inst}\" ".format(
             tab=TAB,
             inst=instance)
 
         if is_processed:
             for _plugin in processed_by or list():
-                _message += " \"%s\"," % _plugin.__name__
+                _message += "processed by: \"%s\"," % _plugin.__name__
         else:
-            _message += " \"Unprocessed\""
+            _message += "Unprocessed"
 
         message += _message[:-1] + "\n"
 
