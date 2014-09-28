@@ -108,6 +108,62 @@ def _format_plugins(plugins):
     return message[:-1]
 
 
+def _format_summary(context):
+    """Layout summary for `context`"""
+    message = "Summary:\n"
+
+    for instance in context:
+        is_processed = instance.data('__is_processed__')
+        processed_by = instance.data('__processed_by__')
+        commit_dir = instance.data('commit_dir')
+        conform_dirs = instance.data('conform_dirs')
+
+        _message = "{tab}- \"{inst}\" processed by:".format(
+            tab=TAB,
+            inst=instance)
+
+        if is_processed:
+            for _plugin in processed_by or list():
+                _message += " \"%s\"," % _plugin.__name__
+        else:
+            _message += " \"Unprocessed\""
+
+        message += _message[:-1] + "\n"
+
+        if commit_dir:
+            message += "{tab}Committed to: {dir}".format(
+                tab=TAB*2, dir=commit_dir) + "\n"
+
+        if conform_dirs:
+            message += "{tab}Conformed to: {dir}".format(
+                tab=TAB*2, dir=", ".join(conform_dirs)) + "\n"
+
+    return message
+
+
+def _log_success(context, duration, non_critical_errors):
+    """Log a success message"""
+    processed_instances = [i.data('__is_processed__') for i in context]
+
+    if processed_instances:
+        num_processed_instances = len(processed_instances)
+
+        status = "successfully without errors"
+        if non_critical_errors:
+            status = "with errors"
+
+        (log.warning if non_critical_errors else log.info)(
+            "Processed {num} instance{s} {status} "
+            "in {seconds}s".format(
+                num=num_processed_instances,
+                s="s" if num_processed_instances > 1 else "",
+                status=status,
+                seconds=duration))
+
+    else:
+        log.warning("Instances were found, but none were processed")
+
+
 def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
     """Publish everything
 
@@ -164,35 +220,10 @@ def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
         print  # newline
         print "-" * 80
         print _format_time(_start_time, time.time())
-        print "Summary:"
 
         _reset_log()
 
-        num_processed_instances = 0
-        for instance in context:
-            if instance.data('__is_processed__'):
-                num_processed_instances += 1
-
-                _message = "{tab}- \"{inst}\" processed by:".format(
-                    tab=TAB,
-                    inst=instance)
-
-                for _plugin in instance.data('__processed_by__',
-                                             default=list()):
-                    _message += " \"%s\"," % _plugin.__name__
-                print _message[:-1]
-
-            commit_dir = instance.data('commit_dir')
-            conform_dirs = instance.data('conform_dirs')
-
-            if commit_dir:
-                print "{tab}Committed to: {dir}".format(
-                    tab=TAB*2, dir=commit_dir)
-
-            if conform_dirs:
-                print "{tab}Conformed to: {dir}".format(
-                    tab=TAB*2, dir=", ".join(conform_dirs))
-
+        print _format_summary(context)
         print  # newline
 
         if exception:
@@ -211,25 +242,8 @@ def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
                 log.warning("No instances were found")
 
         else:
-            if num_processed_instances:
-
-                log_ = log.info
-                status = "successfully without errors"
-                if non_critical_errors:
-                    log_ = log.warning
-                    status = "with errors"
-
-                duration = "%.3f" % (time.time() - _start_time)
-
-                log_(
-                    "Processed {num} instance{s} {status} "
-                    "in {seconds}s".format(
-                        num=num_processed_instances,
-                        s="s" if num_processed_instances > 1 else "",
-                        status=status,
-                        seconds=duration))
-            else:
-                log.warning("Instances were found, but none were processed")
+            duration = "%.3f" % (time.time() - _start_time)
+            _log_success(context, duration, non_critical_errors)
 
     return context
 
