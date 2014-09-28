@@ -221,10 +221,16 @@ def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
         print "-" * 80
         print _format_time(_start_time, time.time())
 
-        _reset_log()
+        # Revert to a simpler handler
+        logging.getLogger().handlers[:] = []
+
+        formatter = logging.Formatter("%(levelname)s - %(message)s")
+
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        logging.getLogger().addHandler(stream_handler)
 
         print _format_summary(context)
-        print  # newline
 
         if exception:
             if isinstance(exception, pyblish.api.ValidationError):
@@ -244,6 +250,8 @@ def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
         else:
             duration = "%.3f" % (time.time() - _start_time)
             _log_success(context, duration, non_critical_errors)
+
+    _reset_log()
 
     return context
 
