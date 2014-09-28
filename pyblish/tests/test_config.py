@@ -47,7 +47,8 @@ def setup_custom_cascade():
     path1 = CONFIGPATH
     path2 = os.path.join(path1, 'additional_configuration')
 
-    path = "%s;%s" % (path1, path2)
+    sep = ";" if os.name == "nt" else ":"
+    path = path1 + sep + path2
 
     os.environ[config['configuration_environment_variable']] = path
 
