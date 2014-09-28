@@ -26,6 +26,28 @@ def log(cls):
     return cls
 
 
+def parse_environment_paths(paths):
+    """Given a (semi-)colon separated string of paths, return a list
+
+    Arguments:
+        paths (str): Colon or semi-colon (depending on platform)
+            separated string of paths.
+
+    Returns:
+        list of paths as string.
+
+    """
+
+    paths_list = list()
+
+    sep = ';' if os.name == 'nt' else ':'
+
+    for path in paths.split(sep):
+        paths_list.append(path)
+
+    return paths_list
+
+
 def format_filename(filename):
     """Convert arbitrary string to valid filename
 

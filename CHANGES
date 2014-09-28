@@ -3,6 +3,18 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.0.8
+-------------
+
+- Nice name for Plug-ins. A plug-in can now carry an
+	optional `name` attribute that will replace the
+	default class-name used when visualising a plug-in
+	name.
+- Configurable configuration location. Users can now specify
+    where Pyblish will look for configuration files, via the
+    PYBLISHCONFIGPATH variable.
+
+
 Version 1.0.7
 -------------
 

@@ -37,6 +37,7 @@ paths:
 
 # Or your can append paths to the environment variable.
 paths_environment_variable: PYBLISHPLUGINPATH
+configuration_environment_variable: PYBLISHCONFIGPATH
 
 # Regular expressions for plugins.
 # Modifying these will affect how plugins are discovered.
