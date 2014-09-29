@@ -122,13 +122,17 @@ def _format_summary(context):
             tab=TAB,
             inst=instance)
 
+        _message += "processed by:"
+
         if is_processed:
             for _plugin in processed_by or list():
-                _message += "processed by: \"%s\"," % _plugin.__name__
-        else:
-            _message += "Unprocessed"
+                _message += " \"%s\"," % _plugin.__name__
+            _message = _message[:-1]
 
-        message += _message[:-1] + "\n"
+        else:
+            _message += " None"
+
+        message += _message + "\n"
 
         if commit_dir:
             message += "{tab}Committed to: {dir}".format(
