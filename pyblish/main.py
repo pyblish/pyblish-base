@@ -17,10 +17,8 @@ Attributes:
 from __future__ import absolute_import
 
 # Standard library
-# import os
 import time
 import logging
-# import numbers
 
 # Local library
 import pyblish.api
