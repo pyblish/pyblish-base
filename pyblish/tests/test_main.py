@@ -21,7 +21,7 @@ def test_publish_all():
         assert inst.data('conformed') is True
 
 
-@mock.patch('pyblish.main.log')
+@mock.patch('pyblish.main.Publish.log')
 def test_publish_all_no_instances(mock_log):
     ctx = pyblish.plugin.Context()
     pyblish.main.publish(ctx)
@@ -50,6 +50,44 @@ def test_validate_all():
         assert inst.data('validated') is True
         assert inst.data('extracted') is False
         assert inst.data('conformed') is False
+
+
+@with_setup(setup_full, teardown)
+def test_convenience():
+    """Convenience function work"""
+    ctx = pyblish.plugin.Context()
+
+    pyblish.main.select(context=ctx)
+
+    for inst in ctx:
+        assert inst.data('selected') is True
+        assert inst.data('validated') is False
+        assert inst.data('extracted') is False
+        assert inst.data('conformed') is False
+
+    pyblish.main.validate(context=ctx)
+
+    for inst in ctx:
+        assert inst.data('selected') is True
+        assert inst.data('validated') is True
+        assert inst.data('extracted') is False
+        assert inst.data('conformed') is False
+
+    pyblish.main.extract(context=ctx)
+
+    for inst in ctx:
+        assert inst.data('selected') is True
+        assert inst.data('validated') is True
+        assert inst.data('extracted') is True
+        assert inst.data('conformed') is False
+
+    pyblish.main.conform(context=ctx)
+
+    for inst in ctx:
+        assert inst.data('selected') is True
+        assert inst.data('validated') is True
+        assert inst.data('extracted') is True
+        assert inst.data('conformed') is True
 
 
 @with_setup(setup_failing, teardown)

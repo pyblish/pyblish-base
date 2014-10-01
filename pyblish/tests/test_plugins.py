@@ -365,12 +365,6 @@ def test_entities_prints_nicely():
     assert 'pyblish.plugin' in repr(inst)
 
 
-@raises(OSError)
-def test_register_invalid_path():
-    """Registering an invalid path raises an exception"""
-    pyblish.plugin.register_plugin_path('NOT_EXIST')
-
-
 def test_deregister_path():
     path = os.path.expanduser('~')
     pyblish.plugin.register_plugin_path(path)

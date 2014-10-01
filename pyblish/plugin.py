@@ -18,7 +18,6 @@ Attributes:
 import os
 import re
 import sys
-import abc
 import shutil
 import logging
 import inspect
@@ -27,6 +26,7 @@ import traceback
 # Local library
 import pyblish
 import pyblish.lib
+import pyblish.error
 
 config = pyblish.Config()
 
@@ -59,14 +59,50 @@ _registered_paths = list()
 log = logging.getLogger('pyblish.plugin')
 
 
+class Plugins(list):
+    """Plug-in manager"""
+    def __init__(self, paths=None):
+        self.paths = paths or plugin_paths()
+
+    def discover(self, paths=None):
+        self[:] = discover(paths=paths)
+
+    def lookup_paths(self):
+        self.paths = plugin_paths()
+
+    def by_order(self, order):
+        plugins = list()
+        for plugin in self:
+            if plugins.order == order:
+                plugins.append()
+        return plugins
+
+    def by_type(self, type):
+        types = {'selector': 0,
+                 'validator': 1,
+                 'extractor': 2,
+                 'conformer': 3}
+        plugins = list()
+        for plugin in self:
+            if plugins.order == types.get(type):
+                plugins.append()
+        return plugins
+
+    def by_host(self, host):
+        plugins = list()
+        for plugin in self:
+            if "*" in plugin.hosts or current_host() in plugins.hosts:
+                plugins.append(plugin)
+        return plugins
+
+
 @pyblish.lib.log
 class Plugin(object):
     """Abstract base-class for plugins"""
 
-    __metaclass__ = abc.ABCMeta
-
     hosts = list()       # Hosts compatible with plugin
     version = (0, 0, 0)  # Current version of plugin
+    order = None
 
     def __str__(self):
         return type(self).__name__
@@ -119,6 +155,7 @@ class Plugin(object):
 
                     elif not config['publish_by_default']:
                         self.log.info("Skipping %s" % instance)
+                        continue
 
                     self.log.debug("Processing instance: %s" % instance)
 
@@ -193,6 +230,8 @@ class Plugin(object):
 class Selector(Plugin):
     """Parse a given working scene for available Instances"""
 
+    order = 0
+
 
 class Validator(Plugin):
     """Validate/check/test individual instance for correctness.
@@ -202,6 +241,7 @@ class Validator(Plugin):
     """
 
     families = list()
+    order = 1
 
     def fix(self):
         """Optional auto-fix for when validation fails"""
@@ -217,6 +257,7 @@ class Extractor(Plugin):
     """
 
     families = list()
+    order = 2
 
     def commit(self, path, instance):
         """Move path `path` relative current workspace
@@ -254,7 +295,12 @@ class Extractor(Plugin):
 
         # These two are assumed from built-in plugins
         assert date
-        assert workspace_dir
+
+        if not workspace_dir:
+            raise pyblish.error.ExtractorError(
+                "Could not determine commit directory. "
+                "Instance MUST supply either 'current_file' or "
+                "'workspace_dir' as data prior to commit")
 
         # Remove invalid characters from output name
         name = instance.data('name')
@@ -300,7 +346,9 @@ class Extractor(Plugin):
 
 class Conformer(Plugin):
     """Integrates publishes into a pipeline"""
+
     families = list()
+    order = 3
 
 
 class AbstractEntity(list):
@@ -505,7 +553,7 @@ def current_host():
 
     """
 
-    executable = os.path.basename(sys.executable)
+    executable = os.path.basename(sys.executable).lower()
 
     if 'python' in executable:
         # Running from standalone Python
@@ -517,6 +565,19 @@ def current_host():
         # like: "maya.exe" or "mayapy.exe"; without suffix for
         # posix platforms.
         return 'maya'
+
+    if 'nuke' in executable:
+        # Nuke typically includes a version number, e.g. Nuke8.0.exe
+        # and mixed-case letters.
+        return 'nuke'
+
+    # ..note:: The following are guesses, feel free to correct
+
+    if 'modo' in executable:
+        return 'modo'
+
+    if 'houdini' in executable:
+        return 'houdini'
 
     raise ValueError("Could not determine host")
 
@@ -536,9 +597,6 @@ def register_plugin_path(path):
         >>> deregister_plugin_path(my_plugins)
 
     """
-
-    if not os.path.isdir(path):
-        raise OSError("{0} does not exist".format(path))
 
     processed_path = _post_process_path(path)
 
@@ -822,6 +880,11 @@ def _discover_type(type, paths, regex=None):
                 if not _isvalid(obj):
                     continue
 
+                # Only include plug-ins compatible
+                # with the currently running host.
+                if not any(["*" in obj.hosts, current_host() in obj.hosts]):
+                    continue
+
                 # Finally, check that the plugin hasn't already been
                 # registered. This may indicate that a plugin has
                 # been created with identical name to another plugin.
@@ -840,16 +903,20 @@ def _discover_type(type, paths, regex=None):
 def _isvalid(plugin):
     """Validate plugin"""
 
+    if plugin.order is None:
+        log.error("Plug-in must have an order")
+        return False
+
     # Helper functions
     def has_families(_plugin):
         if not getattr(_plugin, 'families'):
-            log.error("%s: Plugin not valid, missing families.", _plugin)
+            log.error("%s: Plug-in not valid, missing families.", _plugin)
             return False
         return True
 
     def has_hosts(_plugin):
         if not getattr(_plugin, 'hosts'):
-            log.error("%s: Plugin not valid, missing hosts.", _plugin)
+            log.error("%s: Plug-in not valid, missing hosts.", _plugin)
             return False
         return True
 
