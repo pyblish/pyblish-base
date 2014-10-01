@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/abstractfactory/pyblish.png?label=ready&title=Ready)](https://waffle.io/abstractfactory/pyblish)
 ### ![][logo]
 
 [![Build Status][travis]][travis_repo]
