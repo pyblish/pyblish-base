@@ -25,9 +25,8 @@ from .plugin import (
 from . import Config as _Config
 from .lib import log, format_filename
 from .error import (
-    PyblishError, SelectionError,
-    ValidationError, ExtractionError, ConformError,
-    NoInstancesError)
+    PyblishError, SelectionError, ValidationError,
+    ExtractionError, ConformError, NoInstancesError)
 
 # For forwards-compatibility
 Integrator = Conformer
