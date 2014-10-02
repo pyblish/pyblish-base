@@ -13,7 +13,18 @@ Version 1.0.8
 - Configurable configuration location. Users can now specify
     where Pyblish will look for configuration files, via the
     PYBLISHCONFIGPATH variable.
-
+- Registered path no longer have to exist. To align better with
+    paths added via environment variables or configuration, the
+    registration of paths is now okay even though the path may
+    not exist. A non-existing path will simply be discarded upon
+    discovery (and log a warning message).
+- Auto-repair. pyblish.main.publish() now takes a auto_repair flag
+    with which the Plugin.repair_instance method is called. If a
+    repair fails, a message is logged, otherwise the validation is
+    considered a success and publishing resumes.
+- Plug-ins for other hosts than the currently running host are
+    discarded upon discovery. This means that they will be invisible
+    to any incompatible host.
 
 Version 1.0.7
 -------------

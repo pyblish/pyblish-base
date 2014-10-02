@@ -17,10 +17,8 @@ Attributes:
 from __future__ import absolute_import
 
 # Standard library
-import os
 import time
 import logging
-import numbers
 
 # Local library
 import pyblish.api
@@ -54,33 +52,6 @@ __all__ = ['select',
            'publish_all']
 
 
-def _setup_log(root='', level=logging.WARNING):
-    log = logging.getLogger(root)
-    log.handlers[:] = []
-
-    formatter = logging.Formatter(LOG_TEMPATE)
-
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    log.addHandler(stream_handler)
-
-    log.setLevel(level)
-
-    return log
-
-
-def _reset_log():
-    log = logging.getLogger()
-    log.handlers[:] = logging_handlers[:]
-    log.setLevel(logging.INFO)
-
-
-def _format_time(start, finish):
-    """Return right-aligned time-taken message"""
-    message = 'Time taken: %.2fs' % (finish - start)
-    return message.rjust(SCREEN_WIDTH)
-
-
 def _format_paths(paths):
     """Return paths at one new each"""
     message = ''
@@ -108,67 +79,10 @@ def _format_plugins(plugins):
     return message[:-1]
 
 
-def _format_summary(context):
-    """Layout summary for `context`"""
-    message = "Summary:\n"
-
-    for instance in context:
-        is_processed = instance.data('__is_processed__')
-        processed_by = instance.data('__processed_by__')
-        commit_dir = instance.data('commit_dir')
-        conform_dirs = instance.data('conform_dirs')
-
-        _message = "{tab}- \"{inst}\" ".format(
-            tab=TAB,
-            inst=instance)
-
-        _message += "processed by:"
-
-        if is_processed:
-            for _plugin in processed_by or list():
-                _message += " \"%s\"," % _plugin.__name__
-            _message = _message[:-1]
-
-        else:
-            _message += " None"
-
-        message += _message + "\n"
-
-        if commit_dir:
-            message += "{tab}Committed to: {dir}".format(
-                tab=TAB*2, dir=commit_dir) + "\n"
-
-        if conform_dirs:
-            message += "{tab}Conformed to: {dir}".format(
-                tab=TAB*2, dir=", ".join(conform_dirs)) + "\n"
-
-    return message
-
-
-def _log_success(context, duration, non_critical_errors):
-    """Log a success message"""
-    processed_instances = [i.data('__is_processed__') for i in context]
-
-    if processed_instances:
-        num_processed_instances = len(processed_instances)
-
-        status = "successfully without errors"
-        if non_critical_errors:
-            status = "with errors"
-
-        (log.warning if non_critical_errors else log.info)(
-            "Processed {num} instance{s} {status} "
-            "in {seconds}s".format(
-                num=num_processed_instances,
-                s="s" if num_processed_instances > 1 else "",
-                status=status,
-                seconds=duration))
-
-    else:
-        log.warning("Instances were found, but none were processed")
-
-
-def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
+def publish(context=None,
+            auto_repair=False,
+            logging_level=logging.INFO,
+            **kwargs):
     """Publish everything
 
     This function will process all available plugins of the
@@ -188,42 +102,128 @@ def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
     Usage:
         >> publish()
         >> publish(context=Context())
-        >> publish(types=('selectors', 'extractors'))
+
     """
 
-    assert context is None or isinstance(context, pyblish.api.Context)
-    assert types is None or isinstance(types, tuple)
-    assert delay is None or isinstance(delay, numbers.Number)
+    # Hidden argument
+    _orders = kwargs.pop('orders', None) or (0, 1, 2, 3)
+    assert not kwargs  # There are no more arguments
 
-    _start_time = time.time()  # Benchmark
+    obj = Publish(context)
 
-    exception = None
-    non_critical_errors = None
+    obj.logging_level = logging_level
+    obj.orders = _orders
+    obj.repair = auto_repair
+    obj.process()
 
-    if context is None:
+    return obj.context
+
+
+def validate_all(*args, **kwargs):
+    if not 'orders' in kwargs:
+        kwargs['orders'] = (0, 1)
+    return publish(*args, **kwargs)
+
+
+def select(*args, **kwargs):
+    """Convenience function for selection"""
+    if not 'orders' in kwargs:
+        kwargs['orders'] = (0,)
+    return publish(*args, **kwargs)
+
+
+def validate(*args, **kwargs):
+    """Convenience function for validation"""
+    if not 'orders' in kwargs:
+        kwargs['orders'] = (1,)
+    return publish(*args, **kwargs)
+
+
+def extract(*args, **kwargs):
+    """Convenience function for extraction"""
+    if not 'orders' in kwargs:
+        kwargs['orders'] = (2,)
+    return publish(*args, **kwargs)
+
+
+def conform(*args, **kwargs):
+    """Convenience function for conform"""
+    if not 'orders' in kwargs:
+        kwargs['orders'] = (3,)
+    return publish(*args, **kwargs)
+
+
+class Publish(object):
+    SCREEN_WIDTH = 80
+    LOG_TEMPATE = "    %(levelname)-8s %(message)s"
+    TAB = "    "
+
+    log = logging.getLogger()
+    logging_level = logging.INFO
+
+    @property
+    def duration(self):
+        return "%.2f" % (self._time['end'] - self._time['start'])
+
+    def __init__(self, context=None):
+        if context is None:
+            pyblish.api.Context.delete()
+            context = pyblish.api.Context()
+
+        self.context = context
+        self.orders = (0, 1, 2, 3)
+        self.repair = False
+
+        self._plugins = pyblish.plugin.Plugins()
+        self._conf = pyblish.api.config
+        self._time = {'start': None, 'end': None}
+        self._errors = list()
+
+        self._plugins.discover()
+
+    def process(self):
+        """Process all instances within the given context"""
+        self._time['start'] = time.time()
+        self._log_intro()
+
+        log_summary = False
+
+        try:
+            for order in self.orders:
+                self.process_order(order)
+
+        except pyblish.api.NoInstancesError as exc:
+            self.log.warning("Cancelled due to not finding any instances")
+
+        except pyblish.api.SelectionError:
+            self.log.error("Selection failed")
+
+        except pyblish.api.ValidationError as exc:
+            self.log.error("Validation failed")
+
+            print  # newline
+            print "These validations failed:"
+            for error in exc.errors:
+                print "{tab}- \"{inst}\": {exc} ({plug})".format(
+                    inst=error.instance,
+                    tab=TAB,
+                    exc=error,
+                    plug=error.plugin.__name__)
+
+        except Exception as exc:
+            self.log.error("Unhandled exception: %s" % exc)
+
+        else:
+            log_summary = True
+
+        # Clear context
         pyblish.api.Context.delete()
-        context = pyblish.api.Context()
-
-    try:
-        _setup_log(level=logging_level)
-        non_critical_errors = _publish(context,
-                                       types=types,
-                                       delay=delay)
-
-    except pyblish.api.NoInstancesError as err:
-        log.warning("Cancelled due to not finding any instances")
-        exception = err
-
-    except (pyblish.api.SelectionError, pyblish.api.ValidationError) as err:
-        log.warning("Cancelled due to one or more errors")
-        exception = err
-
-    finally:
-        pyblish.api.Context.delete()
+        self._time['end'] = time.time()
 
         print  # newline
         print "-" * 80
-        print _format_time(_start_time, time.time())
+
+        self._log_time()
 
         # Revert to a simpler handler
         logging.getLogger().handlers[:] = []
@@ -234,190 +234,256 @@ def publish(context=None, types=None, delay=None, logging_level=logging.INFO):
         stream_handler.setFormatter(formatter)
         logging.getLogger().addHandler(stream_handler)
 
-        print _format_summary(context)
+        if log_summary:
+            self._log_summary()
+        self._log_success()
 
-        if exception:
-            if isinstance(exception, pyblish.api.ValidationError):
-                print "These validations failed:"
-                for exception in exception.errors:
-                    print "{tab}{err}".format(
-                        tab=TAB, err=exception)
-                print  # newline
-                log.error("Validation failed")
+        self._reset_log()
 
-            elif isinstance(exception, pyblish.api.SelectionError):
-                log.error("Selection failed")
+    def process_order(self, order):
+        """Process context using plug-ins with the specified `order`
 
-            elif isinstance(exception, pyblish.api.NoInstancesError):
-                log.warning("No instances were found")
+        Arguments:
+            order (int): Order of plug-ins with which to process context.
 
-        else:
-            duration = "%.3f" % (time.time() - _start_time)
-            _log_success(context, duration, non_critical_errors)
+        Raises:
+            pyblish.api.SelectionError: When selection fails
+            pyblish.api.ValidationError: When validation fails
 
-    _reset_log()
+        """
 
-    return context
-
-
-# Backwards compatibility
-publish_all = publish
-
-
-def _format_error(instance, error):
-    """Format outputted error message
-
-    Including:
-        - Instance involved in error
-        - File name in which the error occurred
-        - Function/method of error
-        - Line number of error
-
-    Arguments:
-        instance (pyblish.api.Instance): Instance involved in error
-        error (Exception): Error to format
-
-    Returns:
-        Error as pretty-formatted string
-
-    """
-
-    traceback = getattr(error, 'traceback', None)
-
-    if traceback:
-        fname, line_number, func, exc = traceback
-        traceback = ("(Line {line} in \"{file}\" "
-                     "@ \"{func}\"".format(line=line_number,
-                                           file=fname,
-                                           func=func))
-
-    return "{tab}{i}: {e} {tb}".format(
-        tab=TAB,
-        i=instance,
-        e=error,
-        tb=traceback if traceback else '')
-
-
-def _publish(context, types, delay):
-    """Implementation of publish()"""
-
-    all_types = ('selectors',
-                 'validators',
-                 'extractors',
-                 'conformers')
-
-    if not types:
-        types = all_types
-
-    for typ in types:
-        if not typ in all_types:
-            log.error("Unrecognised type specified: %s" % typ)
-            return
-
-    plugin_paths = pyblish.api.plugin_paths()
-    plugins = pyblish.api.discover(paths=plugin_paths)
-
-    user_config_path = pyblish.api.config['USERCONFIGPATH']
-    has_user_config = os.path.isfile(user_config_path)
-
-    print (
-        intro_message.format(
-            version=pyblish.__version__,
-            user_path=user_config_path if has_user_config else "None",
-            paths=_format_paths(plugin_paths),
-            plugins=_format_plugins(plugins)))
-
-    print "{line}\nProcessing\n".format(line="-" * 80)
-
-    # Errors that won't abort the publish
-    non_critical_errors = False
-
-    for typ in types:
-
-        plugins = pyblish.api.discover(typ, paths=plugin_paths)
-
-        if typ != 'selectors' and not context:
-            # If selection is done, yet there are no instances,
-            # it means nothing will be processed in subsequent steps.
+        if order != 0 and not self.context:
+            # If there aren't any instances after selection,
+            # there is no point in going on.
             raise pyblish.api.NoInstancesError
 
-        for plugin in plugins:
-            # Use nice-name, fallback to class-name
-            if hasattr(plugin, 'name'):
-                name = "%s (%s)" % (plugin.__name__, plugin.name)
+        order_errors = list()
+        for plugin in self._plugins:
+            if plugin.order != order:
+                continue
+
+            plugin_errors = self.process_plugin(plugin)
+            order_errors.extend(plugin_errors)
+
+            if not plugin_errors:
+                continue
+
+            # Before proceeding with extraction, ensure
+            # that there are no failed validators.
+            self.log.warning("There were errors:")
+            for error in plugin_errors:
+                self._log_error(error.instance, error)
+
+        if not order_errors:
+            return
+
+        # If the error occurred during selection or validation,
+        # we don't want to continue.
+        if order == 0:
+            raise pyblish.api.SelectionError
+
+        if order == 1:
+            exception = pyblish.api.ValidationError
+            exception.errors = order_errors
+            raise exception
+
+    def process_plugin(self, plugin):
+        """Process context using a single plugin
+
+        Arguments:
+            plugin (Plugin): Plug-in used to process context
+
+        Returns:
+            List of errors occurred for `plugin`
+
+        """
+
+        self._log_plugin(plugin)
+
+        # Initialise pretty-printing for plug-ins
+        self._init_log()
+
+        errors = list()
+        for instance, error in plugin().process(self.context):
+            if error is None:
+                continue
+
+            repaired = False
+            if plugin.order == 1 and self.repair:
+                repaired = self._repair(plugin, instance)
+
+            if not repaired:
+                errors.append(error)
+
+                # Inject data for logging
+                error.instance = instance
+                error.plugin = plugin
+
+                # Store global reference for self._report()
+                self._errors.append(error)
+
+        return errors
+
+    def _repair(self, plugin, instance):
+        if hasattr(plugin, 'repair_instance'):
+            self.log.warning("There were errors, attempting "
+                             "to auto-repair..")
+            try:
+                plugin().repair_instance(instance)
+
+            except Exception as err:
+                self.log.warning("Could not auto-repair..")
+                self.log.warning(err)
+
             else:
-                name = plugin.__name__
+                self.log.info("Auto-repair successful")
+                return True
 
-            print "{plugin}...".format(
-                tab=TAB,
-                plugin=name)
+        return False
 
-            errors = {}
+    def _init_log(self):
+        self.log = logging.getLogger()
+        self.log.handlers[:] = []
 
-            if delay:
-                time.sleep(delay)
+        formatter = logging.Formatter(self.LOG_TEMPATE)
 
-            for instance, error in plugin().process(context):
-                if error is not None:
-                    errors[error] = instance
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        self.log.addHandler(stream_handler)
 
-            if errors:
-                # Before proceeding with extraction, ensure
-                # that there are no failed validators.
-                log.warning("There were errors:")
-                for error, instance in errors.iteritems():
-                    error_message = _format_error(instance, error)
-                    log.error(error_message)
-                    non_critical_errors = True
+        self.log.setLevel(self.logging_level)
 
-                if typ not in ('extractors', 'conformers'):
-                    # If the error occurred during selection
-                    # or validation, we don't want to continue.
-                    if typ == 'selectors':
-                        err = pyblish.api.SelectionError
-                    else:
-                        err = pyblish.api.ValidationError
+    def _reset_log(self):
+        self.log = logging.getLogger()
+        self.log.handlers[:] = logging_handlers[:]
+        self.log.setLevel(logging.INFO)
 
-                    err.errors = errors
-                    raise err  # Handled in publish()
+    def _log_plugin(self, plugin):
+        if hasattr(plugin, 'name'):
+            name = "%s (%s)" % (plugin.__name__, plugin.name)
+        else:
+            name = plugin.__name__
 
-    return non_critical_errors
+        print "{plugin}...".format(
+            tab=self.TAB,
+            plugin=name)
+
+    def _log_intro(self):
+        message = intro_message.format(
+            version=pyblish.__version__,
+            user_path=(self._conf['USERCONFIGPATH']
+                       if self._conf.user else "None"),
+            paths=_format_paths(self._plugins.paths),
+            plugins=_format_plugins(self._plugins))
+
+        message += "\n{line}\nProcessing\n".format(line="-" * 80)
+        print message
+
+    def _log_error(self, instance, error):
+        """Format outputted error message
+
+        Including:
+            - Instance involved in error
+            - File name in which the error occurred
+            - Function/method of error
+            - Line number of error
+
+        Arguments:
+            instance (pyblish.api.Instance): Instance involved in error
+            error (Exception): Error to format
+
+        Returns:
+            Error as pretty-formatted string
+
+        """
+
+        traceback = getattr(error, 'traceback', None)
+
+        if traceback:
+            fname, line_number, func, exc = traceback
+            traceback = ("(Line {line} in \"{file}\" "
+                         "@ \"{func}\")".format(line=line_number,
+                                                file=fname,
+                                                func=func))
+
+        self.log.error("{tab}{i}: {e} {tb}".format(
+            tab=self.TAB,
+            i=instance,
+            e=error,
+            tb=traceback if traceback else ''))
+
+    def _log_time(self):
+        """Return time-taken message"""
+        message = 'Time taken: %s' % self.duration
+        print message.rjust(SCREEN_WIDTH)
+
+    def _log_success(self):
+        """Log a success message"""
+        processed_instances = list()
+
+        for instance in self.context:
+            if not instance.data('__is_processed__'):
+                continue
+            processed_instances.append(instance)
+
+        if self.context and not processed_instances:
+            self.log.warning("Instances were found, but none were processed")
+            return
+
+        if not self.context:
+            self.log.warning("No instances were found")
+            return
+
+        status = "successfully without errors"
+        if self._errors:
+            status = "with errors"
+
+        num_processed_instances = len(processed_instances)
+        (self.log.warning if self._errors else self.log.info)(
+            "Processed {num} instance{s} {status} "
+            "in {seconds}s".format(
+                num=num_processed_instances,
+                s="s" if num_processed_instances > 1 else "",
+                status=status,
+                seconds=self.duration))
+
+    def _log_summary(self):
+        """Layout summary for `context`"""
+        message = "Summary:\n"
+
+        for instance in self.context:
+            is_processed = instance.data('__is_processed__')
+            processed_by = instance.data('__processed_by__')
+            commit_dir = instance.data('commit_dir')
+            conform_dirs = instance.data('conform_dirs')
+
+            _message = "{tab}- \"{inst}\" ".format(
+                tab=self.TAB,
+                inst=instance)
+
+            _message += "processed by:"
+
+            if is_processed:
+                for _plugin in processed_by or list():
+                    _message += " \"%s\"," % _plugin.__name__
+                _message = _message[:-1]
+
+            else:
+                _message += " None"
+
+            message += _message + "\n"
+
+            if commit_dir:
+                message += "{tab}Committed to: {dir}".format(
+                    tab=self.TAB*2, dir=commit_dir) + "\n"
+
+            if conform_dirs:
+                message += "{tab}Conformed to: {dir}".format(
+                    tab=self.TAB*2, dir=", ".join(conform_dirs)) + "\n"
+
+        print  # newline
+        print message
 
 
-def validate_all(*args, **kwargs):
-    if not 'types' in kwargs:
-        kwargs['types'] = ('selectors', 'validators',)
-
-    publish(*args, **kwargs)
-
-
-def select(*args, **kwargs):
-    """Convenience function for selection"""
-    if not 'types' in kwargs:
-        kwargs['types'] = ('selectors',)
-
-    publish(*args, **kwargs)
-
-
-def validate(*args, **kwargs):
-    """Convenience function for validation"""
-    if not 'types' in kwargs:
-        kwargs['types'] = ('validators',)
-
-    publish(*args, **kwargs)
-
-
-def extract(*args, **kwargs):
-    """Convenience function for extraction"""
-    if not 'types' in kwargs:
-        kwargs['types'] = ('extractors',)
-
-    publish(*args, **kwargs)
-
-
-def conform(*args, **kwargs):
-    """Convenience function for conform"""
-    if not 'types' in kwargs:
-        kwargs['types'] = ('conformers',)
-
-    publish(*args, **kwargs)
+# For backwards compatibility
+publish_all = publish
