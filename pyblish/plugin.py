@@ -63,6 +63,7 @@ class Plugins(list):
     """Plug-in manager"""
     def __init__(self, paths=None):
         self.paths = paths or plugin_paths()
+        self.discover()
 
     def discover(self, paths=None):
         self[:] = discover(paths=paths)
@@ -98,11 +99,29 @@ class Plugins(list):
 
 @pyblish.lib.log
 class Plugin(object):
-    """Abstract base-class for plugins"""
+    """Abstract base-class for plugins
+
+    Attributes:
+        hosts: Mandatory specifier for which host application
+            this plug-in is compatible with.
+        version: Mandatory version for forwards-compatibility.
+            Pyblish is (currently not) using the version to allow
+            for plug-ins incompatible with a particular running
+            instance of Pyblish to co-exist alongside compatible
+            versions.
+        order: Order in which this plug-in is processed. This is
+            used internally to control which plug-ins are processed
+            before another so as to allow plug-ins to communicate
+            with each other. E.g. one plug-in may provide critical
+            information to another and so must be allowed to be
+            processed first.
+
+    """
 
     hosts = list()       # Hosts compatible with plugin
     version = (0, 0, 0)  # Current version of plugin
     order = None
+    optional = False
 
     def __str__(self):
         return type(self).__name__
@@ -113,19 +132,18 @@ class Plugin(object):
     def process(self, context):
         """Perform processing upon context `context`
 
-        process() retruns a generator with (instance, error), with
-        error defaulted to `None`. Each error is injected with a
-        stack-trace of what went wrong, accessible via error.traceback.
-
-        If an instance contains the data "publish" and that data is
-        `False` the instance will not be processed.
+        .. note:: If an instance contains the data "publish" and that data is
+            `False` the instance will not be processed.
 
         Injected data during processing:
-            __is_processed__: Whether or not the instance was processed
-            __processed_by__: Plugins which processed the given instance
+
+        - `__is_processed__`: Whether or not the instance was processed
+        - `__processed_by__`: Plugins which processed the given instance
 
         Returns:
-            Generator, yielding per instance
+            :meth:`process` returns a generator with (instance, error), with
+                error defaulted to `None`. Each error is injected with a
+                stack-trace of what went wrong, accessible via error.traceback.
 
         Yields:
             Tuple (Instance, Exception)
@@ -183,12 +201,12 @@ class Plugin(object):
                         yield instance, err
 
     def process_context(self, context):
-        """Process context `context`
+        """Process `context`
 
         Implement this method in your subclasses whenever you need
         to process the full context. The principal difference here
         is that only one return value is required, exceptions are
-        handled gracefully by :meth:process above.
+        handled gracefully by :meth:`process` above.
 
         Returns:
             None
@@ -215,7 +233,7 @@ class Plugin(object):
         """
 
     def process_all(self, context):
-        """Convenience method of the above :meth:process
+        """Convenience method of the above :meth:`process`
 
         Return:
             None
@@ -238,51 +256,54 @@ class Validator(Plugin):
 
     Raises exception upon failure.
 
+    Attributes:
+        families: Supported families.
+
     """
 
     families = list()
     order = 1
-
-    def fix(self):
-        """Optional auto-fix for when validation fails"""
 
 
 class Extractor(Plugin):
     """Physically separate Instance from Host into corresponding resources
 
     By convention, an extractor always positions files relative the
-    current working file. Use the convenience :meth:commit() to maintain
+    current working file. Use the convenience :meth:`commit` to maintain
     this convention.
+
+    Attributes:
+        families: Supported families.
 
     """
 
     families = list()
     order = 2
 
-    def commit(self, path, instance):
-        """Move path `path` relative current workspace
+    def compute_commit_directory(self, instance):
+        """Return commit directory for `instance`
+
+        The commit directory is derived from a template, located within
+        the configuration. The following variables are substituted at
+        run-time:
+
+        - pyblish: With absolute path to pyblish package directory
+        - prefix: With Config['prefix']
+        - date: With date embedded into `instance`
+        - family: With instance embedded into `instance`
+        - instance: Name of `instance`
+        - user: Currently logged on user, as derived from `instance`
 
         Arguments:
-            path (str): Absolute path to where files are currently located;
-                usually a temporary directory.
-            instance (Instance): Instance located at `path`
+            instance (Instance): Instance for which to compute a directory
 
-        .. note:: Both `path` and `instance` are required for this operation,
-            but it doesn't make sense to include both as argument because
-            they say pretty much the same thing.
+        Returns:
+            Absolute path to directory as string
 
-            An alternative is to embed `path` into instance.set_data() prior
-            to running `commit()` but the path is ONLY needed during commit
-            and will become invalidated afterwards.
-
-            How do we simplify this? Ultimately, the way in which files
-            end up in their final destination, relative the working file,
-            should be automated and not left up to the user.
+        Raises:
+            ExtractorError: When data is missing from `instance`
 
         """
-
-        if instance.context.data('current_file') is None:
-            raise ValueError("Cannot commit with data 'current_file'")
 
         workspace_dir = instance.context.data('workspace_dir')
         if not workspace_dir:
@@ -293,7 +314,7 @@ class Extractor(Plugin):
 
         date = instance.context.data('date')
 
-        # These two are assumed from built-in plugins
+        # This is assumed from default plugins
         assert date
 
         if not workspace_dir:
@@ -307,11 +328,10 @@ class Extractor(Plugin):
         valid_name = pyblish.lib.format_filename(name)
         if name != valid_name:
             self.log.info("Formatting instance name: "
-                          "\"%s\"-> \"%s\""
+                          "\"%s\" -> \"%s\""
                           % (name, valid_name))
             name = valid_name
 
-        # Commit directory based on template, see config.yaml
         variables = {'pyblish': pyblish.lib.main_package_path(),
                      'prefix': config['prefix'],
                      'date': date,
@@ -325,6 +345,20 @@ class Extractor(Plugin):
 
         commit_dir = commit_template.format(**variables)
         commit_dir = os.path.join(workspace_dir, commit_dir)
+
+        return commit_dir
+
+    def commit(self, path, instance):
+        """Move path `path` relative current workspace
+
+        Arguments:
+            path (str): Absolute path to where files are currently located;
+                usually a temporary directory.
+            instance (Instance): Instance located at `path`
+
+        """
+
+        commit_dir = self.compute_commit_directory(instance=instance)
 
         self.log.info("Moving {0} relative working file..".format(instance))
 
@@ -345,7 +379,12 @@ class Extractor(Plugin):
 
 
 class Conformer(Plugin):
-    """Integrates publishes into a pipeline"""
+    """Integrates publishes into a pipeline
+
+    Attributes:
+        families: Supported families.
+
+    """
 
     families = list()
     order = 3
@@ -388,7 +427,7 @@ class AbstractEntity(list):
         """
 
         if key is None:
-            return self._data
+            return self._data.copy()
 
         return self._data.get(key, default)
 
@@ -588,8 +627,6 @@ def register_plugin_path(path):
     To register a new directory, run this command along with the absolute
     path to where you're plug-ins are located.
 
-    .. note:: The path must exist.
-
     Example:
         >>> import os
         >>> my_plugins = os.path.expanduser('~')
@@ -677,9 +714,11 @@ def plugin_paths():
     This function looks at the three potential sources of paths
     and returns a list with all of them together.
 
-    The sources are: Those registered using :func:`register_plugin_path`,
-    those appended to the `PYBLISHPLUGINPATH` and those added to
-    the user-configuration.
+    The sources are:
+
+    - Registered paths using :func:`register_plugin_path`,
+    - Paths from the environment variable `PYBLISHPLUGINPATH`
+    - Paths from configuration
 
     Returns:
         list of paths in which plugins may be locat
@@ -699,16 +738,18 @@ def plugin_paths():
 
 
 def discover(type=None, regex=None, paths=None):
-    """Find plugins within _registered_paths plugin-paths
+    """Find plugins within exposed plugin-paths
 
     Arguments:
-        type (str): Only return plugins of specified type
+        type (str, optional):Only return plugins of specified type
             E.g. validators, extractors. In None is
             specified, return all plugins.
-        regex (str): Limit results to those matching `regex`.
+        regex (str, optional): Limit results to those matching `regex`.
             Matching is done on classes, as opposed to
             filenames, due to a file possibly hosting
             multiple plugins.
+        paths (list, optional): Paths to discover plug-ins from.
+            If no paths are provided, all paths are searched.
 
     """
 

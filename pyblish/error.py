@@ -1,22 +1,22 @@
 class PyblishError(Exception):
-    pass
-
-
-class NoInstancesError(PyblishError):
-    pass
+    """Baseclass for all Pyblish exceptions"""
 
 
 class ValidationError(PyblishError):
-    pass
+    """Baseclass for validation errors"""
 
 
 class SelectionError(PyblishError):
-    pass
+    """Baseclass for selection errors"""
 
 
 class ExtractionError(PyblishError):
-    pass
+    """Baseclass for extraction errors"""
 
 
 class ConformError(PyblishError):
-    pass
+    """Baseclass for conforming errors"""
+
+
+class NoInstancesError(Exception):
+    """Raised if no instances could be found"""

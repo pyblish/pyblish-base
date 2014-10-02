@@ -7,24 +7,38 @@ from .vendor import yaml
 
 
 class Config(dict):
-    """Wrapper for config.yaml, user and custom configuration
+    """Wrapper for default-, user- and custom-configuration
 
     .. note:: Config is a singleton.
 
     Configuration is cascading in the following order;
 
-     _________     ________     ______
-    |         |   |        |   |      |
-    | Default | + | Custom | + | User |
-    |_________|   |________|   |______|
+    .. code-block:: bash
+
+         _________     ________     ______
+        |         |   |        |   |      |
+        | Default | + | Custom | + | User |
+        |_________|   |________|   |______|
 
     In which `User` is being added last and thus overwrites any
     previous configuration.
 
+    Attributes:
+        DEFAULTCONFIG: Name of default configuration file
+        USERCONFIG: Name of user and custom configuration file
+        HOMEDIR: Absolute path to user's home directory
+        PACKAGEDIR: Absolute path to parent package of Config
+        USERCONFIGPATH: Absolute path to user configuration file
+        DEFAULTCONFIGPATH: Absolute path to default configuration file
+
+        default: Access to default configuration
+        custom: Access to custom configuration
+        user: Access to user configuration
+
     Usage:
-        >> config = Config()
-        >> for key, value in config.iteritems():
-        ..     assert key in config
+        >>> config = Config()
+        >>> for key, value in config.iteritems():
+        ...     assert key in config
 
     """
 
@@ -40,8 +54,8 @@ class Config(dict):
     log = logging.getLogger('pyblish.Config')
 
     default = dict()  # Default configuration data
-    user = dict()  # User configuration data
     custom = dict()  # Custom configuration data
+    user = dict()  # User configuration data
 
     def __new__(cls, *args, **kwargs):
         """Make Config into a singleton"""

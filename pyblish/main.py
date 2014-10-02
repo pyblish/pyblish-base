@@ -11,7 +11,6 @@ Attributes:
         currently handlers and restore then once finished.
     log: Current logger
     intro_message: Message printed upon initiating a publish.
-
 """
 
 from __future__ import absolute_import
@@ -24,25 +23,11 @@ import logging
 import pyblish.api
 
 TAB = "    "
-LOG_TEMPATE = "{tab}%(levelname)-8s %(message)s".format(tab=TAB)
+LOG_TEMPATE = "    %(levelname)-8s %(message)s"
 SCREEN_WIDTH = 80
 
 logging_handlers = logging.getLogger().handlers[:]
 log = logging.getLogger('pyblish.main')
-
-intro_message = """
-%s
-pyblish version {version}
-%s
-
-User Configuration @ {user_path}
-
-Available plugin paths:
-{paths}
-
-Available plugins:
-{plugins}
-""" % ("-" * SCREEN_WIDTH, "-" * SCREEN_WIDTH)
 
 __all__ = ['select',
            'validate',
@@ -81,6 +66,7 @@ def _format_plugins(plugins):
 
 def publish(context=None,
             auto_repair=False,
+            include_optional=True,
             logging_level=logging.INFO,
             **kwargs):
     """Publish everything
@@ -92,10 +78,10 @@ def publish(context=None,
     Arguments:
         context (pyblish.api.Context): Optional Context.
             Defaults to creating a new context each time.
-        types (list): Optional list of strings with names of types
-            to perform. Default is to perform all types.
-        delay (float): Add artificial delay to the processing
-            of each plug-in. Used in debugging.
+        auto_repair (bool): Whether or not to attempt to automatically
+            repair instances which fail validation.
+        include_optional (bool): Should validation include plug-ins
+            which has been defined as optional?
         logging_level (logging level): Optional level with which
             to log messages. Default is logging.INFO.
 
@@ -109,11 +95,12 @@ def publish(context=None,
     _orders = kwargs.pop('orders', None) or (0, 1, 2, 3)
     assert not kwargs  # There are no more arguments
 
-    obj = Publish(context)
+    obj = Publish(context,
+                  auto_repair=auto_repair,
+                  include_optional=include_optional,
+                  logging_level=logging_level)
 
-    obj.logging_level = logging_level
     obj.orders = _orders
-    obj.repair = auto_repair
     obj.process()
 
     return obj.context
@@ -154,32 +141,46 @@ def conform(*args, **kwargs):
 
 
 class Publish(object):
-    SCREEN_WIDTH = 80
-    LOG_TEMPATE = "    %(levelname)-8s %(message)s"
-    TAB = "    "
+    """Publishing operator
+
+    Arguments:
+        context (pyblish.api.Context): Optional Context.
+            Defaults to creating a new context each time.
+        auto_repair (bool): Whether or not to attempt to automatically
+            repair instances which fail validation.
+        include_optional (bool): Should validation include plug-ins
+            which has been defined as optional?
+        logging_level (logging level): Optional level with which
+            to log messages. Default is logging.INFO.
+
+    """
 
     log = logging.getLogger()
-    logging_level = logging.INFO
 
     @property
     def duration(self):
         return "%.2f" % (self._time['end'] - self._time['start'])
 
-    def __init__(self, context=None):
+    def __init__(self,
+                 context=None,
+                 auto_repair=False,
+                 include_optional=True,
+                 logging_level=logging.INFO):
+
         if context is None:
             pyblish.api.Context.delete()
             context = pyblish.api.Context()
 
         self.context = context
         self.orders = (0, 1, 2, 3)
-        self.repair = False
+        self.repair = auto_repair
+        self.optional = include_optional
+        self.logging_level = logging_level
 
         self._plugins = pyblish.plugin.Plugins()
         self._conf = pyblish.api.config
         self._time = {'start': None, 'end': None}
         self._errors = list()
-
-        self._plugins.discover()
 
     def process(self):
         """Process all instances within the given context"""
@@ -298,12 +299,18 @@ class Publish(object):
 
         """
 
+        errors = list()
+
+        # Do not include optional plug-ins
+        if plugin.optional and self.optional is False:
+            self._log_plugin(plugin, suffix="(optional and skipped)")
+            return errors
+
         self._log_plugin(plugin)
 
         # Initialise pretty-printing for plug-ins
         self._init_log()
 
-        errors = list()
         for instance, error in plugin().process(self.context):
             if error is None:
                 continue
@@ -345,7 +352,7 @@ class Publish(object):
         self.log = logging.getLogger()
         self.log.handlers[:] = []
 
-        formatter = logging.Formatter(self.LOG_TEMPATE)
+        formatter = logging.Formatter(LOG_TEMPATE)
 
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
@@ -358,18 +365,43 @@ class Publish(object):
         self.log.handlers[:] = logging_handlers[:]
         self.log.setLevel(logging.INFO)
 
-    def _log_plugin(self, plugin):
+    def _log_plugin(self, plugin, suffix=''):
         if hasattr(plugin, 'name'):
-            name = "%s (%s)" % (plugin.__name__, plugin.name)
+            name = "%s (%s) %s" % (plugin.__name__, plugin.name, suffix)
         else:
             name = plugin.__name__
 
         print "{plugin}...".format(
-            tab=self.TAB,
+            tab=TAB,
             plugin=name)
 
     def _log_intro(self):
-        message = intro_message.format(
+        """Provide a preface to what is about to happen
+
+        Including:
+            - Pyblish version
+            - User configuration
+            - Available paths
+            - Available plug-ins
+
+        """
+
+        intro = """
+{line}
+pyblish version {version}
+{line}
+
+User Configuration @ {user_path}
+
+Available plugin paths:
+{paths}
+
+Available plugins:
+{plugins}
+"""
+
+        message = intro.format(
+            line="-" * SCREEN_WIDTH,
             version=pyblish.__version__,
             user_path=(self._conf['USERCONFIGPATH']
                        if self._conf.user else "None"),
@@ -407,7 +439,7 @@ class Publish(object):
                                                 func=func))
 
         self.log.error("{tab}{i}: {e} {tb}".format(
-            tab=self.TAB,
+            tab=TAB,
             i=instance,
             e=error,
             tb=traceback if traceback else ''))
@@ -458,7 +490,7 @@ class Publish(object):
             conform_dirs = instance.data('conform_dirs')
 
             _message = "{tab}- \"{inst}\" ".format(
-                tab=self.TAB,
+                tab=TAB,
                 inst=instance)
 
             _message += "processed by:"
@@ -475,11 +507,11 @@ class Publish(object):
 
             if commit_dir:
                 message += "{tab}Committed to: {dir}".format(
-                    tab=self.TAB*2, dir=commit_dir) + "\n"
+                    tab=TAB*2, dir=commit_dir) + "\n"
 
             if conform_dirs:
                 message += "{tab}Conformed to: {dir}".format(
-                    tab=self.TAB*2, dir=", ".join(conform_dirs)) + "\n"
+                    tab=TAB*2, dir=", ".join(conform_dirs)) + "\n"
 
         print  # newline
         print message
