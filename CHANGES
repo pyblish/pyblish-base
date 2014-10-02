@@ -25,6 +25,9 @@ Version 1.0.8
 - Plug-ins for other hosts than the currently running host are
     discarded upon discovery. This means that they will be invisible
     to any incompatible host.
+- Optional plug-ins. A plug-in may now be marked "optional" and thus
+    be ignored during processing by user-request using
+    pyblish.main.publish(include_optional=False)
 
 Version 1.0.7
 -------------
