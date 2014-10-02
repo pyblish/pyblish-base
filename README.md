@@ -5,17 +5,19 @@
 [![PyPI version][pypi]][pypi_repo]
 [![Code Health][landscape]][landscape_repo]
 
-Plug-in driven automation framework for content.
+An automation micro-framework for content.
 
-- [Guide][guide]
-- [Usergroup][usergroup]
+- [User Guide][guide]
+- [API Documentation][api]
+- [Help][usergroup]
 - [Wiki][wiki]
 
 For more information, see our [Getting Started Guide][guide]
 
 
-[logo]: https://github.com/abstractfactory/pyblish/wiki/images/logo-long.png
+[logo]: https://github.com/abstractfactory/pyblish/wiki/images/logo_macaw_small.png
 [guide]: http://pyblish.com
+[api]: http://docs.pyblish.com
 [usergroup]: https://groups.google.com/forum/#!forum/pyblish
 [wiki]: https://github.com/abstractfactory/pyblish/wiki
 
