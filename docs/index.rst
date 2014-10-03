@@ -3,10 +3,10 @@
 
 API documentation for Pyblish v\ |version|.
 
-Objects
-^^^^^^^
-
 .. module:: pyblish.plugin
+
+Objects
+=======
 
 Central objects used throughout Pyblish.
 
@@ -22,7 +22,7 @@ Central objects used throughout Pyblish.
     Conformer
 
 Functions
-^^^^^^^^^
+=========
 
 Helper utilities.
 
@@ -41,20 +41,20 @@ Helper utilities.
     plugins_by_host
     instances_by_plugin
 
-Configuration
-^^^^^^^^^^^^^
-
 .. module:: pyblish
+
+Configuration
+=============
 
 .. autosummary::
     :nosignatures:
 
     Config
 
-Library
-^^^^^^^
-
 .. module:: pyblish.lib
+
+Library
+=======
 
 .. autosummary::
     :nosignatures:
@@ -62,12 +62,12 @@ Library
     log
     format_filename
 
+.. module:: pyblish.error
+
 Exceptions
-^^^^^^^^^^
+==========
 
 Exceptions raised that are specific to Pyblish.
-
-.. module:: pyblish.error
 
 .. autosummary::
     :nosignatures:
@@ -79,6 +79,7 @@ Exceptions raised that are specific to Pyblish.
     ConformError 
 
 .. module:: pyblish.plugin
+
 
 Context
 -------
