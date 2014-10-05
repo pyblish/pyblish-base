@@ -500,7 +500,6 @@ class Context(AbstractEntity):
         """
 
         instance = Instance(name, parent=self)
-        self.add(instance)
         return instance
 
 
@@ -541,6 +540,9 @@ class Instance(AbstractEntity):
         assert parent is None or isinstance(parent, AbstractEntity)
         self.name = name
         self.parent = parent
+
+        if parent is not None:
+            parent.add(self)
 
     @property
     def context(self):
