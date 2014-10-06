@@ -5,11 +5,12 @@ import pyblish.plugin
 from pyblish.vendor import mock
 from pyblish.vendor.nose.tools import with_setup
 from pyblish.tests.lib import (
-    setup, teardown, FAMILY, HOST, setup_failing, setup_full)
+    teardown, FAMILY, HOST, setup_failing, setup_full)
 
 
+@mock.patch('pyblish.main.Publish.log')
 @with_setup(setup_full, teardown)
-def test_publish_all():
+def test_publish_all(_):
     """publish() calls upon each convenience function"""
     ctx = pyblish.plugin.Context()
     pyblish.main.publish(context=ctx)
@@ -23,6 +24,7 @@ def test_publish_all():
 
 @mock.patch('pyblish.main.Publish.log')
 def test_publish_all_no_instances(mock_log):
+    """Having no instances is fine, a warning is logged"""
     ctx = pyblish.plugin.Context()
     pyblish.main.publish(ctx)
     assert mock_log.warning.called
@@ -30,6 +32,7 @@ def test_publish_all_no_instances(mock_log):
 
 @with_setup(setup_full, teardown)
 def test_publish_all_no_context():
+    """Not passing a context is fine"""
     ctx = pyblish.main.publish()
 
     for inst in ctx:
@@ -39,8 +42,9 @@ def test_publish_all_no_context():
         assert inst.data('conformed') is True
 
 
+@mock.patch('pyblish.main.Publish.log')
 @with_setup(setup_full, teardown)
-def test_validate_all():
+def test_validate_all(_):
     """validate_all() calls upon two of the convenience functions"""
     ctx = pyblish.plugin.Context()
     pyblish.main.validate_all(context=ctx)
@@ -52,8 +56,9 @@ def test_validate_all():
         assert inst.data('conformed') is False
 
 
+@mock.patch('pyblish.main.Publish.log')
 @with_setup(setup_full, teardown)
-def test_convenience():
+def test_convenience(_):
     """Convenience function work"""
     ctx = pyblish.plugin.Context()
 
@@ -90,8 +95,9 @@ def test_convenience():
         assert inst.data('conformed') is True
 
 
+@mock.patch('pyblish.main.Publish.log')
 @with_setup(setup_failing, teardown)
-def test_main_safe_processes_fail():
+def test_main_safe_processes_fail(_):
     """Failing selection, extraction or conform merely logs a message"""
     ctx = pyblish.plugin.Context()
     pyblish.main.select(ctx)

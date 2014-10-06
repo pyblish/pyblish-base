@@ -9,5 +9,5 @@ from pyblish.vendor import nose
 
 if __name__ == '__main__':
     argv = sys.argv[:]
-    argv.extend(['--verbose', '--exclude=vendor', '--with-doctest'])
+    argv.extend(['--exclude=vendor', '--with-doctest'])
     nose.main(argv=argv)
