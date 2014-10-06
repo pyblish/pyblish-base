@@ -175,7 +175,7 @@ class Plugin(object):
                         self.log.info("Skipping %s" % instance)
                         continue
 
-                    self.log.debug("Processing instance: %s" % instance)
+                    self.log.info("Processing instance: \"%s\"" % instance)
 
                     # Inject data
                     processed_by = instance.data('__processed_by__') or list()
@@ -360,7 +360,7 @@ class Extractor(Plugin):
 
         commit_dir = self.compute_commit_directory(instance=instance)
 
-        self.log.info("Moving {0} relative working file..".format(instance))
+        self.log.info("Moving \"%s\" relative working file.." % instance)
 
         if os.path.isdir(commit_dir):
             self.log.info("Existing directory found, merging..")
@@ -505,7 +505,7 @@ class Context(AbstractEntity):
 
 @pyblish.lib.log
 class Instance(AbstractEntity):
-    """An individually publishable component within scene
+    """An in-memory representation of one or more files
 
     Examples include rigs, models.
 
@@ -698,9 +698,7 @@ def environment_paths():
     env_var = config['paths_environment_variable']
     env_val = os.environ.get(env_var)
     if env_val:
-        sep = ';' if os.name == 'nt' else ':'
-        env_paths = env_val.split(sep)
-
+        env_paths = env_val.split(os.pathsep)
         for path in env_paths:
             plugin_path = _post_process_path(path)
             paths.append(plugin_path)
