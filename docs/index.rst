@@ -84,7 +84,7 @@ Exceptions raised that are specific to Pyblish.
 Context
 -------
 
-The context is a container of one or more instances along with metadata to describe them all; such as the current working directory or logged on user.
+The context is a container of one or more objects of type :class:`Instance` along with metadata to describe them all; such as the current working directory or logged on user.
 
 .. autoclass:: Context
     :members:
