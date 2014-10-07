@@ -7,6 +7,6 @@ dist
 *.pyc
 cover
 .coverage
-docs/_**
+docs/_*
 build
 playground.py
