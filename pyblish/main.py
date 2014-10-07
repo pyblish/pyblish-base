@@ -290,7 +290,7 @@ class Publish(object):
         self._log_plugin(plugin)
 
         for instance, error in plugin().process(self.context):
-            if instance is None:
+            if instance is None and error is None:
                 self.log.debug("Skipped, no compatible instances.")
                 continue
 
