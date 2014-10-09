@@ -28,6 +28,8 @@ import pyblish
 import pyblish.lib
 import pyblish.error
 
+from pyblish.vendor import iscompatible
+
 config = pyblish.Config()
 
 
@@ -115,6 +117,11 @@ class Plugin(object):
             with each other. E.g. one plug-in may provide critical
             information to another and so must be allowed to be
             processed first.
+        optional: Whether or not plug-in can be skipped by the user.
+        requires: Which version of Pyblish is required by this plug-in.
+            Plug-ins requiring a version newer than the current version
+            will not be loaded. 1.0.8 was when :attr:`Plugin.requires`
+            was first introduced.
 
     """
 
@@ -122,6 +129,7 @@ class Plugin(object):
     version = (0, 0, 0)  # Current version of plugin
     order = None
     optional = False
+    requires = "pyblish>=1"
 
     def __str__(self):
         return type(self).__name__
@@ -921,6 +929,12 @@ def _discover_type(type, paths, regex=None):
                 if not _isvalid(obj):
                     continue
 
+                if not _iscompatible(obj):
+                    log.warning(
+                        "Plug-in %s not compatible with this version "
+                        "(%s) of Pyblish." % (obj, pyblish.__version__))
+                    continue
+
                 # Only include plug-ins compatible
                 # with the currently running host.
                 if not any(["*" in obj.hosts, current_host() in obj.hosts]):
@@ -939,6 +953,18 @@ def _discover_type(type, paths, regex=None):
                     plugins[obj.__name__] = obj
 
     return plugins.values()
+
+
+def _iscompatible(plugin):
+    """Lookup compatibility between plug-in and current version of Pyblish
+
+    Arguments:
+        plugin (Plugin): Plug-in to test against
+
+    """
+
+    return iscompatible.iscompatible(
+        requirements=plugin.requires, version=pyblish.version_info)
 
 
 def _isvalid(plugin):

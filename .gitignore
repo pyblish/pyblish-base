@@ -10,3 +10,4 @@ cover
 docs/_*
 build
 playground.py
+*.sublime-*
