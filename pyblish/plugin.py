@@ -974,6 +974,10 @@ def _isvalid(plugin):
         log.error("Plug-in must have an order")
         return False
 
+    if not isinstance(plugin.requires, basestring):
+        log.error("Plug-in requires must be of type string")
+        return False
+
     # Helper functions
     def has_families(_plugin):
         if not getattr(_plugin, 'families'):
