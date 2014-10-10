@@ -199,7 +199,8 @@ class Publish(object):
                     tab=TAB,
                     exception=error,
                     plugin=error.plugin.__name__))
-            print VALIDATIONS_FAILED_TEMPLATE.format(failures=failures)
+            print VALIDATIONS_FAILED_TEMPLATE.format(
+                failures="\n".join(failures))
 
         except Exception as exc:
             self.log.error("Unhandled exception: %s" % exc)
