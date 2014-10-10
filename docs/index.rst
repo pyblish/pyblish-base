@@ -13,6 +13,7 @@ Central objects used throughout Pyblish.
 .. autosummary::
     :nosignatures:
 
+    AbstractEntity
     Context
     Instance
     Plugin
@@ -80,6 +81,16 @@ Exceptions raised that are specific to Pyblish.
 
 .. module:: pyblish.plugin
 
+
+AbstractEntity
+--------------
+
+Superclass to Context and Instance, providing the data plug-in to plug-in
+API via the data member.
+
+.. autoclass:: AbstractEntity
+    :members:
+    :undoc-members:
 
 Context
 -------
