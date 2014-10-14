@@ -26,8 +26,22 @@ TAB = "    "
 LOG_TEMPATE = "    %(levelname)-8s %(message)s"
 SCREEN_WIDTH = 80
 
-logging_handlers = logging.getLogger().handlers[:]
-log = logging.getLogger('pyblish.main')
+# Messages
+NO_INSTANCES_ERROR = "Cancelled due to not finding any instances"
+SELECTION_ERROR = "Selection failed"
+VALIDATION_ERROR = "Validation failed"
+
+# Templates
+AUTO_REPAIR = "There were errors, attempting to auto-repair.."
+COMMITTED_TEMPLATE = "{tab}Committed to: {dir}"
+CONFORMED_TEMPLATE = "{tab}Conformed to: {dir}"
+FAILED_VALIDATION_TEMPLATE = "{tab}- \"{instance}\": {exception} ({plugin})"
+SUCCESS_TEMPLATE = "Processed {num} instance{s} {status} in {seconds}s"
+TRACEBACK_TEMPLATE = "(Line {line} in \"{file}\" @ \"{func}\")"
+ERROR_TEMPLATE = "{tab}{instance}: {error} {traceback}"
+VALIDATIONS_FAILED_TEMPLATE = """
+These validations failed:
+{failures}"""
 
 __all__ = ['select',
            'validate',
@@ -35,33 +49,6 @@ __all__ = ['select',
            'conform',
            'publish',
            'publish_all']
-
-
-def _format_paths(paths):
-    """Return paths at one new each"""
-    message = ''
-    for path in paths:
-        message += "{0}- {1}\n".format(TAB, path)
-    return message[:-1]  # Discard last newline
-
-
-def _format_plugins(plugins):
-    message = ''
-    for plugin in sorted(plugins, key=lambda p: p.__name__):
-        line = "{tab}- {plug}".format(
-            tab=TAB, plug=plugin.__name__)
-
-        if hasattr(plugin, 'families'):
-            line = line.ljust(50) + " "
-            for family in plugin.families:
-                line += "%s, " % family
-            line = line[:-2]
-
-        line += "\n"
-
-        message += line
-
-    return message[:-1]
 
 
 def publish(context=None,
@@ -189,27 +176,31 @@ class Publish(object):
 
         log_summary = False
 
+        # Initialise pretty-printing for plug-ins
+        self._init_log()
+
         try:
             for order in self.orders:
                 self.process_order(order)
 
         except pyblish.api.NoInstancesError as exc:
-            self.log.warning("Cancelled due to not finding any instances")
+            self.log.warning(NO_INSTANCES_ERROR)
 
         except pyblish.api.SelectionError:
-            self.log.error("Selection failed")
+            self.log.error(SELECTION_ERROR)
 
         except pyblish.api.ValidationError as exc:
-            self.log.error("Validation failed")
+            self.log.error(VALIDATION_ERROR)
 
-            print  # newline
-            print "These validations failed:"
+            failures = list()
             for error in exc.errors:
-                print "{tab}- \"{inst}\": {exc} ({plug})".format(
-                    inst=error.instance,
+                failures.append(FAILED_VALIDATION_TEMPLATE.format(
+                    instance=error.instance,
                     tab=TAB,
-                    exc=error,
-                    plug=error.plugin.__name__)
+                    exception=error,
+                    plugin=error.plugin.__name__))
+            print VALIDATIONS_FAILED_TEMPLATE.format(
+                failures="\n".join(failures))
 
         except Exception as exc:
             self.log.error("Unhandled exception: %s" % exc)
@@ -226,20 +217,11 @@ class Publish(object):
 
         self._log_time()
 
-        # Revert to a simpler handler
-        logging.getLogger().handlers[:] = []
-
-        formatter = logging.Formatter("%(levelname)s - %(message)s")
-
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(formatter)
-        logging.getLogger().addHandler(stream_handler)
-
         if log_summary:
             self._log_summary()
-        self._log_success()
 
         self._reset_log()
+        self._log_success()
 
     def process_order(self, order):
         """Process context using plug-ins with the specified `order`
@@ -308,10 +290,11 @@ class Publish(object):
 
         self._log_plugin(plugin)
 
-        # Initialise pretty-printing for plug-ins
-        self._init_log()
-
         for instance, error in plugin().process(self.context):
+            if instance is None and error is None:
+                self.log.debug("Skipped, no compatible instances.")
+                continue
+
             if error is None:
                 continue
 
@@ -333,14 +316,13 @@ class Publish(object):
 
     def _repair(self, plugin, instance):
         if hasattr(plugin, 'repair_instance'):
-            self.log.warning("There were errors, attempting "
-                             "to auto-repair..")
+            self.log.warning(AUTO_REPAIR)
             try:
                 plugin().repair_instance(instance)
 
             except Exception as err:
                 self.log.warning("Could not auto-repair..")
-                self.log.warning(err)
+                self._log_error(instance, err)
 
             else:
                 self.log.info("Auto-repair successful")
@@ -349,7 +331,7 @@ class Publish(object):
         return False
 
     def _init_log(self):
-        self.log = logging.getLogger()
+        self.log._handlers = list(self.log.handlers)
         self.log.handlers[:] = []
 
         formatter = logging.Formatter(LOG_TEMPATE)
@@ -361,8 +343,7 @@ class Publish(object):
         self.log.setLevel(self.logging_level)
 
     def _reset_log(self):
-        self.log = logging.getLogger()
-        self.log.handlers[:] = logging_handlers[:]
+        self.log.handlers[:] = self.log._handlers
         self.log.setLevel(logging.INFO)
 
     def _log_plugin(self, plugin, suffix=''):
@@ -433,16 +414,15 @@ Available plugins:
 
         if traceback:
             fname, line_number, func, exc = traceback
-            traceback = ("(Line {line} in \"{file}\" "
-                         "@ \"{func}\")".format(line=line_number,
-                                                file=fname,
-                                                func=func))
+            traceback = (TRACEBACK_TEMPLATE.format(line=line_number,
+                                                   file=fname,
+                                                   func=func))
 
-        self.log.error("{tab}{i}: {e} {tb}".format(
+        self.log.error(ERROR_TEMPLATE.format(
             tab=TAB,
-            i=instance,
-            e=error,
-            tb=traceback if traceback else ''))
+            instance=instance,
+            error=error,
+            traceback=traceback if traceback else ''))
 
     def _log_time(self):
         """Return time-taken message"""
@@ -472,8 +452,7 @@ Available plugins:
 
         num_processed_instances = len(processed_instances)
         (self.log.warning if self._errors else self.log.info)(
-            "Processed {num} instance{s} {status} "
-            "in {seconds}s".format(
+            SUCCESS_TEMPLATE.format(
                 num=num_processed_instances,
                 s="s" if num_processed_instances > 1 else "",
                 status=status,
@@ -487,7 +466,7 @@ Available plugins:
             is_processed = instance.data('__is_processed__')
             processed_by = instance.data('__processed_by__')
             commit_dir = instance.data('commit_dir')
-            conform_dirs = instance.data('conform_dirs')
+            conform_dir = instance.data('conform_dir')
 
             _message = "{tab}- \"{inst}\" ".format(
                 tab=TAB,
@@ -506,12 +485,12 @@ Available plugins:
             message += _message + "\n"
 
             if commit_dir:
-                message += "{tab}Committed to: {dir}".format(
+                message += COMMITTED_TEMPLATE.format(
                     tab=TAB*2, dir=commit_dir) + "\n"
 
-            if conform_dirs:
-                message += "{tab}Conformed to: {dir}".format(
-                    tab=TAB*2, dir=", ".join(conform_dirs)) + "\n"
+            if conform_dir:
+                message += CONFORMED_TEMPLATE.format(
+                    tab=TAB*2, dir=conform_dir) + "\n"
 
         print  # newline
         print message
@@ -519,3 +498,30 @@ Available plugins:
 
 # For backwards compatibility
 publish_all = publish
+
+
+def _format_paths(paths):
+    """Return paths at one new each"""
+    message = ''
+    for path in paths:
+        message += "{0}- {1}\n".format(TAB, path)
+    return message[:-1]  # Discard last newline
+
+
+def _format_plugins(plugins):
+    message = ''
+    for plugin in sorted(plugins, key=lambda p: p.__name__):
+        line = "{tab}- {plug}".format(
+            tab=TAB, plug=plugin.__name__)
+
+        if hasattr(plugin, 'families'):
+            line = line.ljust(50) + " "
+            for family in plugin.families:
+                line += "%s, " % family
+            line = line[:-2]
+
+        line += "\n"
+
+        message += line
+
+    return message[:-1]

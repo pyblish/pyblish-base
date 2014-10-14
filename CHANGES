@@ -3,6 +3,19 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.0.9
+-------------
+
+- Requires. Plug-ins may now specify a version with which they
+    are compatible with, using [iscompatible][] which is a
+    requirements.txt-like syntax for dependency specifications.
+- Improved logging, including visualisation of which instance
+    is currently being processed by each plug-in.
+- iscompatible is now included in /vendor
+
+[iscompatible]: https://github.com/mottosso/iscompatible
+
+
 Version 1.0.8
 -------------
 
