@@ -749,9 +749,10 @@ def discover(type=None, regex=None, paths=None):
     """Find plugins within exposed plugin-paths
 
     Arguments:
-        type (str, optional):Only return plugins of specified type
-            E.g. validators, extractors. In None is
-            specified, return all plugins.
+        type (str, optional): Only return plugins of specified type
+            E.g. validators, extractors. In None is specified, return
+            all plugins. Available options are "selectors", validators",
+            "extractors", "conformers".
         regex (str, optional): Limit results to those matching `regex`.
             Matching is done on classes, as opposed to
             filenames, due to a file possibly hosting
