@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 
-tests_dir = os.path.abspath('pyblish/backend/tests/plugins')
+tests_dir = os.path.abspath('pyblish/tests/plugins')
 tests_package_data = list()
 for root, dirs, files in os.walk(tests_dir):
     relpath = os.path.relpath(root, tests_dir)
@@ -47,8 +47,8 @@ setup(
     classifiers=classifiers,
     package_data={
         'pyblish': ['plugins/*.py'],
-        'pyblish.backend': ['*.yaml'],
-        'pyblish.backend.tests': tests_package_data
+        'pyblish': ['*.yaml'],
+        'pyblish.tests': tests_package_data
     },
     entry_points={
         'console_scripts': ['pyblish = pyblish.cli:main']
