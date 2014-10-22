@@ -46,8 +46,7 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'pyblish': ['plugins/*.py'],
-        'pyblish': ['*.yaml'],
+        'pyblish': ['plugins/*.py', '*.yaml'],
         'pyblish.tests': tests_package_data
     },
     entry_points={
