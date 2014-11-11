@@ -1,10 +1,10 @@
 ### ![][logo]
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/abstractfactory/pyblish?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![Build Status][travis]][travis_repo]
 [![Coverage Status][cover]][cover_repo]
 [![PyPI version][pypi]][pypi_repo]
 [![Code Health][landscape]][landscape_repo]
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/abstractfactory/pyblish?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 An automation micro-framework for content.
 
