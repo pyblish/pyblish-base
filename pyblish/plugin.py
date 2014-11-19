@@ -972,11 +972,11 @@ def _isvalid(plugin):
     """Validate plugin"""
 
     if plugin.order is None:
-        log.error("Plug-in must have an order")
+        log.error("Plug-in must have an order: %s" % plugin)
         return False
 
     if not isinstance(plugin.requires, basestring):
-        log.error("Plug-in requires must be of type string")
+        log.error("Plug-in requires must be of type string: %s" % plugin)
         return False
 
     # Helper functions
