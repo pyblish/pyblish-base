@@ -137,14 +137,17 @@ class Plugin(object):
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
 
-    def process(self, context):
+    def process(self, context, instances=None):
         """Perform processing upon context `context`
+
+        Arguments:
+            context (Context): Context to process
+            instances (list): Limit which instances to process
 
         .. note:: If an instance contains the data "publish" and that data is
             `False` the instance will not be processed.
 
         Injected data during processing:
-
         - `__is_processed__`: Whether or not the instance was processed
         - `__processed_by__`: Plugins which processed the given instance
 
@@ -176,12 +179,24 @@ class Plugin(object):
                 for instance in compatible_instances:
                     if instance.has_data('publish'):
                         if instance.data('publish', default=True) is False:
-                            self.log.info("Skipping %s" % instance)
+                            self.log.info("Skipping %s, "
+                                          "publish-flag was false" % instance)
                             continue
 
                     elif not config['publish_by_default']:
-                        self.log.info("Skipping %s" % instance)
+                        self.log.info("Skipping %s, "
+                                      "no publish-flag was "
+                                      "set, and publishing "
+                                      "by default is False" % instance)
                         continue
+
+                    # Limit instances to those specified in `instances`
+                    if instances is not None:
+                        if not instance.data("name") in instances:
+                            self.log.info("Skipping %s, "
+                                          "not included in "
+                                          "exclusion list" % instance)
+                            continue
 
                     self.log.info("Processing instance: \"%s\"" % instance)
 
