@@ -3,6 +3,11 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.0.11
+--------------
+
+- Added ability to process individual instances from within context
+
 Version 1.0.10
 --------------
 

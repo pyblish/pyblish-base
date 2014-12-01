@@ -25,8 +25,14 @@ def log(cls):
 
     module = cls.__module__
     name = cls.__name__
-    logname = "%s.%s" % (module, name)
+
+    # Package name appended, for filtering of LogRecord instances
+    logname = "pyblish.%s.%s" % (module, name)
     cls.log = logging.getLogger(logname)
+
+    # All messages are handled by root-logger
+    cls.log.propagate = True
+
     return cls
 
 

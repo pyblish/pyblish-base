@@ -6,7 +6,9 @@ import os
 import pyblish.lib
 import pyblish.plugin
 
-# from pyblish.vendor.nose.tools import raises
+from pyblish.tests.lib import (
+    setup_full, teardown)
+from pyblish.vendor.nose.tools import with_setup
 
 # Setup
 HOST = 'python'
@@ -61,6 +63,29 @@ def test_instance_equality():
     assert inst1 != inst2
     assert inst2 == inst3
 
+
+@with_setup(setup_full, teardown)
+def test_limited_to_instances():
+    """Only process instances specified in argument `instances`"""
+    ctx = pyblish.plugin.Context()
+
+    for name in ("Instance01", "Instance02", "Instance03"):
+        inst = ctx.create_instance(name=name)
+        inst.set_data("family", "full")
+
+    plugin = pyblish.plugin.discover(regex="ValidateInstance")[0]
+    assert plugin
+
+    for inst, err in plugin().process(ctx, instances=["Instance01",
+                                                      "Instance03"]):
+        assert err is None
+
+    for inst in ctx:
+        name = inst.data("name")
+        if name in ["Instance01", "Instance03"]:
+            assert inst.data('validated', False) is True
+        if name == "Instance02":
+            assert inst.data('validated', False) is False
 
 if __name__ == '__main__':
     test_add_remove_instances()
