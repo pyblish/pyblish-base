@@ -25,6 +25,15 @@ classifiers = [
 ]
 
 
+# Collect all plug-ins used in tests.
+#
+# This ends up becoming a list of relative paths, starting
+# from the pyblish package dir.
+#
+# E.g.
+#   ['plugins//*.py', 'plugins/custom/*.py',
+#    'plugins/duplicate/*.py', ... ]
+#
 tests_dir = os.path.abspath('pyblish/tests/plugins')
 tests_package_data = list()
 for root, dirs, files in os.walk(tests_dir):
@@ -46,8 +55,8 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        'pyblish': ['plugins/*.py', '*.yaml'],
-        'pyblish.tests': tests_package_data
+        'pyblish': ['plugins/*.py', '*.yaml', "vendor/nose/*.txt"],
+        'pyblish.tests': tests_package_data,
     },
     entry_points={
         'console_scripts': ['pyblish = pyblish.cli:main']
