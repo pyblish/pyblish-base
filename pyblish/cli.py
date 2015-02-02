@@ -13,6 +13,11 @@ Attributes:
 
     intro_message: Message displayed during each command.
 
+Note:
+    It's assumed that the cli.py will ever only be loaded once per process.
+    Like when running it from a terminal, it will be loaded and then the
+    entire Python process will be killed.
+
 """
 
 import os
@@ -283,13 +288,18 @@ def main(ctx,
 
     # Resolve plugin paths from both defaults and those
     # passed as argument via `plugin_paths` and `add_plugin_paths`
+    if plugin_paths:
+        for path in plugin_paths:
+            if not os.path.isdir(path):
+                return click.echo("Path is not a directory: %s" % path)
+
     if not plugin_paths:
         plugin_paths = pyblish.api.plugin_paths()
 
     for plugin_path in add_plugin_paths:
         processed_path = pyblish.plugin._post_process_path(plugin_path)
         if processed_path in plugin_paths:
-            log.warning("path already present: %s" % plugin_path)
+            click.echo("Path already present: %s" % plugin_path)
             continue
         plugin_paths.append(processed_path)
 

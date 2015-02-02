@@ -900,6 +900,11 @@ def _discover_type(type, paths, regex=None):
                 path))
             continue
 
+        if not os.path.isdir(path):
+            log.warning("Skipping: {0} - Path is not a directory".format(
+                path))
+            continue
+
         discovered_paths.append(normpath)
 
         # Look within each directory for available plugins.

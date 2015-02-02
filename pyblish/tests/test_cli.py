@@ -179,12 +179,12 @@ def test_version():
     assert pyblish.__version__ in result.output
 
 
-@mock.patch('pyblish.cli.log')
+@mock.patch('pyblish.cli.click.echo')
 @with_setup(setup, teardown)
-def test_invalid_path(mock_log):
+def test_invalid_path(echo):
     """You can't add an invalid path"""
     runner = CliRunner()
     runner.invoke(pyblish.cli.main, ['--plugin-path',
                                      '/invalid/path'])
-    assert mock_log.error.called
-    assert mock_log.error.call_count == 1
+    assert echo.called
+    assert echo.call_count == 1
