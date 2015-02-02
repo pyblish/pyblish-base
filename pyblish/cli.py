@@ -283,6 +283,12 @@ def main(ctx,
 
     # Resolve plugin paths from both defaults and those
     # passed as argument via `plugin_paths` and `add_plugin_paths`
+    if plugin_paths:
+        for path in plugin_paths:
+            if not os.path.isdir(path):
+                log.error("Path is not a directory: %s" % path)
+                return
+
     if not plugin_paths:
         plugin_paths = pyblish.api.plugin_paths()
 
