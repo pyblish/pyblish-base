@@ -60,7 +60,7 @@ patterns = {
 }
 
 
-class Plugins(list):
+class Manager(list):
     """Plug-in manager"""
     def __init__(self, paths=None):
         self.paths = paths or plugin_paths()

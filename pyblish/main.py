@@ -164,7 +164,7 @@ class Publish(object):
         self.optional = include_optional
         self.logging_level = logging_level
 
-        self._plugins = pyblish.plugin.Plugins()
+        self._plugins = pyblish.plugin.Manager()
         self._conf = pyblish.api.config
         self._time = {'start': None, 'end': None}
         self._errors = list()
