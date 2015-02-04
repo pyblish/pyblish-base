@@ -10,7 +10,6 @@ with "validate" and ends with ".py"
 
 Attributes:
     patterns: Regular expressions used for lookup of plugins.
-    _registered_paths: List of all _registered_paths plugin-paths
 
 """
 
@@ -30,8 +29,6 @@ import pyblish.error
 
 from pyblish.vendor import iscompatible
 
-config = pyblish.Config()
-
 
 __all__ = ['Plugin',
            'Selector',
@@ -49,16 +46,18 @@ __all__ = ['Plugin',
            'deregister_plugin_path',
            'deregister_all']
 
-patterns = {
-    'validators': config['validators_regex'],
-    'extractors': config['extractors_regex'],
-    'selectors': config['selectors_regex'],
-    'conformers': config['conformers_regex']
-}
-
-_registered_paths = list()
 
 log = logging.getLogger('pyblish.plugin')
+
+if pyblish.config is None:
+    pyblish.config = pyblish.Config()
+
+patterns = {
+    'validators': pyblish.config['validators_regex'],
+    'extractors': pyblish.config['extractors_regex'],
+    'selectors': pyblish.config['selectors_regex'],
+    'conformers': pyblish.config['conformers_regex']
+}
 
 
 class Plugins(list):
@@ -183,7 +182,7 @@ class Plugin(object):
                                           "publish-flag was false" % instance)
                             continue
 
-                    elif not config['publish_by_default']:
+                    elif not pyblish.config['publish_by_default']:
                         self.log.info("Skipping %s, "
                                       "no publish-flag was "
                                       "set, and publishing "
@@ -356,14 +355,14 @@ class Extractor(Plugin):
             name = valid_name
 
         variables = {'pyblish': pyblish.lib.main_package_path(),
-                     'prefix': config['prefix'],
+                     'prefix': pyblish.config['prefix'],
                      'date': date,
                      'family': instance.data('family'),
                      'instance': name,
                      'user': instance.data('user')}
 
         # Restore separators to those native to the current OS
-        commit_template = config['commit_template']
+        commit_template = pyblish.config['commit_template']
         commit_template = commit_template.replace('/', os.sep)
 
         commit_dir = commit_template.format(**variables)
@@ -426,7 +425,7 @@ class AbstractEntity(list):
 
         """
 
-        if not other in self:
+        if other not in self:
             return self.append(other)
 
     def remove(self, other):
@@ -662,26 +661,26 @@ def register_plugin_path(path):
 
     processed_path = _post_process_path(path)
 
-    if processed_path in _registered_paths:
+    if processed_path in pyblish._registered_paths:
         return log.warning("Path already registered: {0}".format(path))
 
-    _registered_paths.append(processed_path)
+    pyblish._registered_paths.append(processed_path)
 
 
 def deregister_plugin_path(path):
-    """Remove a _registered_paths path
+    """Remove a pyblish._registered_paths path
 
     Raises:
         KeyError if `path` isn't registered
 
     """
 
-    _registered_paths.remove(path)
+    pyblish._registered_paths.remove(path)
 
 
 def deregister_all():
     """Mainly used in tests"""
-    _registered_paths[:] = []
+    pyblish._registered_paths[:] = []
 
 
 def _post_process_path(path):
@@ -691,15 +690,15 @@ def _post_process_path(path):
 
 def registered_paths():
     """Return paths added via registration"""
-    log.debug("Registered paths: %s" % _registered_paths)
-    return _registered_paths
+    log.debug("Registered paths: %s" % pyblish._registered_paths)
+    return pyblish._registered_paths
 
 
 def configured_paths():
     """Return paths added via configuration"""
     paths = list()
 
-    for path_template in config['paths']:
+    for path_template in pyblish.config['paths']:
         variables = {'pyblish': pyblish.lib.main_package_path()}
 
         plugin_path = path_template.format(**variables)
@@ -718,7 +717,7 @@ def environment_paths():
 
     paths = list()
 
-    env_var = config['paths_environment_variable']
+    env_var = pyblish.config['paths_environment_variable']
     env_val = os.environ.get(env_var)
     if env_val:
         env_paths = env_val.split(os.pathsep)

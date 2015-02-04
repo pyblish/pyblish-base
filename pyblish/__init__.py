@@ -1,9 +1,20 @@
+"""Pyblish initialisation
+
+Attributes:
+    config: Currently active instance of configuration.
+    _registered_paths: Currently registered plug-in paths
+
+"""
 
 import os
 import logging
 
 from .version import *
 from .vendor import yaml
+
+
+config = None
+_registered_paths = list()
 
 
 class Config(dict):
@@ -46,12 +57,12 @@ class Config(dict):
 
     DEFAULTCONFIG = "config.yaml"
     USERCONFIG = ".pyblish"
-    HOMEDIR = os.path.expanduser('~')
+    HOMEDIR = os.path.expanduser("~")
     PACKAGEDIR = os.path.dirname(__file__)
     USERCONFIGPATH = os.path.join(HOMEDIR, USERCONFIG)
     DEFAULTCONFIGPATH = os.path.join(PACKAGEDIR, DEFAULTCONFIG)
 
-    log = logging.getLogger('pyblish.Config')
+    log = logging.getLogger("pyblish.Config")
 
     default = dict()  # Default configuration data
     custom = dict()  # Custom configuration data
@@ -89,7 +100,7 @@ class Config(dict):
 
         assert data is None or isinstance(data, dict)
 
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             loaded_data = yaml.load(f)
 
         if data is not None:
@@ -104,10 +115,10 @@ class Config(dict):
         """Load default configuration from package dir"""
 
         data = self.load(path=self.DEFAULTCONFIGPATH,
-                         data={'USERCONFIG': self.USERCONFIG,
-                               'DEFAULTCONFIG': self.DEFAULTCONFIG,
-                               'USERCONFIGPATH': self.USERCONFIGPATH,
-                               'DEFAULTCONFIGPATH': self.DEFAULTCONFIGPATH})
+                         data={"USERCONFIG": self.USERCONFIG,
+                               "DEFAULTCONFIG": self.DEFAULTCONFIG,
+                               "USERCONFIGPATH": self.USERCONFIGPATH,
+                               "DEFAULTCONFIGPATH": self.DEFAULTCONFIGPATH})
 
         # Append to self.default
         self.default.clear()
@@ -151,15 +162,14 @@ class Config(dict):
 
         data = dict()
 
-        variable = self['configuration_environment_variable']
+        # This is coming from `config.yaml`
+        variable = self["configuration_environment_variable"]
         paths_string = os.environ.get(variable)
 
         if not paths_string:
             return list()
 
-        sep = ';' if os.name == 'nt' else ':'
-
-        custom_paths = paths_string.split(sep)
+        custom_paths = paths_string.split(os.pathsep)
 
         for path in custom_paths:
             try:
