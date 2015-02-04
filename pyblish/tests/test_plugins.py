@@ -17,7 +17,7 @@ from pyblish.tests.lib import (
 from pyblish.vendor.nose.tools import raises, with_setup
 
 
-config = pyblish.Config()
+config = pyblish.plugin.Config()
 
 
 @with_setup(setup, teardown)
@@ -33,7 +33,7 @@ def test_selection_interface():
     assert len(selectors) >= 1
 
     for selector in selectors:
-        if not HOST in selector.hosts:
+        if HOST not in selector.hosts:
             continue
 
         selector().process_all(ctx)
@@ -63,7 +63,11 @@ def test_validation_interface():
         type='validators',
         regex="^ValidateInstance$")[0]
 
+    print "%s found" % validator
+    assert validator
+
     for instance, error in validator().process(ctx):
+        print error
         assert error is None
 
 
@@ -402,41 +406,3 @@ def test_wildcard_plugins():
     for type in ('selectors', 'validators'):
         for plugin in pyblish.plugin.discover(type=type):
             plugin().process_all(context)
-
-
-@with_setup(setup, teardown)
-def test_custom_paths():
-    """Adding custom paths via user-config works"""
-    user_config_path = config['USERCONFIGPATH']
-
-    package_path = pyblish.lib.main_package_path()
-    custom_path = os.path.join(package_path,
-                               'tests',
-                               'plugins',
-                               'custom')
-
-    try:
-        old_user_config_path = None
-        if os.path.isfile(user_config_path):
-            shutil.move(user_config_path, user_config_path + "_old")
-            old_user_config_path = user_config_path + "_old"
-
-        # Add custom path
-        with open(user_config_path, 'w') as f:
-            yaml.dump({'paths': [custom_path]}, f)
-
-        config.reset()
-
-        paths = config['paths']
-        assert paths
-
-        plugins = pyblish.plugin.discover('validators')
-        plugin_names = [p.__name__ for p in plugins]
-        assert 'ValidateCustomInstance' in plugin_names
-
-    finally:
-        os.remove(user_config_path)
-
-        # Restore previous config
-        if old_user_config_path:
-            shutil.move(old_user_config_path, user_config_path)

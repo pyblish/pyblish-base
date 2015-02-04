@@ -27,7 +27,8 @@ import pyblish
 import pyblish.lib
 import pyblish.error
 
-from pyblish.vendor import iscompatible
+from .vendor import yaml
+from .vendor import iscompatible
 
 
 __all__ = ['Plugin',
@@ -48,16 +49,6 @@ __all__ = ['Plugin',
 
 
 log = logging.getLogger('pyblish.plugin')
-
-if pyblish.config is None:
-    pyblish.config = pyblish.Config()
-
-patterns = {
-    'validators': pyblish.config['validators_regex'],
-    'extractors': pyblish.config['extractors_regex'],
-    'selectors': pyblish.config['selectors_regex'],
-    'conformers': pyblish.config['conformers_regex']
-}
 
 
 class Manager(list):
@@ -96,6 +87,85 @@ class Manager(list):
             if "*" in plugin.hosts or current_host() in plugins.hosts:
                 plugins.append(plugin)
         return plugins
+
+
+class Config(dict):
+    """Wrapper for default-, user- and custom-configuration
+
+    .. note:: Config is a singleton.
+
+    Configuration is cascading in the following order;
+
+    .. code-block:: bash
+
+         _________     ________     ______
+        |         |   |        |   |      |
+        | Default | + | Custom | + | User |
+        |_________|   |________|   |______|
+
+    In which `User` is being added last and thus overwrites any
+    previous configuration.
+
+    Attributes:
+        DEFAULTCONFIG: Name of default configuration file
+        HOMEDIR: Absolute path to user's home directory
+        PACKAGEDIR: Absolute path to parent package of Config
+        DEFAULTCONFIGPATH: Absolute path to default configuration file
+
+        default: Access to default configuration
+        custom: Access to custom configuration
+        user: Access to user configuration
+
+    Usage:
+        >>> config = Config()
+        >>> for key, value in config.iteritems():
+        ...     assert key in config
+
+    """
+
+    _instance = None
+
+    HOMEDIR = os.path.expanduser("~")
+    PACKAGEDIR = os.path.dirname(__file__)
+    DEFAULTCONFIG = "config.yaml"
+    DEFAULTCONFIGPATH = os.path.join(PACKAGEDIR, DEFAULTCONFIG)
+
+    log = logging.getLogger("pyblish.Config")
+
+    default = dict()  # Default configuration data
+
+    def __new__(cls, *args, **kwargs):
+        """Make Config into a singleton"""
+        if cls._instance is None:
+            cls._instance = super(Config, cls).__new__(
+                cls, *args, **kwargs)
+        return cls._instance
+
+    def __init__(self):
+        """Read all configuration upon instantiation"""
+        self.reset()
+
+    def reset(self):
+        """Remove all configuration and re-read from disk"""
+        self.clear()
+        self.load()
+
+    def load(self):
+        """Load default configuration from package dir"""
+        path = self.DEFAULTCONFIGPATH
+        data = {"DEFAULTCONFIG": self.DEFAULTCONFIG,
+                "DEFAULTCONFIGPATH": self.DEFAULTCONFIGPATH}
+
+        with open(path, "r") as f:
+            loaded_data = yaml.load(f)
+
+        if data is not None:
+            loaded_data.update(data)
+
+        for key, value in loaded_data.iteritems():
+            self[key] = value
+
+        return True
 
 
 @pyblish.lib.log
@@ -690,7 +760,6 @@ def _post_process_path(path):
 
 def registered_paths():
     """Return paths added via registration"""
-    log.debug("Registered paths: %s" % pyblish._registered_paths)
     return pyblish._registered_paths
 
 
@@ -706,8 +775,6 @@ def configured_paths():
         # Ensure path is absolute
         plugin_path = _post_process_path(plugin_path)
         paths.append(plugin_path)
-
-        log.debug("Appending path from config: %s" % plugin_path)
 
     return paths
 
@@ -776,26 +843,132 @@ def discover(type=None, regex=None, paths=None):
 
     """
 
-    if paths is None:
-        paths = plugin_paths()
+    patterns = {'validators': pyblish.config['validators_regex'],
+                'extractors': pyblish.config['extractors_regex'],
+                'selectors': pyblish.config['selectors_regex'],
+                'conformers': pyblish.config['conformers_regex']}
 
-    if type is not None:
-        types = [type]
-    else:
-        # If no type is specified,
-        # discover all plugins
-        types = patterns.keys()
+    if type is not None and type not in patterns:
+        raise ValueError("Type not recognised: %s" % type)
 
-    plugins = list()
-    for type in types:
+    discovered_plugins = dict()
+
+    def version_is_compatible(plugin):
+        """Lookup compatibility between plug-in and current version of Pyblish
+
+        Arguments:
+            plugin (Plugin): Plug-in to test against
+
+        """
+
+        if not iscompatible.iscompatible(requirements=plugin.requires,
+                                         version=pyblish.version_info):
+            log.warning("Plug-in %s not compatible with this version "
+                        "(%s) of Pyblish." % (plugin, pyblish.__version__))
+            return False
+        return True
+
+    def plugin_is_valid(plugin):
+        if not inspect.isclass(plugin):
+            return False
+
+        if not issubclass(plugin, Plugin):
+            return False
+
+        if plugin.order is None:
+            log.error("Plug-in must have an order: %s", plugin)
+            return False
+
+        if not isinstance(plugin.requires, basestring):
+            log.error("Plug-in requires must be of type string: %s", plugin)
+            return False
+
         try:
-            plugins.extend(_discover_type(type=type,
-                                          paths=paths,
-                                          regex=regex))
-        except KeyError:
-            raise ValueError("Type not recognised: {0}".format(type))
+            if (issubclass(plugin, Selector)
+                    and not getattr(plugin, 'hosts')):
+                raise Exception(0)
+            if (issubclass(plugin, (Validator, Extractor))
+                    and not getattr(plugin, 'families')
+                    and not getattr(plugin, 'hosts')):
+                raise Exception(1)
 
-    return plugins
+            if (issubclass(plugin, Conformer)
+                    and not getattr(plugin, 'families')):
+                raise Exception(2)
+
+        except Exception as e:
+            if e.message == 0:
+                log.error("%s: Plug-in not valid, missing hosts.", plugin)
+            if e.message == 1:
+                log.error("%s: Plug-in not valid, missing families.", plugin)
+            if e.message == 2:
+                log.error("%s: Plug-in not valid, missing hosts and families.",
+                          plugin)
+            return False
+
+        return True
+
+    def host_is_compatible(plugin):
+        return any(["*" in plugin.hosts, current_host() in plugin.hosts])
+
+    paths_to_check = paths
+    if paths_to_check is None:
+        paths_to_check = plugin_paths()
+
+    types_to_check = [type] if type is not None else patterns.keys()
+    for path in paths_to_check:
+        path = os.path.normpath(path)
+        if not os.path.isdir(path):
+            continue
+
+        for fname in os.listdir(path):
+            abspath = os.path.join(path, fname)
+
+            if not os.path.isfile(abspath):
+                continue
+
+            for type in types_to_check:
+                if not re.match(patterns[type], fname):
+                    continue
+
+                mod_name, _ = os.path.splitext(fname)
+                try:
+                    sys.path.insert(0, path)
+                    module = pyblish.lib.import_module(mod_name)
+                    reload(module)
+
+                except Exception as err:
+                    log.warning('Skipped: "%s" (%s)', mod_name, err)
+                    continue
+
+                finally:
+                    # Restore sys.path
+                    # sys.modules.pop(mod_name)
+                    sys.path.remove(path)
+
+                for name in dir(module):
+                    if name.startswith("_"):
+                        continue
+
+                    obj = getattr(module, name)
+
+                    if not plugin_is_valid(obj):
+                        continue
+
+                    if not version_is_compatible(obj):
+                        continue
+
+                    if not host_is_compatible(obj):
+                        continue
+
+                    if obj.__name__ in discovered_plugins:
+                        log.debug("Duplicate plugin found: %s", obj)
+                        continue
+
+                    if regex is None or re.match(regex, obj.__name__):
+                        discovered_plugins[obj.__name__] = obj
+
+    return discovered_plugins.values()
 
 
 def plugins_by_family(plugins, family):
@@ -868,161 +1041,3 @@ def instances_by_plugin(instances, plugin):
                 compatible.append(instance)
 
     return compatible
-
-
-def _discover_type(type, paths, regex=None):
-    """Return plugins of type `type`
-
-    Helper method for the above function :func:discover()
-
-    Raises:
-        KeyError when `type` is unrecognised.
-
-    """
-
-    plugins = dict()
-
-    # Paths may point to the same location but be formatted
-    # differently. Do a check here.
-    discovered_paths = list()
-
-    try:
-        pattern = patterns[type]
-    except KeyError:
-        raise  # Handled by :func:discover()
-
-    # Look through each registered path for potential plugins
-    for path in paths:
-        normpath = os.path.normpath(path)
-        if normpath in discovered_paths:
-            log.warning("Duplicate path being discovered: {0}".format(
-                path))
-            continue
-
-        if not os.path.isdir(path):
-            log.warning("Skipping: {0} - Path is not a directory".format(
-                path))
-            continue
-
-        discovered_paths.append(normpath)
-
-        # Look within each directory for available plugins.
-        # Plugins are modules which passes the regex test
-        # as per regexes provided by config.yaml.
-        for fname in os.listdir(path):
-            abspath = os.path.join(path, fname)
-
-            if not os.path.isfile(abspath):
-                continue
-
-            mod_name, suffix = os.path.splitext(fname)
-
-            # Modules that don't match the regex aren't plugins.
-            if not re.match(pattern, fname):
-                continue
-
-            # Try importing the module. If this fails,
-            # for whatever reason, log it and move on.
-            try:
-                sys.path.insert(0, path)
-                module = pyblish.lib.import_module(mod_name)
-                reload(module)
-
-            except Exception as err:
-                log.warning('Module: "{mod}" skipped ({msg})'.format(
-                    mod=mod_name, msg=err))
-                continue
-
-            finally:
-                # Restore sys.path
-                sys.path.remove(path)
-
-            for name in dir(module):
-                obj = getattr(module, name)
-                if not inspect.isclass(obj):
-                    continue
-
-                # All plugins must be subclasses of Plugin
-                if not issubclass(obj, Plugin):
-                    continue
-
-                if not _isvalid(obj):
-                    continue
-
-                if not _iscompatible(obj):
-                    log.warning(
-                        "Plug-in %s not compatible with this version "
-                        "(%s) of Pyblish." % (obj, pyblish.__version__))
-                    continue
-
-                # Only include plug-ins compatible
-                # with the currently running host.
-                if not any(["*" in obj.hosts, current_host() in obj.hosts]):
-                    continue
-
-                # Finally, check that the plugin hasn't already been
-                # registered. This may indicate that a plugin has
-                # been created with identical name to another plugin.
-                if obj.__name__ in plugins:
-                    log.warning(
-                        "Duplicate plugin "
-                        "found: {cls}".format(cls=obj))
-                    continue
-
-                if regex is None or re.match(regex, obj.__name__):
-                    plugins[obj.__name__] = obj
-
-    return plugins.values()
-
-
-def _iscompatible(plugin):
-    """Lookup compatibility between plug-in and current version of Pyblish
-
-    Arguments:
-        plugin (Plugin): Plug-in to test against
-
-    """
-
-    return iscompatible.iscompatible(
-        requirements=plugin.requires, version=pyblish.version_info)
-
-
-def _isvalid(plugin):
-    """Validate plugin"""
-
-    if plugin.order is None:
-        log.error("Plug-in must have an order: %s" % plugin)
-        return False
-
-    if not isinstance(plugin.requires, basestring):
-        log.error("Plug-in requires must be of type string: %s" % plugin)
-        return False
-
-    # Helper functions
-    def has_families(_plugin):
-        if not getattr(_plugin, 'families'):
-            log.error("%s: Plug-in not valid, missing families.", _plugin)
-            return False
-        return True
-
-    def has_hosts(_plugin):
-        if not getattr(_plugin, 'hosts'):
-            log.error("%s: Plug-in not valid, missing hosts.", _plugin)
-            return False
-        return True
-
-    # Validations
-    if issubclass(plugin, Selector):
-        return has_hosts(plugin)
-
-    elif issubclass(plugin, Validator) or issubclass(plugin, Extractor):
-        return has_hosts(plugin) and has_families(plugin)
-
-    elif issubclass(plugin, Conformer):
-        return has_families(plugin)
-
-    else:
-        log.error("%s: Is not a plugin", plugin)
-        return False
-
-    return True

@@ -372,8 +372,6 @@ class Publish(object):
 pyblish version {version}
 {line}
 
-User Configuration @ {user_path}
-
 Available plugin paths:
 {paths}
 
@@ -384,8 +382,6 @@ Available plugins:
         message = intro.format(
             line="-" * SCREEN_WIDTH,
             version=pyblish.__version__,
-            user_path=(self._conf['USERCONFIGPATH']
-                       if self._conf.user else "None"),
             paths=_format_paths(self._plugins.paths),
             plugins=_format_plugins(self._plugins))
 

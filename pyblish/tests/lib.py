@@ -15,8 +15,8 @@ PLUGINPATH = os.path.join(PACKAGEPATH, 'tests', 'plugins')
 
 def setup():
     """Disable default plugins and only use test plugins"""
-    config = pyblish.Config()
-    config['paths'] = []
+    pyblish.config = pyblish.plugin.Config()
+    pyblish.config['paths'] = []
 
     pyblish.plugin.deregister_all()
     pyblish.plugin.register_plugin_path(PLUGINPATH)
@@ -35,7 +35,7 @@ def setup_duplicate():
     """Expose duplicate plugins to discovery mechanism"""
     pyblish.plugin.deregister_all()
 
-    config = pyblish.Config()
+    config = pyblish.plugin.Config()
     config['paths'] = []
 
     for copy in ('copy1', 'copy2'):
@@ -46,7 +46,7 @@ def setup_duplicate():
 def setup_wildcard():
     pyblish.plugin.deregister_all()
 
-    config = pyblish.Config()
+    config = pyblish.plugin.Config()
     config['paths'] = []
 
     wildcard_path = os.path.join(PLUGINPATH, 'wildcards')
@@ -62,6 +62,7 @@ def setup_invalid():
 
 def setup_full():
     """Expose a full processing chain for testing"""
+    setup()
     pyblish.plugin.deregister_all()
     path = os.path.join(PLUGINPATH, 'full')
     pyblish.plugin.register_plugin_path(path)
@@ -71,7 +72,7 @@ def setup_echo():
     """Plugins that output information"""
     pyblish.plugin.deregister_all()
 
-    config = pyblish.Config()
+    config = pyblish.plugin.Config()
     config['paths'] = []
 
     path = os.path.join(PLUGINPATH, 'echo')
@@ -83,7 +84,7 @@ def teardown():
 
     # Clear singletons
     pyblish.plugin.Context._instance = None
-    pyblish.Config._instance = None
+    pyblish.plugin.Config._instance = None
 
     pyblish.plugin.deregister_all()
     for path in REGISTERED:

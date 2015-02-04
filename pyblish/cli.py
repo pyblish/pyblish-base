@@ -4,8 +4,7 @@ Usage:
     $ pyblish --help
 
 Attributes:
-    CONFIG_PATH: Default location of user-configuration for
-        the Pyblish cli.
+    CONFIG_PATH: Default location of pyblsh-configuration
     DATA_PATH: Default location of user-data for the cli.
     SCREEN_WIDTH: Used in right-aligned printed elements.
     TAB: Default tab-width.
@@ -64,7 +63,6 @@ intro_message = """pyblish version {version}
 
 Custom data @ {data_path}
 Custom configuration @ {config_path}
-User Configuration @ {user_path}
 
 Available plugin paths:
 {paths}
@@ -315,16 +313,12 @@ def main(ctx,
         click.echo("Available plugins:")
         click.echo(_format_plugins(available_plugins))
 
-    user_config_path = pyblish.api.config['USERCONFIGPATH']
-    has_user_config = os.path.isfile(user_config_path)
-
     if verbose:
         click.echo(
             intro_message.format(
                 version=pyblish.__version__,
                 config_path=CONFIG_PATH if config_loaded else "None",
                 data_path=DATA_PATH if data_loaded else "None",
-                user_path=user_config_path if has_user_config else "None",
                 paths=_format_paths(plugin_paths),
                 plugins=_format_plugins(available_plugins))
         )
@@ -600,15 +594,9 @@ def config(ctx):
     click.echo("Pyblish configuration:")
 
     for key, value in sorted(pyblish.api.config.iteritems()):
-        if key in pyblish.api.config.user:
-            source = 'user'
-        else:
-            source = 'default'
-
         entry = "{tab}{k} = {v}".format(
-            tab=TAB, k=key, v=value, s=source)
-        entry += " " * (SCREEN_WIDTH - len(entry) - len(source))
-        entry += source
+            tab=TAB, k=key, v=value)
+        entry += " " * (SCREEN_WIDTH - len(entry))
         click.echo(entry)
 
 
