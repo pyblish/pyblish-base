@@ -260,12 +260,13 @@ class Plugin(object):
                         continue
 
                     # Limit instances to those specified in `instances`
-                    if instances is not None:
-                        if not instance.data("name") in instances:
-                            self.log.info("Skipping %s, "
-                                          "not included in "
-                                          "exclusion list" % instance)
-                            continue
+                    if instances is not None and \
+                            instance.name not in instances:
+                        self.log.info("Skipping %s, "
+                                      "not included in "
+                                      "exclusive list (%s)" % (instance,
+                                                               instances))
+                        continue
 
                     self.log.info("Processing instance: \"%s\"" % instance)
 
@@ -565,18 +566,10 @@ class Context(AbstractEntity):
 
     """
 
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(Context, cls).__new__(
-                cls, *args, **kwargs)
-        return cls._instance
-
     @classmethod
     def delete(cls):
         """Force re-instantiation of context"""
-        cls._instance = None
+        log.warning("Context.delete has been deprecated")
 
     def create_instance(self, name):
         """Convenience method of the following.
@@ -827,7 +820,15 @@ def plugin_paths():
 
 
 def discover(type=None, regex=None, paths=None):
-    """Find plugins within exposed plugin-paths
+    """Find and return available plug-ins
+
+    This function looks for files within paths registered via
+    :func:`register_plugin_path` and those added to `PYBLISHPLUGINPATH`.
+
+    It determines *type* - :class:`Selector`, :class:`Validator`,
+    :class:`Extractor` or :class:`Conform` - based on whether it
+    matches it's corresponding regular expression; e.g.
+    "$validator_*^" for plug-ins of type Validator.
 
     Arguments:
         type (str, optional): Only return plugins of specified type
@@ -900,10 +901,10 @@ def discover(type=None, regex=None, paths=None):
             if e.message == 0:
                 log.error("%s: Plug-in not valid, missing hosts.", plugin)
             if e.message == 1:
-                log.error("%s: Plug-in not valid, missing families.", plugin)
-            if e.message == 2:
                 log.error("%s: Plug-in not valid, missing hosts and families.",
                           plugin)
+            if e.message == 2:
+                log.error("%s: Plug-in not valid, missing families.", plugin)
             return False
 
         return True

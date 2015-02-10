@@ -155,7 +155,6 @@ class Publish(object):
                  logging_level=logging.INFO):
 
         if context is None:
-            pyblish.api.Context.delete()
             context = pyblish.api.Context()
 
         self.context = context
@@ -209,7 +208,6 @@ class Publish(object):
             log_summary = True
 
         # Clear context
-        pyblish.api.Context.delete()
         self._time['end'] = time.time()
 
         print  # newline
