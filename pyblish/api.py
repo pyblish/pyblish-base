@@ -34,6 +34,7 @@ from .error import (
     ExtractionError, ConformError, NoInstancesError)
 
 # For forwards-compatibility
+Collector = Selector
 Integrator = Conformer
 
 # Initialise log
