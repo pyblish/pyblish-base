@@ -1030,6 +1030,9 @@ def instances_by_plugin(instances, plugin):
     Returns:
         List of compatible instances
 
+    Invariant:
+        Order of remaining plug-ins must remain the same
+
     """
 
     compatible = list()
