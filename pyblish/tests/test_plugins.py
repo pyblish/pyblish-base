@@ -14,7 +14,7 @@ from pyblish.vendor import yaml
 from pyblish.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
     setup_duplicate, setup_invalid, setup_wildcard)
-from pyblish.vendor.nose.tools import raises, with_setup
+from pyblish.vendor.nose.tools import raises, with_setup, assert_raises
 
 
 config = pyblish.plugin.Config()
@@ -406,3 +406,38 @@ def test_wildcard_plugins():
     for type in ('selectors', 'validators'):
         for plugin in pyblish.plugin.discover(type=type):
             plugin().process_all(context)
+
+
+def test_instances_by_plugin_invariant():
+    ctx = pyblish.plugin.Context()
+    for i in range(10):
+        inst = ctx.create_instance(name="Instance%i" % i)
+        inst.set_data("family", "A")
+
+        if i % 2:
+            # Every other instance is of another family
+            inst.set_data("family", "B")
+
+    plugin = type("MyPlugin%d" % i, (pyblish.plugin.Validator,), {})
+    plugin.hosts = ["python"]
+    plugin.families = ["A"]
+
+    compatible = pyblish.plugin.instances_by_plugin(ctx, plugin)
+
+    # Test invariant
+    #
+    # in:  [1, 2, 3, 4]
+    # out: [1, 4] --> good
+    #
+    # in:  [1, 2, 3, 4]
+    # out: [2, 1, 4] --> bad
+    #
+
+    def test():
+        for instance in compatible:
+            assert ctx.index(instance) >= compatible.index(instance)
+
+    test()
+
+    compatible.reverse()
+    assert_raises(AssertionError, test)
