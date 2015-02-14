@@ -1,5 +1,7 @@
 ### ![][logo]
 
+[![Join the chat at https://gitter.im/pyblish/pyblish](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pyblish/pyblish?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status][travis]][travis_repo]
 [![Coverage Status][cover]][cover_repo]
 [![PyPI version][pypi]][pypi_repo]
