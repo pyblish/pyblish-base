@@ -61,7 +61,7 @@ setup(
     long_description=readme,
     author="Abstract Factory and Contributors",
     author_email="marcus@abstractfactory.com",
-    url="https://github.com/abstractfactory/pyblish",
+    url="https://github.com/pyblish/pyblish",
     license="LGPL",
     packages=find_packages(),
     zip_safe=False,
