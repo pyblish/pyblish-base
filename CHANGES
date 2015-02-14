@@ -3,6 +3,18 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.0.12
+--------------
+
+- plugin.py reloadable without loosing currently loaded plug-ins
+- Basic plug-in manager "Manager"
+- Simplified configuration (no more user or custom configuration)
+- Simplifying discover() (no more indirection)
+- Adding default logger (good bye "No logger found..")
+- Temporarily removig CLI
+- Context is no longer a Singleton
+- Added forwards compatibility for Collector plug-in
+
 Version 1.0.11
 --------------
 

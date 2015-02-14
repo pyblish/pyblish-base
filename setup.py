@@ -1,11 +1,11 @@
 from setuptools import setup, find_packages
 
-with open("README.txt") as f:
-    readme = f.read()
-
-
 import os
 import imp
+
+
+with open("README.txt") as f:
+    readme = f.read()
 
 version_file = os.path.abspath("pyblish/version.py")
 version_mod = imp.load_source("version", version_file)
@@ -61,7 +61,7 @@ setup(
     long_description=readme,
     author="Abstract Factory and Contributors",
     author_email="marcus@abstractfactory.com",
-    url="https://github.com/abstractfactory/pyblish",
+    url="https://github.com/pyblish/pyblish",
     license="LGPL",
     packages=find_packages(),
     zip_safe=False,
@@ -69,8 +69,5 @@ setup(
     package_data={
         "pyblish": ["plugins/*.py", "*.yaml", "vendor/nose/*.txt"],
         "pyblish.tests": tests_package_data,
-    },
-    entry_points={
-        "console_scripts": ["pyblish = pyblish.cli:main"]
     },
 )

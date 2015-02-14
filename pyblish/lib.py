@@ -205,4 +205,5 @@ def import_module(name, package=None):
             level += 1
         name = _resolve_name(name[level:], package, level)
     __import__(name)
+
     return sys.modules[name]

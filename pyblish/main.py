@@ -155,7 +155,6 @@ class Publish(object):
                  logging_level=logging.INFO):
 
         if context is None:
-            pyblish.api.Context.delete()
             context = pyblish.api.Context()
 
         self.context = context
@@ -164,7 +163,7 @@ class Publish(object):
         self.optional = include_optional
         self.logging_level = logging_level
 
-        self._plugins = pyblish.plugin.Plugins()
+        self._plugins = pyblish.plugin.Manager()
         self._conf = pyblish.api.config
         self._time = {'start': None, 'end': None}
         self._errors = list()
@@ -209,7 +208,6 @@ class Publish(object):
             log_summary = True
 
         # Clear context
-        pyblish.api.Context.delete()
         self._time['end'] = time.time()
 
         print  # newline
@@ -372,8 +370,6 @@ class Publish(object):
 pyblish version {version}
 {line}
 
-User Configuration @ {user_path}
-
 Available plugin paths:
 {paths}
 
@@ -384,8 +380,6 @@ Available plugins:
         message = intro.format(
             line="-" * SCREEN_WIDTH,
             version=pyblish.__version__,
-            user_path=(self._conf['USERCONFIGPATH']
-                       if self._conf.user else "None"),
             paths=_format_paths(self._plugins.paths),
             plugins=_format_plugins(self._plugins))
 

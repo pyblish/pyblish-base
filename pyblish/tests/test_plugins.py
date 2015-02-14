@@ -14,10 +14,10 @@ from pyblish.vendor import yaml
 from pyblish.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
     setup_duplicate, setup_invalid, setup_wildcard)
-from pyblish.vendor.nose.tools import raises, with_setup
+from pyblish.vendor.nose.tools import raises, with_setup, assert_raises
 
 
-config = pyblish.Config()
+config = pyblish.plugin.Config()
 
 
 @with_setup(setup, teardown)
@@ -33,7 +33,7 @@ def test_selection_interface():
     assert len(selectors) >= 1
 
     for selector in selectors:
-        if not HOST in selector.hosts:
+        if HOST not in selector.hosts:
             continue
 
         selector().process_all(ctx)
@@ -63,7 +63,11 @@ def test_validation_interface():
         type='validators',
         regex="^ValidateInstance$")[0]
 
+    print "%s found" % validator
+    assert validator
+
     for instance, error in validator().process(ctx):
+        print error
         assert error is None
 
 
@@ -404,39 +408,36 @@ def test_wildcard_plugins():
             plugin().process_all(context)
 
 
-@with_setup(setup, teardown)
-def test_custom_paths():
-    """Adding custom paths via user-config works"""
-    user_config_path = config['USERCONFIGPATH']
+def test_instances_by_plugin_invariant():
+    ctx = pyblish.plugin.Context()
+    for i in range(10):
+        inst = ctx.create_instance(name="Instance%i" % i)
+        inst.set_data("family", "A")
 
-    package_path = pyblish.lib.main_package_path()
-    custom_path = os.path.join(package_path,
-                               'tests',
-                               'plugins',
-                               'custom')
+        if i % 2:
+            # Every other instance is of another family
+            inst.set_data("family", "B")
 
-    try:
-        old_user_config_path = None
-        if os.path.isfile(user_config_path):
-            shutil.move(user_config_path, user_config_path + "_old")
-            old_user_config_path = user_config_path + "_old"
+    plugin = type("MyPlugin%d" % i, (pyblish.plugin.Validator,), {})
+    plugin.hosts = ["python"]
+    plugin.families = ["A"]
 
-        # Add custom path
-        with open(user_config_path, 'w') as f:
-            yaml.dump({'paths': [custom_path]}, f)
+    compatible = pyblish.plugin.instances_by_plugin(ctx, plugin)
 
-        config.reset()
+    # Test invariant
+    #
+    # in:  [1, 2, 3, 4]
+    # out: [1, 4] --> good
+    #
+    # in:  [1, 2, 3, 4]
+    # out: [2, 1, 4] --> bad
+    #
 
-        paths = config['paths']
-        assert paths
+    def test():
+        for instance in compatible:
+            assert ctx.index(instance) >= compatible.index(instance)
 
-        plugins = pyblish.plugin.discover('validators')
-        plugin_names = [p.__name__ for p in plugins]
-        assert 'ValidateCustomInstance' in plugin_names
+    test()
 
-    finally:
-        os.remove(user_config_path)
-
-        # Restore previous config
-        if old_user_config_path:
-            shutil.move(old_user_config_path, user_config_path)
+    compatible.reverse()
+    assert_raises(AssertionError, test)

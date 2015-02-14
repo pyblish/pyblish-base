@@ -14,6 +14,11 @@ without breaking any of your tools.
 
 """
 
+from __future__ import absolute_import
+
+import logging
+import pyblish
+
 from .plugin import (
     Context, Instance, discover,
     Selector, Validator, Extractor, Conformer,
@@ -22,16 +27,36 @@ from .plugin import (
     registered_paths, environment_paths, configured_paths,
     plugins_by_family, plugins_by_host, instances_by_plugin)
 
-from . import Config as _Config
+from .plugin import Config as __Config
 from .lib import log, format_filename
 from .error import (
     PyblishError, SelectionError, ValidationError,
     ExtractionError, ConformError, NoInstancesError)
 
 # For forwards-compatibility
+Collector = Selector
 Integrator = Conformer
 
-config = _Config()
+# Initialise log
+__formatter = logging.Formatter("%(levelname)s - %(message)s")
+__handler = logging.StreamHandler()
+__handler.setFormatter(__formatter)
+__log = logging.getLogger("pyblish")
+__log.propagate = True
+__log.handlers[:] = []
+__log.addHandler(__handler)
+__log.setLevel(logging.DEBUG)
+
+if not pyblish.is_initialized():
+    try:
+        pyblish.config = __Config()
+    except Exception as e:
+        __log.debug("Exception: %s" % e)
+        __log.warning("Something went wrong whilst "
+                      "initializing configuration")
+
+config = pyblish.config
+
 
 __all__ = [
     # Base objects
