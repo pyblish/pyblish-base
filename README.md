@@ -1,9 +1,9 @@
 ### ![][logo]
 
-[![Build Status][travis]][travis_repo]
-[![Coverage Status][cover]][cover_repo]
-[![PyPI version][pypi]][pypi_repo]
-[![Code Health][landscape]][landscape_repo]
+[![Build Status][travis-image]][travis-link]
+[![Coverage Status][cover-image]][cover-link]
+[![PyPI version][pypi-image]][pypi-link]
+[![Code Health][landscape-image]][landscape-repo]
 [![Gitter](https://badges.gitter.im/Join Chat.svg)][chat]
 
 An automation micro-framework for content.
@@ -16,18 +16,18 @@ An automation micro-framework for content.
 
 For more information, see our [Getting Started Guide][guide]
 
-[chat]: https://gitter.im/abstractfactory/pyblish?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
-[logo]: https://github.com/abstractfactory/pyblish/wiki/images/logo_macaw_small.png
+[chat]: https://gitter.im/pyblish/pyblish?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+[logo]: https://github.com/pyblish/pyblish/wiki/images/logo_macaw_small.png
 [guide]: http://pyblish.com
 [api]: http://docs.pyblish.com
 [usergroup]: https://groups.google.com/forum/#!forum/pyblish
-[wiki]: https://github.com/abstractfactory/pyblish/wiki
+[wiki]: https://github.com/pyblish/pyblish/wiki
 
-[travis]: https://travis-ci.org/abstractfactory/pyblish.svg?branch=master
-[travis_repo]: https://travis-ci.org/abstractfactory/pyblish
-[cover]: https://coveralls.io/repos/abstractfactory/pyblish/badge.png?branch=master
-[cover_repo]: https://coveralls.io/r/abstractfactory/pyblish?branch=master
-[pypi]: https://badge.fury.io/py/pyblish.svg
-[pypi_repo]: http://badge.fury.io/py/pyblish
-[landscape]: https://landscape.io/github/abstractfactory/pyblish/master/landscape.png
-[landscape_repo]: https://landscape.io/github/abstractfactory/pyblish/master
+[travis-image]: https://travis-ci.org/pyblish/pyblish.svg?branch=master
+[travis-link]: https://travis-ci.org/pyblish/pyblish
+[cover-image]: https://coveralls.io/repos/pyblish/pyblish/badge.png?branch=master
+[cover-link]: https://coveralls.io/r/pyblish/pyblish?branch=master
+[pypi-image]: https://badge.fury.io/py/pyblish.svg
+[pypi-link]: http://badge.fury.io/py/pyblish
+[landscape-image]: https://landscape.io/github/pyblish/pyblish/master/landscape.png
+[landscape-repo]: https://landscape.io/github/pyblish/pyblish/master
