@@ -3,6 +3,12 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.0.13
+--------------
+
+- pyblish.api.plugins_by_family now yields correct results
+    for plug-ins with wildcard families.
+
 Version 1.0.12
 --------------
 
