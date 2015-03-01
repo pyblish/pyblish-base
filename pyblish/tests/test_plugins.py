@@ -14,7 +14,7 @@ from pyblish.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
     setup_duplicate, setup_invalid, setup_wildcard)
 from pyblish.vendor.nose.tools import (
-    raises, with_setup, assert_raises, assert_in)
+    raises, with_setup, assert_raises)
 
 
 config = pyblish.plugin.Config()
@@ -452,5 +452,5 @@ def test_plugins_by_family_wildcard():
                    (pyblish.api.Validator,),
                    {"families": ["*"]})
 
-    assert_in(Plugin2, pyblish.api.plugins_by_family(
-        [Plugin1, Plugin2], "myFamily"))
+    assert Plugin2 in pyblish.api.plugins_by_family(
+        [Plugin1, Plugin2], "myFamily")
