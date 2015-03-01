@@ -9,12 +9,12 @@ import tempfile
 import pyblish.plugin
 
 from pyblish.vendor import mock
-from pyblish.vendor import yaml
 
 from pyblish.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
     setup_duplicate, setup_invalid, setup_wildcard)
-from pyblish.vendor.nose.tools import raises, with_setup, assert_raises
+from pyblish.vendor.nose.tools import (
+    raises, with_setup, assert_raises, assert_in)
 
 
 config = pyblish.plugin.Config()
@@ -441,3 +441,16 @@ def test_instances_by_plugin_invariant():
 
     compatible.reverse()
     assert_raises(AssertionError, test)
+
+
+def test_plugins_by_family_wildcard():
+    """Plug-ins with wildcard family is included in every query"""
+    Plugin1 = type("Plugin1",
+                   (pyblish.api.Validator,),
+                   {"families": ["myFamily"]})
+    Plugin2 = type("Plugin2",
+                   (pyblish.api.Validator,),
+                   {"families": ["*"]})
+
+    assert_in(Plugin2, pyblish.api.plugins_by_family(
+        [Plugin1, Plugin2], "myFamily"))

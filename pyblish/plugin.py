@@ -987,10 +987,11 @@ def plugins_by_family(plugins, family):
     compatible = list()
 
     for plugin in plugins:
-        if hasattr(plugin, 'families') and family not in plugin.families:
+        if not hasattr(plugin, "families"):
             continue
 
-        compatible.append(plugin)
+        if any(x in plugin.families for x in (family, "*")):
+            compatible.append(plugin)
 
     return compatible
 
@@ -1010,12 +1011,12 @@ def plugins_by_host(plugins, host):
     compatible = list()
 
     for plugin in plugins:
-        # Basic accept wildcards
-        # Todo: Expand to take partial wildcards e.g. '*Mesh'
-        if '*' not in plugin.hosts and host not in plugin.hosts:
+        if not hasattr(plugin, "hosts"):
             continue
 
-        compatible.append(plugin)
+        # TODO(marcus): Expand to take partial wildcards e.g. '*Mesh'
+        if any(x in plugin.hosts for x in (host, '*')):
+            compatible.append(plugin)
 
     return compatible
 
@@ -1038,10 +1039,11 @@ def instances_by_plugin(instances, plugin):
     compatible = list()
 
     for instance in instances:
-        if hasattr(plugin, 'families'):
-            if instance.data('family') in plugin.families:
-                compatible.append(instance)
-            elif '*' in plugin.families:
-                compatible.append(instance)
+        if not hasattr(plugin, 'families'):
+            continue
+
+        family = instance.data("family")
+        if any(x in plugin.families for x in (family, "*")):
+            compatible.append(instance)
 
     return compatible
