@@ -237,7 +237,7 @@ class Plugin(object):
             self.log.error("Could not process context: {0}".format(context))
             yield None, err
 
-        else:
+        finally:
             compatible_instances = instances_by_plugin(
                 instances=context, plugin=self)
 

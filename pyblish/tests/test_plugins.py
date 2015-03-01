@@ -13,8 +13,7 @@ from pyblish.vendor import mock
 from pyblish.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
     setup_duplicate, setup_invalid, setup_wildcard)
-from pyblish.vendor.nose.tools import (
-    raises, with_setup, assert_raises)
+from pyblish.vendor.nose.tools import *
 
 
 config = pyblish.plugin.Config()
@@ -454,3 +453,28 @@ def test_plugins_by_family_wildcard():
 
     assert Plugin2 in pyblish.api.plugins_by_family(
         [Plugin1, Plugin2], "myFamily")
+
+
+def test_failing_context_processing():
+    """Plug-in should not skip processing of Instance if Context fails"""
+
+    value = {"a": False}
+
+    class MyPlugin(pyblish.api.Validator):
+        families = ["myFamily"]
+        hosts = ["python"]
+
+        def process_context(self, context):
+            raise Exception("Failed")
+
+        def process_instance(self, instance):
+            value["a"] = True
+
+    ctx = pyblish.api.Context()
+    inst = ctx.create_instance(name="MyInstance")
+    inst.set_data("family", "myFamily")
+
+    for instance, error in MyPlugin().process(ctx):
+        pass
+
+    assert_true(value["a"])
