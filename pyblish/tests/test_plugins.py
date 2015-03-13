@@ -3,6 +3,7 @@
 import os
 import time
 import shutil
+import random
 import tempfile
 
 # Local library
@@ -478,3 +479,18 @@ def test_failing_context_processing():
         pass
 
     assert_true(value["a"])
+
+
+@with_setup(setup, teardown)
+def test_plugins_sorted():
+    """Plug-ins are returned sorted by their `order` attribute"""
+    plugins = pyblish.api.discover()
+    random.shuffle(plugins)  # Randomise their order
+    pyblish.api.sort_plugins(plugins)
+
+    order = 0
+    for plugin in plugins:
+        assert_true(plugin.order >= order)
+        order = plugin.order
+
+    assert order > 0, plugins

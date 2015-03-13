@@ -970,7 +970,31 @@ def discover(type=None, regex=None, paths=None):
                     if regex is None or re.match(regex, obj.__name__):
                         discovered_plugins[obj.__name__] = obj
 
-    return discovered_plugins.values()
+    plugins = discovered_plugins.values()
+    sort(plugins)  # In-place
+    return plugins
+
+
+def sort(plugins):
+    """Sort `plugins` in-place
+
+    Their order is determined by their `order` attribute,
+    which defaults to their standard execution order:
+
+        1. Selection
+        2. Validation
+        3. Extraction
+        4. Conform
+
+    *But may be overridden.
+
+    Arguments:
+        plugins (list): Plug-ins to sort
+
+    """
+
+    plugins.sort(key=lambda p: p.order)
+    return plugins
 
 
 def plugins_by_family(plugins, family):

@@ -6,6 +6,8 @@ This contains all major version changes between pyblish releases.
 Version 1.0.13
 --------------
 
+- Added pyblish.api.sort_plugins
+- Added ordered output to pyblish.api.discover
 - pyblish.api.plugins_by_family now yields correct results
     for plug-ins with wildcard families.
 
