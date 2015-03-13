@@ -248,24 +248,24 @@ class Plugin(object):
                 for instance in compatible_instances:
                     if instance.has_data('publish'):
                         if instance.data('publish', default=True) is False:
-                            self.log.info("Skipping %s, "
-                                          "publish-flag was false" % instance)
+                            self.log.debug("Skipping %s, "
+                                           "publish-flag was false" % instance)
                             continue
 
                     elif not pyblish.config['publish_by_default']:
-                        self.log.info("Skipping %s, "
-                                      "no publish-flag was "
-                                      "set, and publishing "
-                                      "by default is False" % instance)
+                        self.log.debug("Skipping %s, "
+                                       "no publish-flag was "
+                                       "set, and publishing "
+                                       "by default is False" % instance)
                         continue
 
                     # Limit instances to those specified in `instances`
                     if instances is not None and \
                             instance.name not in instances:
-                        self.log.info("Skipping %s, "
-                                      "not included in "
-                                      "exclusive list (%s)" % (instance,
-                                                               instances))
+                        self.log.debug("Skipping %s, "
+                                       "not included in "
+                                       "exclusive list (%s)" % (instance,
+                                                                instances))
                         continue
 
                     self.log.info("Processing instance: \"%s\"" % instance)
