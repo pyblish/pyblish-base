@@ -234,7 +234,8 @@ class Plugin(object):
             self.process_context(context)
 
         except Exception as err:
-            self.log.error("Could not process context: {0}".format(context))
+            self.log.error("Could not process context: "
+                           "%s: %s" % (context, err))
             yield None, err
 
         finally:
