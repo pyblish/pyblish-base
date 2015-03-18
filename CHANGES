@@ -10,6 +10,7 @@ Version 1.0.13
 - Added ordered output to pyblish.api.discover
 - pyblish.api.plugins_by_family now yields correct results
     for plug-ins with wildcard families.
+- Refactored main.py into util.py
 
 Version 1.0.12
 --------------
