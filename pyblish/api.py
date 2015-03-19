@@ -28,6 +28,8 @@ from .plugin import (
     plugins_by_family, plugins_by_host, instances_by_plugin)
 
 from .plugin import Config as __Config
+from .plugin import sort as sort_plugins
+
 from .lib import log, format_filename
 from .error import (
     PyblishError, SelectionError, ValidationError,
@@ -60,40 +62,41 @@ config = pyblish.config
 
 __all__ = [
     # Base objects
-    'Context',
-    'Instance',
+    "Context",
+    "Instance",
 
     # Plug-ins
-    'Selector',
-    'Validator',
-    'Extractor',
-    'Conformer',
+    "Selector",
+    "Validator",
+    "Extractor",
+    "Conformer",
 
     # Plug-in utilities
-    'discover',
-    'plugin_paths',
-    'registered_paths',
-    'configured_paths',
-    'environment_paths',
-    'register_plugin_path',
-    'deregister_plugin_path',
-    'deregister_all',
-    'plugins_by_family',
-    'plugins_by_host',
-    'instances_by_plugin',
+    "discover",
+    "plugin_paths",
+    "registered_paths",
+    "configured_paths",
+    "environment_paths",
+    "register_plugin_path",
+    "deregister_plugin_path",
+    "deregister_all",
+    "plugins_by_family",
+    "plugins_by_host",
+    "instances_by_plugin",
+    "sort_plugins",
 
     # Configuration
-    'config',
+    "config",
 
     # Decorators
-    'log',
-    'format_filename',
+    "log",
+    "format_filename",
 
     # Exceptions
-    'PyblishError',
-    'SelectionError',
-    'ValidationError',
-    'ExtractionError',
-    'ConformError',
-    'NoInstancesError'
+    "PyblishError",
+    "SelectionError",
+    "ValidationError",
+    "ExtractionError",
+    "ConformError",
+    "NoInstancesError"
 ]
