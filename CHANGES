@@ -3,6 +3,13 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.0.14
+--------------
+
+- Added pyblish.api.version
+- Matched verbosity level from processing context as the processing of instances.
+- Processing logic change; processing of plug-in *without* compatible instances will now *not* yield anything; previously it yielded a pair of (None, None).
+
 Version 1.0.13
 --------------
 

@@ -181,18 +181,20 @@ class Plugin(object):
             self.process_context(context)
 
         except Exception as err:
-            self.log.error("Could not process context: "
-                           "%s: %s" % (context, err))
+            try:
+                _, _, exc_tb = sys.exc_info()
+                err.traceback = traceback.extract_tb(
+                    exc_tb)[-1]
+            except:
+                pass
+
             yield None, err
 
         finally:
             compatible_instances = instances_by_plugin(
                 instances=context, plugin=self)
 
-            if not compatible_instances:
-                yield None, None
-
-            else:
+            if compatible_instances:
                 for instance in compatible_instances:
                     # Limit instances to those specified in `instances`
                     if instances is not None and \
