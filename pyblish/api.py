@@ -58,7 +58,7 @@ if not pyblish.is_initialized():
                       "initializing configuration")
 
 config = pyblish.config
-
+version = pyblish.version
 
 __all__ = [
     # Base objects
@@ -84,13 +84,14 @@ __all__ = [
     "plugins_by_host",
     "instances_by_plugin",
     "sort_plugins",
+    "format_filename",
 
     # Configuration
     "config",
+    "version",
 
     # Decorators
     "log",
-    "format_filename",
 
     # Exceptions
     "PyblishError",
