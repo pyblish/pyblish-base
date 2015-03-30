@@ -49,7 +49,8 @@ __all__ = ['select',
            'extract',
            'conform',
            'publish',
-           'publish_all']
+           'publish_all',
+           'validate_all']
 
 
 def publish(context=None,

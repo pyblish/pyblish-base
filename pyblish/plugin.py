@@ -273,6 +273,34 @@ class Plugin(object):
 
         """
 
+    def repair_instance(self, instance):
+        """Repair given `instance`
+
+        Implement this method in your subclasses in order for
+        the given instance to be repaired.
+
+        Returns:
+            None
+
+        Raises:
+            Any error
+
+        """
+
+    def repair_context(self, context):
+        """Repair given `context`
+
+        Implement this method in your subclasses in order for
+        the context to be repaired.
+
+        Returns:
+            None
+
+        Raises:
+            Any error
+
+        """
+
     def process_all(self, context):
         """Convenience method of the above :meth:`process`
 
