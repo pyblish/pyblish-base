@@ -7,6 +7,8 @@ Version 1.0.15
 --------------
 
 - API: Plugin.repair_* documented and implemented by default
+- API: Added lib.where()
+- API: Added `.id` attribute to instances and plug-ins
 
 Version 1.0.14
 --------------

@@ -152,6 +152,10 @@ class Plugin(object):
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
 
+    @pyblish.lib.classproperty
+    def id(cls):
+        return cls.__name__
+
     def process(self, context, instances=None):
         """Perform processing upon context `context`
 
@@ -593,6 +597,10 @@ class Instance(AbstractEntity):
         return u"%s.%s(\"%s\")" % (__name__, type(self).__name__, self)
 
     def __str__(self):
+        return self.name
+
+    @property
+    def id(self):
         return self.name
 
     def __init__(self, name, parent=None):
