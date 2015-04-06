@@ -3,7 +3,7 @@ import pyblish.api
 
 
 @pyblish.api.log
-class ValidateInstance(pyblish.api.Validator):
+class ValidateInstances(pyblish.api.Validator):
     hosts = ['python']
     families = ['full']
     version = (0, 1, 0)
