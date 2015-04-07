@@ -12,8 +12,14 @@ from pyblish.tests.lib import (
 @with_setup(setup_full, teardown)
 def test_publish_all(_):
     """publish() calls upon each convenience function"""
-    ctx = pyblish.plugin.Context()
-    pyblish.util.publish(context=ctx)
+    plugins = pyblish.plugin.discover()
+
+    assert "ConformInstances" in [p.__name__ for p in plugins]
+    assert "SelectInstances" in [p.__name__ for p in plugins]
+    assert "ValidateInstances" in [p.__name__ for p in plugins]
+    assert "ExtractInstances" in [p.__name__ for p in plugins]
+
+    ctx = pyblish.util.publish()
 
     for inst in ctx:
         assert inst.data('selected') is True

@@ -8,6 +8,14 @@ _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
 
 
+class classproperty(object):
+    def __init__(self, getter):
+        self.getter = getter
+
+    def __get__(self, instance, owner):
+        return self.getter(owner)
+
+
 def log(cls):
     """Decorator for attaching a logger to the class `cls`
 
@@ -207,3 +215,35 @@ def import_module(name, package=None):
     __import__(name)
 
     return sys.modules[name]
+
+
+def where(program):
+    r"""Parse PATH for executables
+
+    Windows note:
+        PATHEXT yields possible suffixes, such as .exe, .bat and .cmd
+
+    Usage:
+        >> where("python")
+        'c:\\python27\\python.exe'
+
+    """
+
+    suffixes = [""]
+
+    try:
+        # Append Windows suffixes, such as .exe, .bat and .cmd
+        suffixes.extend(os.environ.get("PATHEXT").split(os.pathsep))
+    except:
+        pass
+
+    for path in os.environ["PATH"].split(os.pathsep):
+
+        # A path may be empty.
+        if not path:
+            continue
+
+        for suffix in suffixes:
+            full_path = os.path.join(path, program + suffix)
+            if os.path.isfile(full_path):
+                return full_path

@@ -152,6 +152,10 @@ class Plugin(object):
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
 
+    @pyblish.lib.classproperty
+    def id(cls):
+        return cls.__name__
+
     def process(self, context, instances=None):
         """Perform processing upon context `context`
 
@@ -264,6 +268,34 @@ class Plugin(object):
         of compatible instances. It is run once per instance and
         distinguishes between instances compatible with the plugin"s
         family and host automatically.
+
+        Returns:
+            None
+
+        Raises:
+            Any error
+
+        """
+
+    def repair_instance(self, instance):
+        """Repair given `instance`
+
+        Implement this method in your subclasses in order for
+        the given instance to be repaired.
+
+        Returns:
+            None
+
+        Raises:
+            Any error
+
+        """
+
+    def repair_context(self, context):
+        """Repair given `context`
+
+        Implement this method in your subclasses in order for
+        the context to be repaired.
 
         Returns:
             None
@@ -565,6 +597,10 @@ class Instance(AbstractEntity):
         return u"%s.%s(\"%s\")" % (__name__, type(self).__name__, self)
 
     def __str__(self):
+        return self.name
+
+    @property
+    def id(self):
         return self.name
 
     def __init__(self, name, parent=None):
