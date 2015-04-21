@@ -700,9 +700,8 @@ def register_plugin_path(path):
 
     Example:
         >>> import os
-        >>> my_plugins = os.path.expanduser("~")
+        >>> my_plugins = "/server/plugins"
         >>> register_plugin_path(my_plugins)
-        >>> deregister_plugin_path(my_plugins)
 
     """
 
@@ -718,7 +717,7 @@ def deregister_plugin_path(path):
     """Remove a pyblish._registered_paths path
 
     Raises:
-        KeyError if `path` isn"t registered
+        KeyError if `path` isn't registered
 
     """
 
