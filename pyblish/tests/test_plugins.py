@@ -370,7 +370,7 @@ def test_entities_prints_nicely():
 
 
 def test_deregister_path():
-    path = os.path.expanduser('~')
+    path = "/server/plugins"
     pyblish.plugin.register_plugin_path(path)
     assert path in pyblish.plugin.registered_paths()
     pyblish.plugin.deregister_plugin_path(path)
@@ -385,8 +385,7 @@ def test_environment_paths():
 
     try:
         os.environ[key] = path
-        processed = pyblish.plugin._post_process_path(path)
-        assert processed in pyblish.plugin.plugin_paths()
+        assert path in pyblish.plugin.plugin_paths()
     finally:
         os.environ[key] = existing or ''
 
