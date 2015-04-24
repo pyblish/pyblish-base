@@ -266,7 +266,7 @@ class Plugin(object):
 
         Implement this method in your subclasses to handle processing
         of compatible instances. It is run once per instance and
-        distinguishes between instances compatible with the plugin"s
+        distinguishes between instances compatible with the plugin's
         family and host automatically.
 
         Returns:
@@ -700,25 +700,28 @@ def register_plugin_path(path):
 
     Example:
         >>> import os
-        >>> my_plugins = os.path.expanduser("~")
+        >>> my_plugins = "/server/plugins"
         >>> register_plugin_path(my_plugins)
-        >>> deregister_plugin_path(my_plugins)
+        '/server/plugins'
+
+    Returns:
+        Actual path added, including any post-processing
 
     """
 
-    processed_path = _post_process_path(path)
-
-    if processed_path in pyblish._registered_paths:
+    if path in pyblish._registered_paths:
         return log.warning("Path already registered: {0}".format(path))
 
-    pyblish._registered_paths.append(processed_path)
+    pyblish._registered_paths.append(path)
+
+    return path
 
 
 def deregister_plugin_path(path):
     """Remove a pyblish._registered_paths path
 
     Raises:
-        KeyError if `path` isn"t registered
+        KeyError if `path` isn't registered
 
     """
 
@@ -730,14 +733,15 @@ def deregister_all():
     pyblish._registered_paths[:] = []
 
 
-def _post_process_path(path):
-    """Before using any incoming path, process it"""
-    return os.path.abspath(path)
-
-
 def registered_paths():
-    """Return paths added via registration"""
-    return pyblish._registered_paths
+    """Return paths added via registration
+
+    ..note:: This returns a copy of the registered paths
+        and can therefore not be modified directly.
+
+    """
+
+    return list(pyblish._registered_paths)
 
 
 def configured_paths():
@@ -749,8 +753,6 @@ def configured_paths():
 
         plugin_path = path_template.format(**variables)
 
-        # Ensure path is absolute
-        plugin_path = _post_process_path(plugin_path)
         paths.append(plugin_path)
 
     return paths
@@ -766,8 +768,7 @@ def environment_paths():
     if env_val:
         env_paths = env_val.split(os.pathsep)
         for path in env_paths:
-            plugin_path = _post_process_path(path)
-            paths.append(plugin_path)
+            paths.append(path)
 
         log.debug("Paths from environment: %s" % env_paths)
 
@@ -793,12 +794,10 @@ def plugin_paths():
 
     paths = list()
 
-    # Accept registered paths.
     for path in registered_paths() + configured_paths() + environment_paths():
-        processed_path = _post_process_path(path)
-        if processed_path in paths:
+        if path in paths:
             continue
-        paths.append(processed_path)
+        paths.append(path)
 
     return paths
 

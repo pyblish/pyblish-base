@@ -25,7 +25,8 @@ from .plugin import (
     plugin_paths, register_plugin_path,
     deregister_plugin_path, deregister_all,
     registered_paths, environment_paths, configured_paths,
-    plugins_by_family, plugins_by_host, instances_by_plugin)
+    plugins_by_family, plugins_by_host, instances_by_plugin,
+    current_host)
 
 from .plugin import Config as __Config
 from .plugin import sort as sort_plugins
@@ -35,6 +36,7 @@ from .error import (
     PyblishError, SelectionError, ValidationError,
     ExtractionError, ConformError, NoInstancesError)
 
+# Aliases
 # For forwards-compatibility
 Collector = Selector
 Integrator = Conformer
@@ -85,6 +87,7 @@ __all__ = [
     "instances_by_plugin",
     "sort_plugins",
     "format_filename",
+    "current_host",
 
     # Configuration
     "config",

@@ -3,6 +3,14 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.0.16
+--------------
+
+- API: Added pyblish.api.current_host()
+- API: Plug-in paths can no longer be modified by altering
+    the results returned from pyblish.api.plugin_paths()
+- API: Paths are no longer made absolute during registration.
+
 Version 1.0.15
 --------------
 
