@@ -26,7 +26,7 @@ from .plugin import (
     deregister_plugin_path, deregister_all,
     registered_paths, environment_paths, configured_paths,
     plugins_by_family, plugins_by_host, instances_by_plugin,
-    current_host)
+    current_host, sort)
 
 from .plugin import Config as __Config
 from .plugin import sort as sort_plugins
@@ -88,6 +88,7 @@ __all__ = [
     "sort_plugins",
     "format_filename",
     "current_host",
+    "sort",
 
     # Configuration
     "config",
