@@ -8,7 +8,8 @@ Version 1.1.0
 
 - Feature: In-memory plug-ins (see #140)
 - Enhancement: Logic unified between pyblish.util and pyblish.cli
-- Bugfix: Order now works with pyblish.util and pyblish.cli
+- Bugfix: Order now works with pyblish.util and pyblish.cli-
+- pyblish.util minified. For data visualisation, refer to pyblish-qml
 - API: Added pyblish.api.plugins_by_instance()
 - API: New defaults for `hosts` and `families` of plug-ins. (see #176)
 - API: Added pyblish.api.register_plugin()
