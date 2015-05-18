@@ -7,6 +7,7 @@ Version 1.1.0
 -------------
 
 - Feature: In-memory plug-ins (see #140)
+- API: New defaults for `hosts` and `families` of plug-ins. (see #176)
 - API: Added pyblish.api.register_plugin()
 - API: Added pyblish.api.deregister_plugin()
 - API: Added pyblish.api.registered_plugins()

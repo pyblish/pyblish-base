@@ -45,3 +45,5 @@ validators_regex: ^validate_.*\.py$
 extractors_regex: ^extract_.*\.py$
 selectors_regex: ^select_.*\.py$
 conformers_regex: ^conform_.*\.py$
+collectors_regex: ^collect_.*\.py$
+integrators_regex: ^integrate_.*\.py$

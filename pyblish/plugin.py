@@ -834,7 +834,7 @@ def discover(type=None, regex=None, paths=None):
         type (str, optional): Only return plugins of specified type
             E.g. validators, extractors. In None is specified, return
             all plugins. Available options are "selectors", validators",
-            "extractors", "conformers".
+            "extractors", "conformers", "collectors" and "integrators".
         regex (str, optional): Limit results to those matching `regex`.
             Matching is done on classes, as opposed to
             filenames, due to a file possibly hosting
@@ -847,19 +847,26 @@ def discover(type=None, regex=None, paths=None):
     patterns = {"validators": pyblish.config["validators_regex"],
                 "extractors": pyblish.config["extractors_regex"],
                 "selectors": pyblish.config["selectors_regex"],
+                "integrators": pyblish.config["integrators_regex"],
+                "collectors": pyblish.config["collectors_regex"],
                 "conformers": pyblish.config["conformers_regex"]}
+
+    types = {"validators": Validator,
+             "extractors": Extractor,
+             "selectors": Selector,
+             "integrators": Conformer,
+             "collectors": Selector,
+             "conformers": Conformer}
 
     if type is not None and type not in patterns:
         raise ValueError("Type not recognised: %s" % type)
 
+    # Include plug-ins from registration
     discovered_plugins = pyblish._registered_plugins.copy()
 
-    paths_to_check = paths
-    if paths_to_check is None:
-        paths_to_check = plugin_paths()
-
+    # Include plug-ins from registered paths
     types_to_check = [type] if type is not None else patterns.keys()
-    for path in paths_to_check:
+    for path in paths or plugin_paths():
         path = os.path.normpath(path)
         if not os.path.isdir(path):
             continue
@@ -867,54 +874,67 @@ def discover(type=None, regex=None, paths=None):
         for fname in os.listdir(path):
             abspath = os.path.join(path, fname)
 
+            if not any(re.match(patterns[type], fname)
+                       for type in types_to_check):
+                continue
+
             if not os.path.isfile(abspath):
                 continue
 
-            for type in types_to_check:
-                if not re.match(patterns[type], fname):
+            mod_name, _ = os.path.splitext(fname)
+            try:
+                sys.path.insert(0, path)
+                module = pyblish.lib.import_module(mod_name)
+                reload(module)
+
+            except Exception as err:
+                log.warning("Skipped: \"%s\" (%s)", mod_name, err)
+                continue
+
+            finally:
+                # Restore sys.path
+                # sys.modules.pop(mod_name)
+                sys.path.remove(path)
+
+            for name in dir(module):
+                if name.startswith("_"):
                     continue
 
-                mod_name, _ = os.path.splitext(fname)
-                try:
-                    sys.path.insert(0, path)
-                    module = pyblish.lib.import_module(mod_name)
-                    reload(module)
+                obj = getattr(module, name)
 
-                except Exception as err:
-                    log.warning("Skipped: \"%s\" (%s)", mod_name, err)
+                if not inspect.isclass(obj):
                     continue
 
-                finally:
-                    # Restore sys.path
-                    # sys.modules.pop(mod_name)
-                    sys.path.remove(path)
+                if not issubclass(obj, Plugin):
+                    continue
 
-                for name in dir(module):
-                    if name.startswith("_"):
-                        continue
+                discovered_plugins[obj.__name__] = obj
 
-                    obj = getattr(module, name)
+    # Filter discovered
+    plugins = list()
+    for name, plugin in discovered_plugins.items():
+        if not plugin_is_valid(plugin):
+            continue
 
-                    if not plugin_is_valid(obj):
-                        continue
+        if not version_is_compatible(plugin):
+            log.warning("Plug-in %s not compatible with "
+                        "this version (%s) of Pyblish." % (
+                            plugin, pyblish.__version__))
+            continue
 
-                    if not version_is_compatible(obj):
-                        log.warning("Plug-in %s not compatible with "
-                                    "this version (%s) of Pyblish." % (
-                                        obj, pyblish.__version__))
-                        continue
+        if not host_is_compatible(plugin):
+            continue
 
-                    if not host_is_compatible(obj):
-                        continue
+        if plugin in plugins:
+            log.debug("Duplicate plugin found: %s", plugin)
+            continue
 
-                    if obj.__name__ in discovered_plugins:
-                        log.debug("Duplicate plugin found: %s", obj)
-                        continue
+        if not any(issubclass(plugin, types[type]) for type in types_to_check):
+            continue
 
-                    if regex is None or re.match(regex, obj.__name__):
-                        discovered_plugins[obj.__name__] = obj
+        if regex is None or re.match(regex, name):
+            plugins.append(plugin)
 
-    plugins = discovered_plugins.values()
     sort(plugins)  # In-place
     return plugins
 
