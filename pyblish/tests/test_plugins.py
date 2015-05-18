@@ -530,8 +530,50 @@ def test_inmemory_query():
 def test_inmemory_svec():
     """SVEC works fine with in-memory plug-ins"""
 
+    _disk = list()
+    _server = dict()
+
     class SelectInstances(pyblish.api.Selector):
-        pass
+        def process_context(self, context):
+            instance = context.create_instance(name="MyInstance")
+            instance.set_data("family", "MyFamily")
+
+            SomeData = type("SomeData", (object,), {})
+            SomeData.value = "MyValue"
+
+            instance.add(SomeData)
+
+    class ValidateInstances(pyblish.api.Validator):
+        def process_instance(self, instance):
+            assert_equals(instance.data("family"), "MyFamily")
+
+    class ExtractInstances(pyblish.api.Extractor):
+        def process_instance(self, instance):
+            for child in instance:
+                _disk.append(child)
+
+    class IntegrateInstances(pyblish.api.Integrator):
+        def process_instance(self, instance):
+            _server["assets"] = list()
+
+            for asset in _disk:
+                asset.metadata = "123"
+                _server["assets"].append(asset)
+
+    for plugin in (SelectInstances,
+                   ValidateInstances,
+                   ExtractInstances,
+                   IntegrateInstances):
+        pyblish.api.register_plugin(plugin)
+
+    context = pyblish.api.Context()
+    for plugin in pyblish.api.discover():
+        for instance, error in plugin().process(context):
+            pass
+
+    assert_equals(_disk[0].value, "MyValue")
+    assert_equals(_server["assets"][0].value, "MyValue")
+    assert_equals(_server["assets"][0].metadata, "123")
 
 
 @with_setup(setup_empty, teardown)
