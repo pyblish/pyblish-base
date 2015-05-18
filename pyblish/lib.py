@@ -99,12 +99,12 @@ def format_filename(filename):
 def format_filename2(filename):
     """Convert arbitrary string to valid filename, werkzeug-style.
 
-    Modifier from werkzeug.utils.secure_filename()
+    Modified from werkzeug.utils.secure_filename()
 
     Pass it a filename and it will return a secure version of it.  This
     filename can then safely be stored on a regular file system and passed
-    to :func:`os.path.join`.  The filename returned is an ASCII only string
-    for maximum portability.secure_fil
+    to :func:`os.path.join`. The filename returned is an ASCII only string
+    for maximum portability.
 
     On windows system the function also makes sure that the file is not
     named after one of the special device files.
