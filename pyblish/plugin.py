@@ -132,6 +132,7 @@ class Plugin(object):
     Attributes:
         hosts: Mandatory specifier for which host application
             this plug-in is compatible with.
+        families: Supported families.
         version: Mandatory version for forwards-compatibility.
             Pyblish is (currently not) using the version to allow
             for plug-ins incompatible with a particular running
@@ -150,7 +151,8 @@ class Plugin(object):
             was first introduced.
     """
 
-    hosts = list()       # Hosts compatible with plugin
+    hosts = list("*")    # Hosts compatible with plugin
+    families = list("*")    # Hosts compatible with plugin
     version = (0, 0, 0)  # Current version of plugin
     order = None
     optional = False
@@ -335,16 +337,8 @@ class Selector(Plugin):
 
 
 class Validator(Plugin):
-    """Validate/check/test individual instance for correctness.
+    """Validate/check/test individual instance for correctness."""
 
-    Raises exception upon failure.
-
-    Attributes:
-        families: Supported families.
-
-    """
-
-    families = list()
     order = 1
 
 
@@ -355,12 +349,8 @@ class Extractor(Plugin):
     current working file. Use the convenience :meth:`commit` to maintain
     this convention.
 
-    Attributes:
-        families: Supported families.
-
     """
 
-    families = list()
     order = 2
 
     def compute_commit_directory(self, instance):
@@ -462,14 +452,8 @@ class Extractor(Plugin):
 
 
 class Conformer(Plugin):
-    """Integrates publishes into a pipeline
+    """Integrates publishes into a pipeline"""
 
-    Attributes:
-        families: Supported families.
-
-    """
-
-    families = list()
     order = 3
 
 
@@ -917,7 +901,7 @@ def discover(type=None, regex=None, paths=None):
                     if not version_is_compatible(obj):
                         log.warning("Plug-in %s not compatible with "
                                     "this version (%s) of Pyblish." % (
-                                        plugin, pyblish.__version__))
+                                        obj, pyblish.__version__))
                         continue
 
                     if not host_is_compatible(obj):

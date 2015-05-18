@@ -532,3 +532,23 @@ def test_inmemory_svec():
 
     class SelectInstances(pyblish.api.Selector):
         pass
+
+
+@with_setup(setup_empty, teardown)
+def test_plugin_families_defaults():
+    """Plug-ins without specific families default to wildcard"""
+
+    class SelectInstances(pyblish.api.Selector):
+        pass
+
+    instance = pyblish.api.Instance("MyInstance")
+    instance.set_data("family", "SomeFamily")
+
+    assert_equals(pyblish.api.instances_by_plugin(
+        [instance], SelectInstances)[0], instance)
+
+    class ValidateInstances(pyblish.api.Validator):
+        pass
+
+    assert_equals(pyblish.api.instances_by_plugin(
+        [instance], ValidateInstances)[0], instance)
