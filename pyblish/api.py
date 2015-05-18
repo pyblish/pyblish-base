@@ -36,7 +36,6 @@ from .plugin import (
     register_plugin_path,
     deregister_plugin_path,
     deregister_all_paths,
-    deregister_all,  # For backwards compatibility
     plugins_by_family,
     plugins_by_host,
     plugins_by_instance,
@@ -62,10 +61,15 @@ from .error import (
     NoInstancesError
 )
 
+from .compat import (
+    deregister_all,
+    sort,
+)
 
 # Aliases
 Collector = Selector
 Integrator = Conformer
+
 
 def __init__():
     pyblish.config = __Config()
@@ -84,6 +88,7 @@ __init__()
 
 version = pyblish.version
 config = pyblish.config
+
 
 __all__ = [
     # Base objects
@@ -111,7 +116,6 @@ __all__ = [
     "register_plugin_path",
     "deregister_plugin_path",
     "deregister_all_paths",
-    "deregister_all",
     "register_plugin",
     "deregister_plugin",
     "registered_plugins",
@@ -137,5 +141,9 @@ __all__ = [
     "ValidationError",
     "ExtractionError",
     "ConformError",
-    "NoInstancesError"
+    "NoInstancesError",
+
+    # Compatibility
+    "deregister_all",
+    "sort",
 ]
