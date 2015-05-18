@@ -4,6 +4,7 @@ import pyblish
 import pyblish.cli
 import pyblish.plugin
 
+config = pyblish.plugin.Config()
 
 # Setup
 HOST = 'python'

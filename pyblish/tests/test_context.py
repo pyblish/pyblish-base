@@ -7,12 +7,11 @@ import pyblish.lib
 import pyblish.plugin
 
 from pyblish.tests.lib import (
-    setup_full, teardown)
+    setup, teardown, setup_failing, HOST, FAMILY,
+    setup_duplicate, setup_invalid, setup_wildcard,
+    setup_empty, setup_full, setup)
 from pyblish.vendor.nose.tools import *
 
-# Setup
-HOST = 'python'
-FAMILY = 'test.family'
 
 package_path = pyblish.lib.main_package_path()
 plugin_path = os.path.join(package_path, 'tests', 'plugins')
@@ -56,52 +55,6 @@ def test_instance_equality():
 
     assert inst1 != inst2
     assert inst2 == inst3
-
-
-def test_failing_context():
-    """Context processing yields identical information to instances"""
-
-    class SelectFailure(pyblish.api.Selector):
-        def process_context(self, context):
-            raise pyblish.api.SelectionError("I was programmed to fail")
-
-    ctx = pyblish.api.Context()
-
-    for instance, error in SelectFailure().process(ctx):
-        assert_true(error is not None)
-        assert_true(hasattr(error, "traceback"))
-        assert_true(error.traceback is not None)
-
-
-def test_failing_validator():
-    """All plug-ins yield both context and instance exceptions"""
-    class ValidateFailure(pyblish.api.Validator):
-        families = ["test"]
-
-        def process_context(self, context):
-            raise pyblish.api.ValidationError("context failed")
-
-        def process_instance(self, instance):
-            raise pyblish.api.ValidationError("instance failed")
-
-    ctx = pyblish.api.Context()
-    instance = ctx.create_instance("MyInstance")
-    instance.set_data("family", "test")
-
-    # Context is always processed first
-    processor = ValidateFailure().process(ctx)
-    instance, error = processor.next()
-    assert_equal(error.message, "context failed")
-    assert_true(hasattr(error, "traceback"))
-
-    # Next up is the instance
-    instance, error = processor.next()
-    assert_equal(error.message,  "instance failed")
-    assert_true(hasattr(error, "traceback"))
-    assert_equal(instance.name, "MyInstance")
-
-    # Nothing else is yeilded
-    assert_raises(StopIteration, processor.next)
 
 
 if __name__ == '__main__':

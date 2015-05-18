@@ -1,161 +1,60 @@
 
 # Standard library
 import os
-import time
-import shutil
 import random
-import tempfile
 
 # Local library
+from . import lib
 import pyblish.plugin
 
 from pyblish.vendor import mock
 
 from pyblish.tests.lib import (
-    setup, teardown, setup_failing, HOST, FAMILY,
-    setup_duplicate, setup_invalid, setup_wildcard,
-    setup_empty)
+    setup, teardown, setup_duplicate, setup_invalid,
+    setup_empty, FAMILY)
 from pyblish.vendor.nose.tools import *
 
 
-config = pyblish.plugin.Config()
-
-
-@with_setup(setup, teardown)
-def test_selection_interface():
-    """The interface of selection works fine"""
-
-    ctx = pyblish.plugin.Context()
-
-    selectors = pyblish.plugin.discover(
-        type='selectors',
-        regex='SelectInstances$')
-
-    assert len(selectors) >= 1
-
-    for selector in selectors:
-        if HOST not in selector.hosts:
-            continue
-
-        selector().process_all(ctx)
-
-    assert len(ctx) >= 1
-
-    inst = ctx.pop()
-    assert len(inst) >= 3
-
-
-@with_setup(setup, teardown)
-def test_validation_interface():
-    """The interface of validation works fine"""
-    ctx = pyblish.plugin.Context()
-
-    # Manually create instance and nodes, bypassing selection
-    inst = ctx.create_instance(name='test_instance')
-    inst.add('test_node1_PLY')
-    inst.add('test_node2_PLY')
-    inst.add('test_node3_GRP')
-    inst.set_data(config['identifier'], value=True)
-    inst.set_data('family', value=FAMILY)
-
-    ctx.add(inst)
-
-    validator = pyblish.plugin.discover(
-        type='validators',
-        regex="^ValidateInstance$")[0]
-
-    print "%s found" % validator
-    assert validator
-
-    for instance, error in validator().process(ctx):
-        print error
-        assert error is None
-
-
-@with_setup(setup, teardown)
-def test_extraction_interface():
-    """The interface of extractors works fine"""
-    ctx = pyblish.plugin.Context()
-
-    # Manually create instance and nodes, bypassing selection
-    inst = ctx.create_instance(name='test_instance')
-
-    inst.add('test_PLY')
-    inst.set_data(config['identifier'], value=True)
-    inst.set_data('family', value=FAMILY)
-
-    ctx.add(inst)
-
-    # Assuming validations pass
-
-    extractor = pyblish.plugin.discover(
-        type='extractors', regex='.*ExtractInstances$')[0]
-    assert extractor.__name__ == "ExtractInstances"
-
-    extractor().process_all(ctx)
-
-
-@with_setup(setup, teardown)
-def test_plugin_interface():
-    """All plugins share interface"""
-
-    ctx = pyblish.plugin.Context()
-
-    for plugin in pyblish.plugin.discover():
-        for instance, error in plugin().process(ctx):
-            assert (error is None) or isinstance(error, Exception)
-
-
-@with_setup(setup, teardown)
-def test_selection_appends():
-    """Selectors append, rather than replace existing instances"""
-
-    ctx = pyblish.plugin.Context()
-
-    inst = ctx.create_instance(name='MyInstance')
-    inst.add('node1')
-    inst.add('node2')
-    inst.set_data(config['identifier'], value=True)
-
-    assert len(ctx) == 1
-
-    for selector in pyblish.plugin.discover(
-            'selectors', regex='SelectInstances$'):
-        selector().process_all(context=ctx)
-
-    # At least one plugin will append a selector
-    assert inst in ctx
-    assert len(ctx) > 1
-
-
-@with_setup(setup, teardown)
 def test_plugins_by_family():
-    """Returns plugins compatible with family"""
-    inst = pyblish.plugin.Instance('TestInstance')
-    inst.set_data(config['identifier'], value=True)
-    inst.set_data('family', value=FAMILY)
+    """plugins_by_family works fine"""
+    Plugin1 = type("Plugin1", (pyblish.api.Validator,), {})
+    Plugin2 = type("Plugin2", (pyblish.api.Validator,), {})
 
-    plugins = pyblish.plugin.discover('validators')
-    compatible = pyblish.plugin.plugins_by_family(
-        plugins, family=FAMILY)
+    Plugin1.families = ["a"]
+    Plugin2.families = ["b"]
 
-    # The filter will discard at least one plugin
-    assert len(plugins) > len(compatible)
+    assert_equals(pyblish.plugin.plugins_by_family(
+                  (Plugin1, Plugin2), family="a"),
+                  [Plugin1])
 
 
-@with_setup(setup, teardown)
 def test_plugins_by_host():
-    """Returns plugins compatible with host"""
-    inst = pyblish.plugin.Instance('TestInstance')
-    inst.set_data(config['identifier'], value=True)
+    """plugins_by_host works fine."""
+    Plugin1 = type("Plugin1", (pyblish.api.Validator,), {})
+    Plugin2 = type("Plugin2", (pyblish.api.Validator,), {})
 
-    plugins = pyblish.plugin.discover('validators')
-    compatible = pyblish.plugin.plugins_by_host(
-        plugins, host='__unrecognised__')
+    Plugin1.hosts = ["a"]
+    Plugin2.hosts = ["b"]
 
-    # The filter will discard at least one plugin
-    print compatible
-    assert len(compatible) == 0
+    assert_equals(pyblish.plugin.plugins_by_host(
+                  (Plugin1, Plugin2), host="a"),
+                  [Plugin1])
+
+
+def test_plugins_by_instance():
+    """plugins_by_instance works fine."""
+    Plugin1 = type("Plugin1", (pyblish.api.Validator,), {})
+    Plugin2 = type("Plugin2", (pyblish.api.Validator,), {})
+
+    Plugin1.families = ["a"]
+    Plugin2.families = ["b"]
+
+    instance = pyblish.api.Instance("A")
+    instance.set_data("family", "a")
+
+    assert_equals(pyblish.plugin.plugins_by_instance(
+                  (Plugin1, Plugin2), instance),
+                  [Plugin1])
 
 
 @with_setup(setup, teardown)
@@ -170,7 +69,7 @@ def test_instances_by_plugin():
         inst = ctx.create_instance(
             name='TestInstance{0}'.format(families.index(family) + 1))
 
-        inst.set_data(config['identifier'], value=True)
+        inst.set_data(lib.config['identifier'], value=True)
         inst.set_data('family', value=family)
         inst.set_data('host', value='python')
 
@@ -226,134 +125,6 @@ def test_no_duplicate_plugins():
     assert len(plugins) == 1, plugins
 
 
-@raises(ValueError)
-@with_setup(setup_failing, teardown)
-def test_validation_failure():
-    """Validation throws exception upon failure"""
-
-    ctx = pyblish.plugin.Context()
-
-    # Manually create instance and nodes, bypassing selection
-    inst = ctx.create_instance(name='test_instance')
-
-    inst.add('test_PLY')
-    inst.add('test_misnamed')
-
-    inst.set_data(config['identifier'], value=True)
-    inst.set_data('family', value=FAMILY)
-
-    ctx.add(inst)
-
-    validator = pyblish.plugin.discover(
-        type='validators', regex='^ValidateInstanceFail$')[0]
-
-    validator().process_all(ctx)
-
-
-@raises(ValueError)
-@with_setup(setup_failing, teardown)
-def test_extraction_failure():
-    """Extraction fails ok
-
-    When extraction fails, it is imperitative that other extractors
-    keep going and that the user is properly notified of the failure.
-
-    """
-    ctx = pyblish.plugin.Context()
-
-    # Manually create instance and nodes, bypassing selection
-    inst = ctx.create_instance(name='test_instance')
-
-    inst.add('test_PLY')
-    inst.set_data(config['identifier'], value=True)
-    inst.set_data('family', value=FAMILY)
-
-    ctx.add(inst)
-
-    # Assuming validations pass
-    extractor = pyblish.plugin.discover(
-        type='extractors', regex='.*Fail$')[0]
-
-    print extractor
-    assert extractor.__name__ == "ExtractInstancesFail"
-    extractor().process_all(ctx)
-
-
-@raises(ValueError)
-@with_setup(setup_failing, teardown)
-def test_process_context_error():
-    """Processing context raises an exception"""
-
-    ctx = pyblish.plugin.Context()
-
-    selectors = pyblish.plugin.discover(
-        'selectors', regex='^SelectInstancesError$')
-
-    for selector in selectors:
-        selector().process_all(context=ctx)
-
-
-@with_setup(setup, teardown)
-def test_commit():
-    """pylish.plugin.commit() works
-
-    Testing commit() involves creating temporary output,
-    committing said output and then checking that it
-    resides where we expected it to reside.
-
-    """
-
-    ctx = pyblish.plugin.Context()
-    inst = ctx.create_instance(name='CommittedInstance')
-    inst.set_data('family', FAMILY)
-    inst.set_data(config['identifier'], True)
-
-    try:
-        # This is where we'll write it first
-        temp_dir = tempfile.mkdtemp()
-        ctx.set_data('temp_dir', value=temp_dir)
-
-        # This is where the data will eventually end up
-        workspace = tempfile.mkdtemp()
-        current_file = os.path.join(workspace, 'document_name.txt')
-        ctx.set_data('current_file', value=current_file)
-
-        # Finally, we need a date
-        date = time.strftime(config['date_format'])
-        ctx.set_data('date', value=date)
-
-        # And this is what we'll write
-        document_name = 'document_name'
-        document_content = 'document content'
-        document = {document_name: document_content}
-        inst.add(document)
-
-        document_extractor = pyblish.plugin.discover(
-            'extractors', regex='^ExtractDocuments$')[0]
-
-        document_extractor().process_all(ctx)
-
-        for root, dirs, files in os.walk(workspace):
-            # The inner-most file is commited document
-            document_path = root
-            for fn in files:
-                document_path = os.path.join(document_path, fn)
-
-        basename = os.path.basename(document_path)
-        name, ext = os.path.splitext(basename)
-
-        assert name == document_name
-        with open(document_path) as f:
-            assert f.read() == document_content
-
-        # Data is persisted within each instance
-        assert inst.data('commit_dir') == os.path.dirname(document_path)
-
-    finally:
-        shutil.rmtree(temp_dir)
-        shutil.rmtree(workspace)
-
-
 @with_setup(setup_invalid, teardown)
 @mock.patch('pyblish.plugin.log')
 def test_invalid_plugins(mock_log):
@@ -380,7 +151,7 @@ def test_deregister_path():
 
 def test_environment_paths():
     """Registering via the environment works"""
-    key = config['paths_environment_variable']
+    key = lib.config['paths_environment_variable']
     path = '/test/path'
     existing = os.environ.get(key)
 
@@ -395,17 +166,6 @@ def test_environment_paths():
 def test_discover_invalid_type():
     """Discovering an invalid type raises an error"""
     pyblish.plugin.discover(type='INVALID')
-
-
-@raises(ValueError)
-@with_setup(setup_wildcard, teardown)
-def test_wildcard_plugins():
-    """Wildcard plugins process instances without family"""
-    context = pyblish.plugin.Context()
-
-    for type in ('selectors', 'validators'):
-        for plugin in pyblish.plugin.discover(type=type):
-            plugin().process_all(context)
 
 
 def test_instances_by_plugin_invariant():
@@ -456,31 +216,6 @@ def test_plugins_by_family_wildcard():
         [Plugin1, Plugin2], "myFamily")
 
 
-def test_failing_context_processing():
-    """Plug-in should not skip processing of Instance if Context fails"""
-
-    value = {"a": False}
-
-    class MyPlugin(pyblish.api.Validator):
-        families = ["myFamily"]
-        hosts = ["python"]
-
-        def process_context(self, context):
-            raise Exception("Failed")
-
-        def process_instance(self, instance):
-            value["a"] = True
-
-    ctx = pyblish.api.Context()
-    inst = ctx.create_instance(name="MyInstance")
-    inst.set_data("family", "myFamily")
-
-    for instance, error in MyPlugin().process(ctx):
-        pass
-
-    assert_true(value["a"])
-
-
 @with_setup(setup, teardown)
 def test_plugins_sorted():
     """Plug-ins are returned sorted by their `order` attribute"""
@@ -524,56 +259,6 @@ def test_inmemory_query():
     InMemoryPlugin = type("InMemoryPlugin", (pyblish.api.Selector,), {})
     pyblish.api.register_plugin(InMemoryPlugin)
     assert pyblish.api.registered_plugins()[0] == InMemoryPlugin
-
-
-@with_setup(setup_empty, teardown)
-def test_inmemory_svec():
-    """SVEC works fine with in-memory plug-ins"""
-
-    _disk = list()
-    _server = dict()
-
-    class SelectInstances(pyblish.api.Selector):
-        def process_context(self, context):
-            instance = context.create_instance(name="MyInstance")
-            instance.set_data("family", "MyFamily")
-
-            SomeData = type("SomeData", (object,), {})
-            SomeData.value = "MyValue"
-
-            instance.add(SomeData)
-
-    class ValidateInstances(pyblish.api.Validator):
-        def process_instance(self, instance):
-            assert_equals(instance.data("family"), "MyFamily")
-
-    class ExtractInstances(pyblish.api.Extractor):
-        def process_instance(self, instance):
-            for child in instance:
-                _disk.append(child)
-
-    class IntegrateInstances(pyblish.api.Integrator):
-        def process_instance(self, instance):
-            _server["assets"] = list()
-
-            for asset in _disk:
-                asset.metadata = "123"
-                _server["assets"].append(asset)
-
-    for plugin in (SelectInstances,
-                   ValidateInstances,
-                   ExtractInstances,
-                   IntegrateInstances):
-        pyblish.api.register_plugin(plugin)
-
-    context = pyblish.api.Context()
-    for plugin in pyblish.api.discover():
-        for instance, error in plugin().process(context):
-            pass
-
-    assert_equals(_disk[0].value, "MyValue")
-    assert_equals(_server["assets"][0].value, "MyValue")
-    assert_equals(_server["assets"][0].metadata, "123")
 
 
 @with_setup(setup_empty, teardown)

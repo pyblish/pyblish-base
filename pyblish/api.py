@@ -7,10 +7,10 @@ attempt to maintain backwards- and forwards-compatibility.
 This way, we as developers are free to refactor the library
 without breaking any of your tools.
 
-.. note:: Don't use this in any other module internal to Pyblish
-    or a cyclic dependency will be created. This is only to be used
-    by end-users of the library and from integrations/extensions
-    of Pyblish.
+.. note:: Contributors, don't use this in any other module internal
+    to Pyblish or a cyclic dependency will be created. This is only
+    to be used by end-users of the library and from
+    integrations/extensions of Pyblish.
 
 """
 
@@ -36,8 +36,10 @@ from .plugin import (
     register_plugin_path,
     deregister_plugin_path,
     deregister_all_paths,
+    deregister_all,  # For backwards compatibility
     plugins_by_family,
     plugins_by_host,
+    plugins_by_instance,
     instances_by_plugin,
     sort as sort_plugins,
     registered_paths,
@@ -60,12 +62,28 @@ from .error import (
     NoInstancesError
 )
 
+
 # Aliases
 Collector = Selector
 Integrator = Conformer
 
-config = pyblish.config
+def __init__():
+    pyblish.config = __Config()
+
+    # Initialise log
+    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    log = logging.getLogger("pyblish")
+    log.propagate = True
+    log.handlers[:] = []
+    log.addHandler(handler)
+    log.setLevel(logging.DEBUG)
+
+__init__()
+
 version = pyblish.version
+config = pyblish.config
 
 __all__ = [
     # Base objects
@@ -73,10 +91,12 @@ __all__ = [
     "Instance",
 
     # SVEC plug-ins
+    "Collector",
     "Selector",
     "Validator",
     "Extractor",
     "Conformer",
+    "Integrator",
 
     # Plug-in utilities
     "discover",
@@ -91,11 +111,13 @@ __all__ = [
     "register_plugin_path",
     "deregister_plugin_path",
     "deregister_all_paths",
+    "deregister_all",
     "register_plugin",
     "deregister_plugin",
     "registered_plugins",
     "plugins_by_family",
     "plugins_by_host",
+    "plugins_by_instance",
     "instances_by_plugin",
     "sort_plugins",
     "format_filename",
@@ -117,25 +139,3 @@ __all__ = [
     "ConformError",
     "NoInstancesError"
 ]
-
-
-def __init__():
-    """Initialise Pyblish"""
-    if getattr(__init__, "called", False):
-        return
-
-    pyblish.config = __Config()
-
-    # Initialise log
-    formatter = logging.Formatter("%(levelname)s - %(message)s")
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    log = logging.getLogger("pyblish")
-    log.propagate = True
-    log.handlers[:] = []
-    log.addHandler(handler)
-    log.setLevel(logging.DEBUG)
-
-    __init__.called = True
-
-__init__()

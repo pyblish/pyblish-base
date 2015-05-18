@@ -20,7 +20,7 @@ import sys
 import shutil
 import logging
 import inspect
-import traceback
+import warnings
 
 # Local library
 import pyblish
@@ -49,6 +49,7 @@ __all__ = [
     "deregister_all_paths",
     "plugins_by_family",
     "plugins_by_host",
+    "plugins_by_instance",
     "instances_by_plugin",
     "sort",
     "registered_paths",
@@ -82,7 +83,6 @@ class Config(dict):
 
     _instance = None
 
-    HOMEDIR = os.path.expanduser("~")
     PACKAGEDIR = os.path.dirname(__file__)
     DEFAULTCONFIG = "config.yaml"
     DEFAULTCONFIGPATH = os.path.join(PACKAGEDIR, DEFAULTCONFIG)
@@ -168,95 +168,6 @@ class Plugin(object):
     def id(cls):
         return cls.__name__
 
-    def process(self, context, instances=None):
-        """Perform processing upon context `context`
-
-        Arguments:
-            context (Context): Context to process
-            instances (list, optional): Names of instances to process,
-                names not in list will not be processed.
-
-        .. note:: If an instance contains the data "publish" and that data is
-            `False` the instance will not be processed.
-
-        Injected data during processing:
-        - `__is_processed__`: Whether or not the instance was processed
-        - `__processed_by__`: Plugins which processed the given instance
-
-        Returns:
-            :meth:`process` returns a generator with (instance, error), with
-                error defaulted to `None`. Each error is injected with a
-                stack-trace of what went wrong, accessible via error.traceback.
-
-        Yields:
-            Tuple (Instance, Exception)
-
-        """
-
-        try:
-            self.process_context(context)
-
-        except Exception as err:
-            try:
-                _, _, exc_tb = sys.exc_info()
-                err.traceback = traceback.extract_tb(
-                    exc_tb)[-1]
-            except:
-                pass
-
-            yield None, err
-
-        finally:
-            compatible_instances = instances_by_plugin(
-                instances=context, plugin=self)
-
-            if compatible_instances:
-                for instance in compatible_instances:
-                    # Limit instances to those specified in `instances`
-                    if instances is not None and \
-                            instance.name not in instances:
-                        self.log.debug("Skipping %s, "
-                                       "not included in "
-                                       "exclusive list (%s)" % (instance,
-                                                                instances))
-                        continue
-
-                    if instance.has_data("publish"):
-                        if instance.data("publish", default=True) is False:
-                            self.log.debug("Skipping %s, "
-                                           "publish-flag was false" % instance)
-                            continue
-
-                    elif not pyblish.config["publish_by_default"]:
-                        self.log.debug("Skipping %s, "
-                                       "no publish-flag was "
-                                       "set, and publishing "
-                                       "by default is False" % instance)
-                        continue
-
-                    self.log.info("Processing instance: \"%s\"" % instance)
-
-                    # Inject data
-                    processed_by = instance.data("__processed_by__") or list()
-                    processed_by.append(type(self))
-                    instance.set_data("__processed_by__", processed_by)
-                    instance.set_data("__is_processed__", True)
-
-                    try:
-                        self.process_instance(instance)
-                        err = None
-
-                    except Exception as err:
-                        try:
-                            _, _, exc_tb = sys.exc_info()
-                            err.traceback = traceback.extract_tb(
-                                exc_tb)[-1]
-                        except:
-                            pass
-
-                    finally:
-                        yield instance, err
-
     def process_context(self, context):
         """Process `context`
 
@@ -316,18 +227,6 @@ class Plugin(object):
             Any error
 
         """
-
-    def process_all(self, context):
-        """Convenience method of the above :meth:`process`
-
-        Return:
-            None
-
-        """
-
-        for instance, error in self.process(context):
-            if error is not None:
-                raise error
 
 
 class Selector(Plugin):
@@ -739,6 +638,11 @@ def deregister_all_paths():
     pyblish._registered_paths[:] = []
 
 
+def deregister_all():
+    warnings.warn("deregister_all deprecated; use deregister_all_paths")
+    return deregister_all_paths()
+
+
 def registered_paths():
     """Return paths added via registration
 
@@ -1054,6 +958,21 @@ def plugins_by_family(plugins, family):
             compatible.append(plugin)
 
     return compatible
+
+
+def plugins_by_instance(plugins, instance):
+    """Conveinence function for :func:`plugins_by_family`
+
+    Arguments:
+        plugins (list): Plug-ins to assess
+        instance (Instance): Instance with which to compare against
+
+    Returns:
+        List of compatible plugins
+
+    """
+
+    return plugins_by_family(plugins, instance.data("family"))
 
 
 def plugins_by_host(plugins, host):

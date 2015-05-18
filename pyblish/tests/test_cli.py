@@ -23,9 +23,6 @@ def test_all_commands_run(mock_pip):
     for args in [[],
                  ['--verbose'],
                  ['publish'],
-                 ['install', 'test'],
-                 ['uninstall', 'test'],
-                 ['packages'],
                  ['config']
                  ]:
 

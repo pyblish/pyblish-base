@@ -26,6 +26,7 @@ import logging
 
 import pyblish.api
 import pyblish.lib
+import pyblish.util
 import pyblish.plugin
 import pyblish.version
 
@@ -412,21 +413,12 @@ def publish(ctx,
 
     """
 
-    # sys.exit(1)
-
     if 'error' in ctx.obj:
         # Halt execution if an error has occured in main()
         click.echo("publish: An error has occured.")
         sys.exit(1)
 
-    _start_time = time.time()  # Benchmark
-
-    # Resolve incoming path argument into an absolute path
-    path = os.path.abspath(path)
-
-    if not os.path.exists(path):
-        click.echo("Path did not exist: %s" % path)
-        sys.exit(1)
+    _start = time.time()  # Benchmark
 
     # Use `path` argument as initial data for context
     context = ctx.obj['context']
@@ -438,39 +430,15 @@ def publish(ctx,
 
     # Begin processing
     click.echo()  # newline
-    for typ in ('selectors',
-                'validators',
-                'extractors',
-                'conformers'):
 
-        paths = ctx.obj['plugin_paths']
-        plugins = pyblish.api.discover(typ, paths=paths)
-        errors = {}
+    plugins = pyblish.api.discover(paths=ctx.obj['plugin_paths'])
+    pyblish.util.publish(context, plugins)
 
-        for plugin in plugins:
-            click.echo("%s..." % plugin.__name__)
-
-            if delay:
-                time.sleep(delay)
-
-            for instance, error in plugin().process(context):
-                if error is not None:
-                    errors[error] = instance
-
-            if errors and plugin.order >= 2:
-                # Before proceeding with extraction, ensure
-                # that there are no failed validators.
-                click.echo()  # newline
-                click.echo("There were errors:")
-                for error, instance in errors.iteritems():
-                    item = instance or "Context"
-                    click.echo("{tab}%s: %s".format(tab=TAB)
-                               % (item, error))
-                sys.exit(1)
+    _end = time.time()
 
     click.echo()
     click.echo("-" * 80)
-    click.echo(_format_time(_start_time, time.time()))
+    click.echo(_format_time(_start, _end))
 
 
 @click.command()
