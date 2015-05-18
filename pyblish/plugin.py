@@ -692,6 +692,14 @@ def current_host():
     raise ValueError("Could not determine host")
 
 
+def register_plugin(plugin):
+    pyblish._registered_plugins[plugin.__name__] = plugin
+
+
+def deregister_plugin(plugin):
+    pyblish._registered_plugins.pop(plugin.__name__)
+
+
 def register_plugin_path(path):
     """Plug-ins are looked up at run-time from directories registered here
 
@@ -835,65 +843,7 @@ def discover(type=None, regex=None, paths=None):
     if type is not None and type not in patterns:
         raise ValueError("Type not recognised: %s" % type)
 
-    discovered_plugins = dict()
-
-    def version_is_compatible(plugin):
-        """Lookup compatibility between plug-in and current version of Pyblish
-
-        Arguments:
-            plugin (Plugin): Plug-in to test against
-
-        """
-
-        if not iscompatible.iscompatible(requirements=plugin.requires,
-                                         version=pyblish.version_info):
-            log.warning("Plug-in %s not compatible with this version "
-                        "(%s) of Pyblish." % (plugin, pyblish.__version__))
-            return False
-        return True
-
-    def plugin_is_valid(plugin):
-        if not inspect.isclass(plugin):
-            return False
-
-        if not issubclass(plugin, Plugin):
-            return False
-
-        if plugin.order is None:
-            log.error("Plug-in must have an order: %s", plugin)
-            return False
-
-        if not isinstance(plugin.requires, basestring):
-            log.error("Plug-in requires must be of type string: %s", plugin)
-            return False
-
-        try:
-            if (issubclass(plugin, Selector)
-                    and not getattr(plugin, "hosts")):
-                raise Exception(0)
-            if (issubclass(plugin, (Validator, Extractor))
-                    and not getattr(plugin, "families")
-                    and not getattr(plugin, "hosts")):
-                raise Exception(1)
-
-            if (issubclass(plugin, Conformer)
-                    and not getattr(plugin, "families")):
-                raise Exception(2)
-
-        except Exception as e:
-            if e.message == 0:
-                log.error("%s: Plug-in not valid, missing hosts.", plugin)
-            if e.message == 1:
-                log.error("%s: Plug-in not valid, missing hosts and families.",
-                          plugin)
-            if e.message == 2:
-                log.error("%s: Plug-in not valid, missing families.", plugin)
-            return False
-
-        return True
-
-    def host_is_compatible(plugin):
-        return any(["*" in plugin.hosts, current_host() in plugin.hosts])
+    discovered_plugins = pyblish._registered_plugins.copy()
 
     paths_to_check = paths
     if paths_to_check is None:
@@ -940,6 +890,9 @@ def discover(type=None, regex=None, paths=None):
                         continue
 
                     if not version_is_compatible(obj):
+                        log.warning("Plug-in %s not compatible with "
+                                    "this version (%s) of Pyblish." % (
+                                        plugin, pyblish.__version__))
                         continue
 
                     if not host_is_compatible(obj):
@@ -955,6 +908,77 @@ def discover(type=None, regex=None, paths=None):
     plugins = discovered_plugins.values()
     sort(plugins)  # In-place
     return plugins
+
+
+def plugin_is_valid(plugin):
+    """Determine whether or not plug-in `plugin` is valid
+
+    Arguments:
+        plugin (Plugin): Plug-in to assess
+
+    """
+
+    if not inspect.isclass(plugin):
+        return False
+
+    if not issubclass(plugin, Plugin):
+        return False
+
+    if not isinstance(plugin.requires, basestring):
+        log.error("Plug-in requires must be of type string: %s", plugin)
+        return False
+
+    try:
+        if (issubclass(plugin, Selector)
+                and not getattr(plugin, "hosts")):
+            raise Exception(0)
+        if (issubclass(plugin, (Validator, Extractor))
+                and not getattr(plugin, "families")
+                and not getattr(plugin, "hosts")):
+            raise Exception(1)
+
+        if (issubclass(plugin, Conformer)
+                and not getattr(plugin, "families")):
+            raise Exception(2)
+
+    except Exception as e:
+        if e.message == 0:
+            log.error("%s: Plug-in not valid, missing hosts.", plugin)
+        if e.message == 1:
+            log.error("%s: Plug-in not valid, missing hosts and families.",
+                      plugin)
+        if e.message == 2:
+            log.error("%s: Plug-in not valid, missing families.", plugin)
+        return False
+
+    return True
+
+
+def version_is_compatible(plugin):
+    """Lookup compatibility between plug-in and current version of Pyblish
+
+    Arguments:
+        plugin (Plugin): Plug-in to test against
+
+    """
+
+    if not iscompatible.iscompatible(requirements=plugin.requires,
+                                     version=pyblish.version_info):
+        return False
+    return True
+
+
+def host_is_compatible(plugin):
+    """Determine whether plug-in `plugin` is compatible with the current host
+
+    The current host is determined by :func:`current_host`.
+
+    Arguments:
+        plugin (Plugin): Plug-in to assess.
+
+    """
+
+    return any(["*" in plugin.hosts, current_host() in plugin.hosts])
 
 
 def sort(plugins):

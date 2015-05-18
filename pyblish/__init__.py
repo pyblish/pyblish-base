@@ -11,9 +11,9 @@ from .version import *
 
 
 config = {}
-manager = None
 
 _registered_paths = list()
+_registered_plugins = dict()
 
 
 def is_initialized():

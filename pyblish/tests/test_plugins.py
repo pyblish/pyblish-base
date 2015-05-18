@@ -13,7 +13,8 @@ from pyblish.vendor import mock
 
 from pyblish.tests.lib import (
     setup, teardown, setup_failing, HOST, FAMILY,
-    setup_duplicate, setup_invalid, setup_wildcard)
+    setup_duplicate, setup_invalid, setup_wildcard,
+    setup_empty)
 from pyblish.vendor.nose.tools import *
 
 
@@ -493,3 +494,24 @@ def test_plugins_sorted():
         order = plugin.order
 
     assert order > 0, plugins
+
+
+@with_setup(setup_empty, teardown)
+def test_inmemory_plugins():
+    """In-memory plug-ins works fine"""
+
+    class InMemoryPlugin(pyblish.api.Selector):
+        hosts = ["*"]
+        families = ["*"]
+
+        def process_context(self, context):
+            context.set_data("workingFine", True)
+
+    pyblish.api.register_plugin(InMemoryPlugin)
+
+    context = pyblish.api.Context()
+    for plugin in pyblish.api.discover():
+        assert plugin is InMemoryPlugin
+        plugin().process_context(context)
+
+    assert context.data("workingFine") is True

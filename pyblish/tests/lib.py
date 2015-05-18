@@ -34,6 +34,12 @@ def setup():
     pyblish.plugin.register_plugin_path(PLUGINPATH)
 
 
+def setup_empty():
+    """Disable all plug-ins"""
+    setup()
+    pyblish.plugin.deregister_all()
+
+
 def setup_failing():
     """Expose failing plugins to discovery mechanism"""
     setup()
