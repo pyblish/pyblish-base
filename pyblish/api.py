@@ -20,44 +20,49 @@ import logging
 import pyblish
 
 from .plugin import (
-    Context, Instance, discover,
-    Selector, Validator, Extractor, Conformer,
-    plugin_paths, register_plugin_path,
-    deregister_plugin_path, deregister_all,
-    registered_paths, environment_paths, configured_paths,
-    plugins_by_family, plugins_by_host, instances_by_plugin,
-    current_host, sort, register_plugin, deregister_plugin)
+    Context,
+    Instance,
+    Selector,
+    Validator,
+    Extractor,
+    Conformer,
+    Config as __Config,
+    discover,
+    register_plugin,
+    deregister_plugin,
+    deregister_all_plugins,
+    registered_plugins,
+    plugin_paths,
+    register_plugin_path,
+    deregister_plugin_path,
+    deregister_all_paths,
+    plugins_by_family,
+    plugins_by_host,
+    instances_by_plugin,
+    sort as sort_plugins,
+    registered_paths,
+    environment_paths,
+    configured_paths,
+    current_host,
+)
 
-from .plugin import Config as __Config
-from .plugin import sort as sort_plugins
+from .lib import (
+    log,
+    format_filename
+)
 
-from .lib import log, format_filename
 from .error import (
-    PyblishError, SelectionError, ValidationError,
-    ExtractionError, ConformError, NoInstancesError)
+    PyblishError,
+    SelectionError,
+    ValidationError,
+    ExtractionError,
+    ConformError,
+    NoInstancesError
+)
 
 # Aliases
-# For forwards-compatibility
 Collector = Selector
 Integrator = Conformer
-
-# Initialise log
-__formatter = logging.Formatter("%(levelname)s - %(message)s")
-__handler = logging.StreamHandler()
-__handler.setFormatter(__formatter)
-__log = logging.getLogger("pyblish")
-__log.propagate = True
-__log.handlers[:] = []
-__log.addHandler(__handler)
-__log.setLevel(logging.DEBUG)
-
-if not pyblish.is_initialized():
-    try:
-        pyblish.config = __Config()
-    except Exception as e:
-        __log.debug("Exception: %s" % e)
-        __log.warning("Something went wrong whilst "
-                      "initializing configuration")
 
 config = pyblish.config
 version = pyblish.version
@@ -67,7 +72,7 @@ __all__ = [
     "Context",
     "Instance",
 
-    # Plug-ins
+    # SVEC plug-ins
     "Selector",
     "Validator",
     "Extractor",
@@ -79,16 +84,23 @@ __all__ = [
     "registered_paths",
     "configured_paths",
     "environment_paths",
+    "register_plugin",
+    "deregister_plugin",
+    "deregister_all_plugins",
+    "registered_plugins",
     "register_plugin_path",
     "deregister_plugin_path",
-    "deregister_all",
+    "deregister_all_paths",
+    "register_plugin",
+    "deregister_plugin",
+    "registered_plugins",
     "plugins_by_family",
     "plugins_by_host",
     "instances_by_plugin",
     "sort_plugins",
     "format_filename",
     "current_host",
-    "sort",
+    "sort_plugins",
 
     # Configuration
     "config",
@@ -105,3 +117,25 @@ __all__ = [
     "ConformError",
     "NoInstancesError"
 ]
+
+
+def __init__():
+    """Initialise Pyblish"""
+    if getattr(__init__, "called", False):
+        return
+
+    pyblish.config = __Config()
+
+    # Initialise log
+    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    log = logging.getLogger("pyblish")
+    log.propagate = True
+    log.handlers[:] = []
+    log.addHandler(handler)
+    log.setLevel(logging.DEBUG)
+
+    __init__.called = True
+
+__init__()

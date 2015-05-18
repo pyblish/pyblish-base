@@ -17,7 +17,7 @@ FAMILY = 'test.family'
 package_path = pyblish.lib.main_package_path()
 plugin_path = os.path.join(package_path, 'tests', 'plugins')
 
-pyblish.plugin.deregister_all()
+pyblish.plugin.deregister_all_paths()
 pyblish.plugin.register_plugin_path(plugin_path)
 
 

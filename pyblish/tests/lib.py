@@ -30,14 +30,14 @@ def setup():
     pyblish.config = pyblish.plugin.Config()
     pyblish.config['paths'] = []
 
-    pyblish.plugin.deregister_all()
+    pyblish.plugin.deregister_all_paths()
     pyblish.plugin.register_plugin_path(PLUGINPATH)
 
 
 def setup_empty():
     """Disable all plug-ins"""
     setup()
-    pyblish.plugin.deregister_all()
+    pyblish.plugin.deregister_all_paths()
 
 
 def setup_failing():
@@ -51,7 +51,7 @@ def setup_failing():
 
 def setup_duplicate():
     """Expose duplicate plugins to discovery mechanism"""
-    pyblish.plugin.deregister_all()
+    pyblish.plugin.deregister_all_paths()
 
     config = pyblish.plugin.Config()
     config['paths'] = []
@@ -62,7 +62,7 @@ def setup_duplicate():
 
 
 def setup_wildcard():
-    pyblish.plugin.deregister_all()
+    pyblish.plugin.deregister_all_paths()
 
     config = pyblish.plugin.Config()
     config['paths'] = []
@@ -73,7 +73,7 @@ def setup_wildcard():
 
 def setup_invalid():
     """Expose invalid plugins to discovery mechanism"""
-    pyblish.plugin.deregister_all()
+    pyblish.plugin.deregister_all_paths()
     failing_path = os.path.join(PLUGINPATH, 'invalid')
     pyblish.plugin.register_plugin_path(failing_path)
 
@@ -81,14 +81,14 @@ def setup_invalid():
 def setup_full():
     """Expose a full processing chain for testing"""
     setup()
-    pyblish.plugin.deregister_all()
+    pyblish.plugin.deregister_all_paths()
     path = os.path.join(PLUGINPATH, 'full')
     pyblish.plugin.register_plugin_path(path)
 
 
 def setup_echo():
     """Plugins that output information"""
-    pyblish.plugin.deregister_all()
+    pyblish.plugin.deregister_all_paths()
 
     config = pyblish.plugin.Config()
     config['paths'] = []
@@ -103,11 +103,12 @@ def teardown():
     # Clear singletons
     pyblish.plugin.Config._instance = None
 
-    pyblish.plugin.deregister_all()
+    pyblish.plugin.deregister_all_paths()
     for path in REGISTERED:
         pyblish.plugin.register_plugin_path(path)
 
     os.environ["PYBLISHPLUGINPATH"] = ENVIRONMENT
+    pyblish.api.deregister_all_plugins()
 
 
 # CLI Fixtures

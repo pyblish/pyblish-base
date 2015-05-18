@@ -515,3 +515,20 @@ def test_inmemory_plugins():
         plugin().process_context(context)
 
     assert context.data("workingFine") is True
+
+
+@with_setup(setup_empty, teardown)
+def test_inmemory_query():
+    """Asking for registered plug-ins works well"""
+
+    InMemoryPlugin = type("InMemoryPlugin", (pyblish.api.Selector,), {})
+    pyblish.api.register_plugin(InMemoryPlugin)
+    assert pyblish.api.registered_plugins()[0] == InMemoryPlugin
+
+
+@with_setup(setup_empty, teardown)
+def test_inmemory_svec():
+    """SVEC works fine with in-memory plug-ins"""
+
+    class SelectInstances(pyblish.api.Selector):
+        pass

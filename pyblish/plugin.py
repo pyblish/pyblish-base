@@ -30,22 +30,32 @@ import pyblish.error
 from .vendor import yaml
 from .vendor import iscompatible
 
-
-__all__ = ["Plugin",
-           "Selector",
-           "Validator",
-           "Extractor",
-           "Conformer",
-           "Context",
-           "Instance",
-           "discover",
-           "plugin_paths",
-           "registered_paths",
-           "environment_paths",
-           "configured_paths",
-           "register_plugin_path",
-           "deregister_plugin_path",
-           "deregister_all"]
+__all__ = [
+    "Context",
+    "Instance",
+    "Selector",
+    "Validator",
+    "Extractor",
+    "Conformer",
+    "Config",
+    "discover",
+    "register_plugin",
+    "deregister_plugin",
+    "deregister_all_plugins",
+    "registered_plugins",
+    "plugin_paths",
+    "register_plugin_path",
+    "deregister_plugin_path",
+    "deregister_all_paths",
+    "plugins_by_family",
+    "plugins_by_host",
+    "instances_by_plugin",
+    "sort",
+    "registered_paths",
+    "environment_paths",
+    "configured_paths",
+    "current_host",
+]
 
 
 log = logging.getLogger("pyblish.plugin")
@@ -700,6 +710,10 @@ def deregister_plugin(plugin):
     pyblish._registered_plugins.pop(plugin.__name__)
 
 
+def deregister_all_plugins():
+    pyblish._registered_plugins.clear()
+
+
 def register_plugin_path(path):
     """Plug-ins are looked up at run-time from directories registered here
 
@@ -736,7 +750,7 @@ def deregister_plugin_path(path):
     pyblish._registered_paths.remove(path)
 
 
-def deregister_all():
+def deregister_all_paths():
     """Mainly used in tests"""
     pyblish._registered_paths[:] = []
 
@@ -750,6 +764,17 @@ def registered_paths():
     """
 
     return list(pyblish._registered_paths)
+
+
+def registered_plugins():
+    """Return plug-ins added via :func:`register_plugin`
+
+    .. note:: This returns a copy of the registered plug-ins
+        and can therefore not be modified directly
+
+    """
+
+    return pyblish._registered_plugins.values()
 
 
 def configured_paths():
