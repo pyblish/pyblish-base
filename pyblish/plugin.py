@@ -665,10 +665,6 @@ def current_host():
 
     executable = os.path.basename(sys.executable).lower()
 
-    if "python" in executable:
-        # Running from standalone Python
-        return "python"
-
     if "maya" in executable:
         # Maya is distinguished by looking at the currently running
         # executable of the Python interpreter. It will be something
@@ -686,8 +682,15 @@ def current_host():
     if "modo" in executable:
         return "modo"
 
-    if "houdini" in executable:
-        return "houdini"
+    # incase you are not using the build in python version check and see if
+    # hou is imported.
+    if 'hou' in sys.modules or 'houdini' in executable:
+        return 'houdini'
+
+    # if all else fails.
+    if "python" in executable:
+        # Running from standalone Python
+        return "python"
 
     raise ValueError("Could not determine host")
 
