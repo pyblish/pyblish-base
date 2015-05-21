@@ -12,7 +12,7 @@ prefix: published
 
 # Date template, this is used within the
 # `commit_template` path template below.
-date_format: "%Y%m%d_%H%M%S"
+date_format: "%Y-%m-%dT%H:%M:%S.%fZ"
 
 # Should instances without a "publish" data member
 # be published? To disable an instance, add "publish"
