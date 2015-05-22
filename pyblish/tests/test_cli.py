@@ -2,13 +2,28 @@ import os
 
 import pyblish
 import pyblish.cli
+import pyblish.api
 from pyblish.tests import lib
 import pyblish.plugin
 
-from pyblish.tests.lib import teardown, setup_failing_cli
+from pyblish.tests.lib import (
+    teardown,
+    setup_empty,
+    setup_failing_cli
+)
 from pyblish.vendor.click.testing import CliRunner
-from pyblish.vendor.nose.tools import with_setup
+from pyblish.vendor.nose.tools import *
 from pyblish.vendor import mock
+
+
+def ctx():
+    """Return current Click context"""
+    return pyblish.cli._ctx
+
+
+def context():
+    """Return current context"""
+    return ctx().obj["context"]
 
 
 @mock.patch('pyblish.cli.pip')
@@ -84,7 +99,8 @@ def test_data():
     runner.invoke(pyblish.cli.main, [
         '--data', 'fail', 'I was programmed to fail!', 'publish'])
 
-    assert lib.context().has_data("fail")
+    assert context().has_data("fail")
+    assert not context().has_data("notExist")
 
 
 @mock.patch('pyblish.cli.log')
@@ -98,8 +114,7 @@ def test_invalid_data(mock_log):
     runner.invoke(pyblish.cli.main,
                   ['--data', 'invalid_key', '["test": "fdf}'])
 
-    context = lib.context()
-    assert 'invalid_key' not in context.data()
+    assert 'invalid_key' not in context().data()
 
     # An error message is logged
     assert mock_log.error.called
@@ -115,7 +130,7 @@ def test_add_plugin_path():
         pyblish.cli.main,
         ['--add-plugin-path', custom_path, '--paths'])
 
-    assert custom_path in lib.ctx().obj["plugin_paths"]
+    assert custom_path in ctx().obj["plugin_paths"]
 
 
 def test_version():
@@ -125,3 +140,32 @@ def test_version():
     print "Output: %s" % result.output
     print "Version: %s" % pyblish.__version__
     assert pyblish.__version__ in result.output
+
+
+@with_setup(setup_empty, teardown)
+def test_limiting_instances():
+    """Limiting processed instances works fine"""
+    class SelectMany(pyblish.api.Selector):
+        def process_context(self, context):
+            for name in ("InstA", "InstB", "InstC"):
+                instance = context.create_instance(name)
+                instance.set_data("family", "MyFamily")
+
+    class ValidateMany(pyblish.api.Validator):
+        def process_instance(self, instance):
+            instance.set_data("processed", True)
+
+    for plugin in (SelectMany, ValidateMany):
+        pyblish.api.register_plugin(plugin)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        pyblish.cli.main,
+        ["publish", "--instance", "InstB"])
+
+    processed = list()
+    for instance in context():
+        processed.append(instance.data("processed", False))
+    assert_equals(processed, [False, True, False])
+
+    print "Output: %s" % result.output

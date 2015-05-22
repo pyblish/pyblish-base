@@ -255,7 +255,6 @@ def test_commit():
     ctx = pyblish.plugin.Context()
     inst = ctx.create_instance(name='CommittedInstance')
     inst.set_data('family', FAMILY)
-    inst.set_data(lib.config['identifier'], True)
 
     try:
         # This is where we'll write it first
@@ -267,21 +266,20 @@ def test_commit():
         current_file = os.path.join(workspace, 'document_name.txt')
         ctx.set_data('current_file', value=current_file)
 
-        # Finally, we need a date
-        date = time.strftime(lib.config['date_format'])
-        ctx.set_data('date', value=date)
-
         # And this is what we'll write
         document_name = 'document_name'
         document_content = 'document content'
         document = {document_name: document_content}
         inst.add(document)
 
+        date = pyblish.lib.format_filename(pyblish.util.time())
+        ctx.set_data("date", date)
+
         document_extractor = pyblish.plugin.discover(
             'extractors', regex='^ExtractDocuments$')[0]
 
         for instance, error in pyblish.util.process(document_extractor, ctx):
-            pass
+            assert_equals(error, None)
 
         for root, dirs, files in os.walk(workspace):
             # The inner-most file is commited document
@@ -292,7 +290,7 @@ def test_commit():
         basename = os.path.basename(document_path)
         name, ext = os.path.splitext(basename)
 
-        assert name == document_name
+        assert_equals(name, document_name)
         with open(document_path) as f:
             assert f.read() == document_content
 
@@ -549,7 +547,6 @@ def test_order():
         def process_instance(self, instance):
             value = instance.data("current") + "6"
             instance.set_data("current", value)
-
 
     for plugin in (Extractor2, Extractor1, Validator3,
                    Validator2, Validator1, SelectInstance):

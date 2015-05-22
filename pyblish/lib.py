@@ -8,6 +8,51 @@ _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
 
 
+class ItemList(list):
+    """List with keys
+
+    Raises:
+        KeyError is item is not in list
+
+    Example:
+        >>> Obj = type("Object", (object,), {})
+        >>> obj = Obj()
+        >>> obj.name = "Test"
+        >>> l = ItemList(key="name")
+        >>> l.append(obj)
+        >>> l[0] == obj
+        True
+        >>> l["Test"] == obj
+        True
+        >>> try:
+        ...   l["NotInList"]
+        ... except KeyError:
+        ...   print True
+        True
+
+    """
+
+    def __init__(self, key, object=list()):
+        super(ItemList, self).__init__(object)
+        self.key = key
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return super(ItemList, self).__getitem__(index)
+
+        for item in self:
+            if getattr(item, self.key) == index:
+                return item
+
+        raise KeyError("%s not in list" % index)
+
+    def get(self, key, default=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            return default
+
+
 class classproperty(object):
     def __init__(self, getter):
         self.getter = getter

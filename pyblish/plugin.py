@@ -20,7 +20,6 @@ import sys
 import shutil
 import logging
 import inspect
-import warnings
 
 # Local library
 import pyblish
@@ -33,24 +32,37 @@ from .vendor import iscompatible
 __all__ = [
     "Context",
     "Instance",
+
     "Selector",
     "Validator",
     "Extractor",
     "Conformer",
+
+    "Provider",
     "Config",
+
     "discover",
+
     "register_plugin",
     "deregister_plugin",
     "deregister_all_plugins",
     "registered_plugins",
+
+    "register_service",
+    "deregister_service",
+    "deregister_all_services",
+    "registered_services",
+
     "plugin_paths",
     "register_plugin_path",
     "deregister_plugin_path",
     "deregister_all_paths",
+
     "plugins_by_family",
     "plugins_by_host",
     "plugins_by_instance",
     "instances_by_plugin",
+
     "sort",
     "registered_paths",
     "environment_paths",
@@ -60,6 +72,46 @@ __all__ = [
 
 
 log = logging.getLogger("pyblish.plugin")
+
+
+class Provider(object):
+    """Dependency provider"""
+
+    def __init__(self):
+        self._services = dict()
+
+    @property
+    def services(self):
+        s = pyblish._registered_services.copy()
+        s.update(self._services)
+        return s
+
+    def args(self, func):
+        return [a for a in inspect.getargspec(func)[0]
+                if a not in ("self",)]
+
+    def invoke(self, func):
+        """Supply function `func` with objects to its signature
+
+        Returns:
+            Exception or None
+
+        """
+
+        print "Invoking"
+
+        services = self.services
+
+        if not all(arg in services.keys() for arg in self.args(func)):
+            return Exception("Unavailable service requested.")
+
+        inject = dict((k, v) for k, v in self.services.items()
+                      if k in self.args(func))
+
+        return func(**inject)
+
+    def inject(self, name, obj):
+        self._services[name] = obj
 
 
 class Config(dict):
@@ -78,6 +130,7 @@ class Config(dict):
         >>> config = Config()
         >>> for key, value in config.iteritems():
         ...     assert key in config
+        >>> assert Config() is Config()
 
     """
 
@@ -287,7 +340,7 @@ class Extractor(Plugin):
         date = instance.context.data("date")
 
         # This is assumed from default plugins
-        assert date
+        assert date, "Context did not have a date"
 
         if not workspace_dir:
             raise pyblish.error.ExtractorError(
@@ -540,6 +593,15 @@ class Instance(AbstractEntity):
         return value
 
 
+def gen(context):
+    """Generate pair of context/instance"""
+    if len(context) > 0:
+        for instance in context:
+            yield context, instance
+    else:
+        yield context, None
+
+
 def current_host():
     """Return currently active host
 
@@ -582,19 +644,73 @@ def current_host():
     if "houdini" in executable:
         return "houdini"
 
-    raise ValueError("Could not determine host")
+    raise ValueError("Could not determine host from \"%s\"" % executable)
 
 
 def register_plugin(plugin):
+    """Register a new plug-in
+
+    Arguments:
+        plugin (Plugin): Plug-in to register
+
+    """
+
     pyblish._registered_plugins[plugin.__name__] = plugin
 
 
 def deregister_plugin(plugin):
+    """De-register an existing plug-in
+
+    Arguments:
+        plugin (Plugin): Existing plug-in to de-register
+
+    """
+
     pyblish._registered_plugins.pop(plugin.__name__)
 
 
 def deregister_all_plugins():
+    """De-register all plug-ins"""
     pyblish._registered_plugins.clear()
+
+
+def register_service(name, obj):
+    """Register a new service
+
+    Arguments:
+        name (str): Name of service
+        obj (object): Any object
+
+    """
+
+    pyblish._registered_services[name] = obj
+
+
+def deregister_service(name):
+    """De-register an existing service by name
+
+    Arguments:
+        name (str): Name of service
+
+    """
+
+    pyblish._registered_services.pop(name)
+
+
+def deregister_all_services():
+    """De-register all existing services"""
+    pyblish._registered_services.clear()
+
+
+def registered_services():
+    """Return the currently registered services as a dictionary
+
+    .. note:: This returns a copy of the registered paths
+        and can therefore not be modified directly.
+
+    """
+
+    return pyblish._registered_services.copy()
 
 
 def register_plugin_path(path):
@@ -636,11 +752,6 @@ def deregister_plugin_path(path):
 def deregister_all_paths():
     """Mainly used in tests"""
     pyblish._registered_paths[:] = []
-
-
-def deregister_all():
-    warnings.warn("deregister_all deprecated; use deregister_all_paths")
-    return deregister_all_paths()
 
 
 def registered_paths():

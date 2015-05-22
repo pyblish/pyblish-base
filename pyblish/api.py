@@ -16,8 +16,10 @@ without breaking any of your tools.
 
 from __future__ import absolute_import
 
+import getpass
 import logging
 import pyblish
+import datetime
 
 from .plugin import (
     Context,
@@ -28,19 +30,29 @@ from .plugin import (
     Conformer,
     Config as __Config,
     discover,
+
     register_plugin,
     deregister_plugin,
     deregister_all_plugins,
     registered_plugins,
+
     plugin_paths,
     register_plugin_path,
     deregister_plugin_path,
     deregister_all_paths,
+
+    register_service,
+    deregister_service,
+    deregister_all_services,
+    registered_services,
+
     plugins_by_family,
     plugins_by_host,
     plugins_by_instance,
     instances_by_plugin,
+
     sort as sort_plugins,
+
     registered_paths,
     environment_paths,
     configured_paths,
@@ -70,9 +82,16 @@ from .compat import (
 Collector = Selector
 Integrator = Conformer
 
+version = pyblish.version
+config = None
+
 
 def __init__():
-    pyblish.config = __Config()
+    pyblish.config.update(__Config())
+
+    # Enable access to configuration through API
+    global config
+    config = pyblish.config
 
     # Initialise log
     formatter = logging.Formatter("%(levelname)s - %(message)s")
@@ -84,10 +103,16 @@ def __init__():
     log.addHandler(handler)
     log.setLevel(logging.DEBUG)
 
-__init__()
+    # Register default services
+    def time():
+        return datetime.datetime.now().strftime(config["date_format"])
 
-version = pyblish.version
-config = pyblish.config
+    register_service("time", time)
+    register_service("user", getpass.getuser)
+    register_service("context", None)
+    register_service("instance", None)
+
+__init__()
 
 
 __all__ = [
@@ -105,24 +130,31 @@ __all__ = [
 
     # Plug-in utilities
     "discover",
+
     "plugin_paths",
     "registered_paths",
     "configured_paths",
     "environment_paths",
+
     "register_plugin",
     "deregister_plugin",
     "deregister_all_plugins",
     "registered_plugins",
+
+    "register_service",
+    "deregister_service",
+    "deregister_all_services",
+    "registered_services",
+
     "register_plugin_path",
     "deregister_plugin_path",
     "deregister_all_paths",
-    "register_plugin",
-    "deregister_plugin",
-    "registered_plugins",
+
     "plugins_by_family",
     "plugins_by_host",
     "plugins_by_instance",
     "instances_by_plugin",
+
     "sort_plugins",
     "format_filename",
     "current_host",
@@ -132,7 +164,7 @@ __all__ = [
     "config",
     "version",
 
-    # Decorators
+    # Utilities
     "log",
 
     # Exceptions

@@ -16,16 +16,6 @@ PLUGINPATH = os.path.join(PACKAGEPATH, 'tests', 'plugins')
 ENVIRONMENT = os.environ.get("PYBLISHPLUGINPATH", "")
 
 
-def ctx():
-    """Return current Click context"""
-    return pyblish.cli._ctx
-
-
-def context():
-    """Return current context"""
-    return ctx().obj["context"]
-
-
 def setup():
     """Disable default plugins and only use test plugins"""
     pyblish.config = pyblish.plugin.Config()

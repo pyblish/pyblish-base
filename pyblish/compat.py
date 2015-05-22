@@ -10,7 +10,7 @@ def sort(*args, **kwargs):
     return plugin.sort()
 
 
-def deregister_all(args, **kwargs):
+def deregister_all(*args, **kwargs):
     warnings.warn("pyblish.api.deregister_all has been deprecated; "
                   "use pyblish.api.deregister_all_paths")
     return plugin.deregister_all_paths()
