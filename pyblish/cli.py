@@ -433,8 +433,7 @@ def publish(ctx,
 
     plugins = pyblish.api.discover(paths=ctx.obj['plugin_paths'])
     pyblish.util.publish(context=context,
-                         plugins=plugins,
-                         instances=instances)
+                         plugins=plugins)
 
     _end = time.time()
 

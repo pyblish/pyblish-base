@@ -5,3 +5,5 @@ source = pyblish
 include = *pyblish*
 omit = 
     */vendor*
+    */tests*
+    */run_*

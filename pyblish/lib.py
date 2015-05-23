@@ -29,6 +29,10 @@ class ItemList(list):
         ... except KeyError:
         ...   print True
         True
+        >>> obj == l.get("Test")
+        True
+        >>> l.get("NotInList") == None
+        True
 
     """
 
@@ -91,6 +95,12 @@ def log(cls):
 
 def parse_environment_paths(paths):
     """Given a (semi-)colon separated string of paths, return a list
+
+    Example:
+        >>> parse_environment_paths("path1;path2")
+        ['path1', 'path2']
+        >>> parse_environment_paths("path1;")
+        ['path1', '']
 
     Arguments:
         paths (str): Colon or semi-colon (depending on platform)
@@ -194,6 +204,16 @@ def format_filename2(filename):
 
 
 def get_formatter():
+    """Return a default Pyblish formatter for logging
+
+    Example:
+        >>> import logging
+        >>> log = logging.getLogger("myLogger")
+        >>> handler = logging.StreamHandler()
+        >>> handler.setFormatter(get_formatter())
+
+    """
+
     formatter = logging.Formatter(
         '%(asctime)s - '
         '%(levelname)s - '
@@ -204,10 +224,22 @@ def get_formatter():
 
 
 def setup_log(root='pyblish', level=logging.DEBUG):
-    log = logging.getLogger(root)
+    """Setup a default logger for Pyblish
 
-    if log.handlers:
-        return log.handlers[0]
+    Example:
+        >>> log = setup_log()
+        >>> log.info("Hello, World")
+
+    """
+
+    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    
+    log = logging.getLogger(root)
+    log.propagate = True
+    log.handlers[:] = []
+    log.addHandler(handler)
 
     log.setLevel(level)
 

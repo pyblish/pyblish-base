@@ -1,7 +1,6 @@
 import os
 
 import pyblish
-import pyblish.cli
 import pyblish.plugin
 
 config = pyblish.plugin.Config()
@@ -12,14 +11,13 @@ FAMILY = 'test.family'
 
 REGISTERED = pyblish.plugin.registered_paths()
 PACKAGEPATH = pyblish.lib.main_package_path()
-PLUGINPATH = os.path.join(PACKAGEPATH, 'tests', 'plugins')
+PLUGINPATH = os.path.join(PACKAGEPATH, '..', 'tests', 'pre11', 'plugins')
 ENVIRONMENT = os.environ.get("PYBLISHPLUGINPATH", "")
 
 
 def setup():
     """Disable default plugins and only use test plugins"""
-    pyblish.config = pyblish.plugin.Config()
-    pyblish.config['paths'] = []
+    config['paths'] = []
 
     pyblish.plugin.deregister_all_paths()
     pyblish.plugin.register_plugin_path(PLUGINPATH)
@@ -44,7 +42,6 @@ def setup_duplicate():
     """Expose duplicate plugins to discovery mechanism"""
     pyblish.plugin.deregister_all_paths()
 
-    config = pyblish.plugin.Config()
     config['paths'] = []
 
     for copy in ('copy1', 'copy2'):
@@ -55,7 +52,6 @@ def setup_duplicate():
 def setup_wildcard():
     pyblish.plugin.deregister_all_paths()
 
-    config = pyblish.plugin.Config()
     config['paths'] = []
 
     wildcard_path = os.path.join(PLUGINPATH, 'wildcards')
@@ -92,7 +88,7 @@ def teardown():
     """Restore previously REGISTERED paths"""
 
     # Clear singletons
-    pyblish.plugin.Config._instance = None
+    config.reset()
 
     pyblish.plugin.deregister_all_paths()
     for path in REGISTERED:

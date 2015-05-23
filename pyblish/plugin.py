@@ -93,17 +93,18 @@ class Provider(object):
     def invoke(self, func):
         """Supply function `func` with objects to its signature
 
+        Raises:
+            KeyError if an argument asked for is not available
+
         Returns:
-            Exception or None
+            Result of `func`
 
         """
-
-        print "Invoking"
 
         services = self.services
 
         if not all(arg in services.keys() for arg in self.args(func)):
-            return Exception("Unavailable service requested.")
+            raise KeyError("Unavailable service requested.")
 
         inject = dict((k, v) for k, v in self.services.items()
                       if k in self.args(func))
@@ -147,16 +148,15 @@ class Config(dict):
     def __new__(cls, *args, **kwargs):
         """Make Config into a singleton"""
         if cls._instance is None:
+            print "NEW CONFIG"
             cls._instance = super(Config, cls).__new__(
                 cls, *args, **kwargs)
+            cls._instance.reset()
         return cls._instance
-
-    def __init__(self):
-        """Read all configuration upon instantiation"""
-        self.reset()
 
     def reset(self):
         """Remove all configuration and re-read from disk"""
+        print "RESETTING"
         self.clear()
         self.load()
 
@@ -221,65 +221,30 @@ class Plugin(object):
     def id(cls):
         return cls.__name__
 
-    def process_context(self, context):
-        """Process `context`
+    def process(self):
+        """Primary processing method
 
-        Implement this method in your subclasses whenever you need
-        to process the full context. The principal difference here
-        is that only one return value is required, exceptions are
-        handled gracefully by :meth:`process` above.
+        This method is called whenever your plug-in is invoked
+        and is injected with object relative to it's signature.
 
-        Returns:
-            None
+        E.g. process(self, context, instance) will have the current
+        context and instance injected into it at run-time.
 
-        Raises:
-            Any error
-
-        """
-
-    def process_instance(self, instance):
-        """Process individual, compatible instances
-
-        Implement this method in your subclasses to handle processing
-        of compatible instances. It is run once per instance and
-        distinguishes between instances compatible with the plugin's
-        family and host automatically.
-
-        Returns:
-            None
+        Available objects:
+            - context
+            - instance
+            - user
+            - time
 
         Raises:
             Any error
 
         """
 
-    def repair_instance(self, instance):
-        """Repair given `instance`
+        pass
 
-        Implement this method in your subclasses in order for
-        the given instance to be repaired.
-
-        Returns:
-            None
-
-        Raises:
-            Any error
-
-        """
-
-    def repair_context(self, context):
-        """Repair given `context`
-
-        Implement this method in your subclasses in order for
-        the context to be repaired.
-
-        Returns:
-            None
-
-        Raises:
-            Any error
-
-        """
+    def repair(self):
+        pass
 
 
 class Selector(Plugin):
@@ -295,118 +260,20 @@ class Validator(Plugin):
 
 
 class Extractor(Plugin):
-    """Physically separate Instance from Host into corresponding resources
-
-    By convention, an extractor always positions files relative the
-    current working file. Use the convenience :meth:`commit` to maintain
-    this convention.
-
-    """
+    """Physically separate Instance from Host into corresponding resources"""
 
     order = 2
-
-    def compute_commit_directory(self, instance):
-        """Return commit directory for `instance`
-
-        The commit directory is derived from a template, located within
-        the configuration. The following variables are substituted at
-        run-time:
-
-        - pyblish: With absolute path to pyblish package directory
-        - prefix: With Config["prefix"]
-        - date: With date embedded into `instance`
-        - family: With instance embedded into `instance`
-        - instance: Name of `instance`
-        - user: Currently logged on user, as derived from `instance`
-
-        Arguments:
-            instance (Instance): Instance for which to compute a directory
-
-        Returns:
-            Absolute path to directory as string
-
-        Raises:
-            ExtractorError: When data is missing from `instance`
-
-        """
-
-        workspace_dir = instance.context.data("workspace_dir")
-        if not workspace_dir:
-            # Project has not been set. Files will
-            # instead end up next to the working file.
-            current_file = instance.context.data("current_file")
-            workspace_dir = os.path.dirname(current_file)
-
-        date = instance.context.data("date")
-
-        # This is assumed from default plugins
-        assert date, "Context did not have a date"
-
-        if not workspace_dir:
-            raise pyblish.error.ExtractorError(
-                "Could not determine commit directory. "
-                "Instance MUST supply either \"current_file\" or "
-                "\"workspace_dir\" as data prior to commit")
-
-        # Remove invalid characters from output name
-        name = instance.data("name")
-        valid_name = pyblish.lib.format_filename(name)
-        if name != valid_name:
-            self.log.info("Formatting instance name: "
-                          "\"%s\" -> \"%s\""
-                          % (name, valid_name))
-            name = valid_name
-
-        variables = {"pyblish": pyblish.lib.main_package_path(),
-                     "prefix": pyblish.config["prefix"],
-                     "date": date,
-                     "family": instance.data("family"),
-                     "instance": name,
-                     "user": instance.data("user")}
-
-        # Restore separators to those native to the current OS
-        commit_template = pyblish.config["commit_template"]
-        commit_template = commit_template.replace("/", os.sep)
-
-        commit_dir = commit_template.format(**variables)
-        commit_dir = os.path.join(workspace_dir, commit_dir)
-
-        return commit_dir
-
-    def commit(self, path, instance):
-        """Move path `path` relative current workspace
-
-        Arguments:
-            path (str): Absolute path to where files are currently located;
-                usually a temporary directory.
-            instance (Instance): Instance located at `path`
-
-        """
-
-        commit_dir = self.compute_commit_directory(instance=instance)
-
-        self.log.info("Moving \"%s\" relative working file.." % instance)
-
-        if os.path.isdir(commit_dir):
-            self.log.info("Existing directory found, merging..")
-            for fname in os.listdir(path):
-                abspath = os.path.join(path, fname)
-                commit_path = os.path.join(commit_dir, fname)
-                shutil.copy(abspath, commit_path)
-        else:
-            self.log.info("No existing directory found, creating..")
-            shutil.copytree(path, commit_dir)
-
-        # Persist path of commit within instance
-        instance.set_data("commit_dir", value=commit_dir)
-
-        return commit_dir
 
 
 class Conformer(Plugin):
     """Integrates publishes into a pipeline"""
 
     order = 3
+
+
+# Aliases
+Collector = Selector
+Integrator = Conformer
 
 
 class AbstractEntity(list):
@@ -486,16 +353,7 @@ class AbstractEntity(list):
 
 
 class Context(AbstractEntity):
-    """Maintain a collection of Instances
-
-    .. note:: Context is a singleton.
-
-    """
-
-    @classmethod
-    def delete(cls):
-        """Force re-instantiation of context"""
-        log.warning("Context.delete has been deprecated")
+    """Maintain a collection of Instances"""
 
     def create_instance(self, name):
         """Convenience method of the following.
@@ -591,15 +449,6 @@ class Instance(AbstractEntity):
             return self.name
 
         return value
-
-
-def gen(context):
-    """Generate pair of context/instance"""
-    if len(context) > 0:
-        for instance in context:
-            yield context, instance
-    else:
-        yield context, None
 
 
 def current_host():
@@ -779,8 +628,9 @@ def registered_plugins():
 def configured_paths():
     """Return paths added via configuration"""
     paths = list()
+    config = Config()
 
-    for path_template in pyblish.config["paths"]:
+    for path_template in config["paths"]:
         variables = {"pyblish": pyblish.lib.main_package_path()}
 
         plugin_path = path_template.format(**variables)
@@ -794,8 +644,9 @@ def environment_paths():
     """Return paths added via environment variable"""
 
     paths = list()
+    config = Config()
 
-    env_var = pyblish.config["paths_environment_variable"]
+    env_var = config["paths_environment_variable"]
     env_val = os.environ.get(env_var)
     if env_val:
         env_paths = env_val.split(os.pathsep)
@@ -859,12 +710,14 @@ def discover(type=None, regex=None, paths=None):
 
     """
 
-    patterns = {"validators": pyblish.config["validators_regex"],
-                "extractors": pyblish.config["extractors_regex"],
-                "selectors": pyblish.config["selectors_regex"],
-                "integrators": pyblish.config["integrators_regex"],
-                "collectors": pyblish.config["collectors_regex"],
-                "conformers": pyblish.config["conformers_regex"]}
+    config = Config()
+
+    patterns = {"validators": config["validators_regex"],
+                "extractors": config["extractors_regex"],
+                "selectors": config["selectors_regex"],
+                "integrators": config["integrators_regex"],
+                "collectors": config["collectors_regex"],
+                "conformers": config["conformers_regex"]}
 
     types = {"validators": Validator,
              "extractors": Extractor,
@@ -1045,95 +898,3 @@ def sort(plugins):
 
     plugins.sort(key=lambda p: p.order)
     return plugins
-
-
-def plugins_by_family(plugins, family):
-    """Return compatible plugins `plugins` to family `family`
-
-    Arguments:
-        plugins (list): List of plugins
-        family (str): Family with which to compare against
-
-    Returns:
-        List of compatible plugins.
-
-    """
-
-    compatible = list()
-
-    for plugin in plugins:
-        if not hasattr(plugin, "families"):
-            continue
-
-        if any(x in plugin.families for x in (family, "*")):
-            compatible.append(plugin)
-
-    return compatible
-
-
-def plugins_by_instance(plugins, instance):
-    """Conveinence function for :func:`plugins_by_family`
-
-    Arguments:
-        plugins (list): Plug-ins to assess
-        instance (Instance): Instance with which to compare against
-
-    Returns:
-        List of compatible plugins
-
-    """
-
-    return plugins_by_family(plugins, instance.data("family"))
-
-
-def plugins_by_host(plugins, host):
-    """Return compatible plugins `plugins` to host `host`
-
-    Arguments:
-        plugins (list): List of plugins
-        host (str): Host with which compatible plugins are returned
-
-    Returns:
-        List of compatible plugins.
-
-    """
-
-    compatible = list()
-
-    for plugin in plugins:
-        if not hasattr(plugin, "hosts"):
-            continue
-
-        # TODO(marcus): Expand to take partial wildcards e.g. "*Mesh"
-        if any(x in plugin.hosts for x in (host, "*")):
-            compatible.append(plugin)
-
-    return compatible
-
-
-def instances_by_plugin(instances, plugin):
-    """Return compatible instances `instances` to plugin `plugin`
-
-    Arguments:
-        instances (list): List of instances
-        plugin (Plugin): Plugin with which to compare against
-
-    Returns:
-        List of compatible instances
-
-    Invariant:
-        Order of remaining plug-ins must remain the same
-
-    """
-
-    compatible = list()
-
-    for instance in instances:
-        if not hasattr(plugin, "families"):
-            continue
-
-        family = instance.data("family")
-        if any(x in plugin.families for x in (family, "*")):
-            compatible.append(instance)
-
-    return compatible

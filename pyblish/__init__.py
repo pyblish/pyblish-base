@@ -10,8 +10,6 @@ Attributes:
 from .version import *
 
 
-config = {}
-
 _registered_paths = list()
 _registered_plugins = dict()
 _registered_services = dict()

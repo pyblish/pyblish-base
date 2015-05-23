@@ -7,88 +7,10 @@ import random
 from . import lib
 import pyblish.plugin
 
-from pyblish.vendor import mock
-
-from pyblish.tests.lib import (
+from .lib import (
     setup, teardown, setup_duplicate, setup_invalid,
     setup_empty, FAMILY)
 from pyblish.vendor.nose.tools import *
-
-
-def test_plugins_by_family():
-    """plugins_by_family works fine"""
-    Plugin1 = type("Plugin1", (pyblish.api.Validator,), {})
-    Plugin2 = type("Plugin2", (pyblish.api.Validator,), {})
-
-    Plugin1.families = ["a"]
-    Plugin2.families = ["b"]
-
-    assert_equals(pyblish.plugin.plugins_by_family(
-                  (Plugin1, Plugin2), family="a"),
-                  [Plugin1])
-
-
-def test_plugins_by_host():
-    """plugins_by_host works fine."""
-    Plugin1 = type("Plugin1", (pyblish.api.Validator,), {})
-    Plugin2 = type("Plugin2", (pyblish.api.Validator,), {})
-
-    Plugin1.hosts = ["a"]
-    Plugin2.hosts = ["b"]
-
-    assert_equals(pyblish.plugin.plugins_by_host(
-                  (Plugin1, Plugin2), host="a"),
-                  [Plugin1])
-
-
-def test_plugins_by_instance():
-    """plugins_by_instance works fine."""
-    Plugin1 = type("Plugin1", (pyblish.api.Validator,), {})
-    Plugin2 = type("Plugin2", (pyblish.api.Validator,), {})
-
-    Plugin1.families = ["a"]
-    Plugin2.families = ["b"]
-
-    instance = pyblish.api.Instance("A")
-    instance.set_data("family", "a")
-
-    assert_equals(pyblish.plugin.plugins_by_instance(
-                  (Plugin1, Plugin2), instance),
-                  [Plugin1])
-
-
-@with_setup(setup, teardown)
-def test_instances_by_plugin():
-    """Returns instances compatible with plugin"""
-    ctx = pyblish.plugin.Context()
-
-    # Generate two instances, only one of which will be
-    # compatible with the given plugin below.
-    families = (FAMILY, 'test.other_family')
-    for family in families:
-        inst = ctx.create_instance(
-            name='TestInstance{0}'.format(families.index(family) + 1))
-
-        inst.set_data(lib.config['identifier'], value=True)
-        inst.set_data('family', value=family)
-        inst.set_data('host', value='python')
-
-        ctx.add(inst)
-
-    plugins = pyblish.plugin.discover('validators')
-    plugins_dict = dict()
-
-    for plugin in plugins:
-        plugins_dict[plugin.__name__] = plugin
-
-    plugin = plugins_dict['ValidateInstance']
-
-    compatible = pyblish.plugin.instances_by_plugin(
-        instances=ctx, plugin=plugin)
-
-    # This plugin is only compatible with
-    # the family is "TestInstance1"
-    assert compatible[0].name == 'TestInstance1'
 
 
 @with_setup(setup, teardown)
@@ -114,7 +36,7 @@ def test_name_override():
 def test_no_duplicate_plugins():
     """Discovering plugins results in a single occurence of each plugin"""
     plugin_paths = pyblish.plugin.plugin_paths()
-    assert len(plugin_paths) == 2, plugin_paths
+    assert_equals(len(plugin_paths), 2)
 
     plugins = pyblish.plugin.discover(type='selectors')
 
@@ -122,15 +44,7 @@ def test_no_duplicate_plugins():
     # hidden under the duplicate module name. As a result,
     # only one of them is returned. A log message is printed
     # to alert the user.
-    assert len(plugins) == 1, plugins
-
-
-@with_setup(setup_invalid, teardown)
-@mock.patch('pyblish.plugin.log')
-def test_invalid_plugins(mock_log):
-    """When an invalid plugin is found, an error is logged"""
-    pyblish.plugin.discover('selectors')
-    assert mock_log.error.called
+    assert_equals(len(plugins), 1)
 
 
 def test_entities_prints_nicely():
@@ -182,7 +96,7 @@ def test_instances_by_plugin_invariant():
     plugin.hosts = ["python"]
     plugin.families = ["A"]
 
-    compatible = pyblish.plugin.instances_by_plugin(ctx, plugin)
+    compatible = pyblish.logic.instances_by_plugin(ctx, plugin)
 
     # Test invariant
     #

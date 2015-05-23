@@ -28,6 +28,8 @@ from .plugin import (
     Validator,
     Extractor,
     Conformer,
+    Integrator,  # Alias
+    Collector,  # Alias
     Config as __Config,
     discover,
 
@@ -46,11 +48,6 @@ from .plugin import (
     deregister_all_services,
     registered_services,
 
-    plugins_by_family,
-    plugins_by_host,
-    plugins_by_instance,
-    instances_by_plugin,
-
     sort as sort_plugins,
 
     registered_paths,
@@ -61,7 +58,15 @@ from .plugin import (
 
 from .lib import (
     log,
-    format_filename
+    format_filename,
+    setup_log as __setup_log,
+)
+
+from .logic import (
+    plugins_by_family,
+    plugins_by_host,
+    plugins_by_instance,
+    instances_by_plugin,
 )
 
 from .error import (
@@ -78,30 +83,14 @@ from .compat import (
     sort,
 )
 
-# Aliases
-Collector = Selector
-Integrator = Conformer
 
 version = pyblish.version
-config = None
+config = __Config()
 
 
 def __init__():
-    pyblish.config.update(__Config())
-
-    # Enable access to configuration through API
-    global config
-    config = pyblish.config
-
     # Initialise log
-    formatter = logging.Formatter("%(levelname)s - %(message)s")
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    log = logging.getLogger("pyblish")
-    log.propagate = True
-    log.handlers[:] = []
-    log.addHandler(handler)
-    log.setLevel(logging.DEBUG)
+    log = __setup_log()
 
     # Register default services
     def time():
