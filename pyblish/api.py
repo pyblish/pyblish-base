@@ -65,6 +65,10 @@ from .logic import (
     plugins_by_host,
     plugins_by_instance,
     instances_by_plugin,
+    register_test,
+    deregister_test,
+    registered_test,
+    default_test as __default_test,
 )
 
 from .error import (
@@ -95,6 +99,9 @@ def __init__():
     register_service("user", getpass.getuser)
     register_service("context", None)
     register_service("instance", None)
+
+    # Register default test
+    register_test(__default_test)
 
 __init__()
 
@@ -133,6 +140,10 @@ __all__ = [
     "register_plugin_path",
     "deregister_plugin_path",
     "deregister_all_paths",
+
+    "register_test",
+    "deregister_test",
+    "registered_test",
 
     "plugins_by_family",
     "plugins_by_host",

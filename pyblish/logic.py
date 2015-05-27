@@ -1,12 +1,9 @@
-"""Pyblish Logic
-
-Dependencies are injected via third-party modules.
-
-"""
+"""Shared processing logic"""
 
 import sys
 import traceback
 
+import pyblish
 from plugin import Provider
 
 
@@ -16,11 +13,18 @@ class TestFailed(Exception):
         self.vars = vars
 
 
-def test(**vars):
-    """Evaluate whether or not to continue processing
+def default_test(**vars):
+    r"""Evaluate whether or not to continue processing
+
+    The test determines whether or not to proceed from one
+    plug-in to the next. The `vars` are updated for once
+    a plug-in has completed processing and the test re-run
+    prior to triggering the next.
+
+    You can provide your own test by registering it, see example.
 
     Variables:
-        order (int): Current order
+        order (int): Order of next plugin
         errorOrders (list): Orders at which an error has occured
 
     """
@@ -33,15 +37,49 @@ def test(**vars):
 
 
 def process(plugins, process, context):
-    """Logical processor
+    """Primary processing logic
 
     Takes callables and data as input, and performs
-    logical operations on them.
+    logical operations on them until the currently
+    registered test fails.
+
+    If `plugins` is a callable, it is called early, before
+    processing begins. If `context` is a callable, it will
+    be called once per plug-in.
+
+    Example:
+        >> import pyblish.api
+        >> context = pyblish.api.Context()
+        >> for result in process(
+        ..         plugins=pyblish.api.discover,
+        ..         process=pyblish.util.process,
+        ..         context=context):
+        ..     if isinstance(result, TestFailed):
+        ..         print(result)
+
+
+    Arguments:
+        plugins (list, callable): Plug-ins to process. If a
+            callable is provided, the return value is used
+            as plug-ins. It is called with no arguments.
+        process (callable): Callable with which to process
+        context (Context, callable): Context whose instances
+            are to be processed. If a callable is provided,
+            the return value is used as context. It is called
+            with no arguments.
 
     Raises:
         Exception when test fails.
 
     """
+
+    test = registered_test()
+
+    _plugins = plugins
+    _context = context
+
+    if hasattr(_plugins, "__call__"):
+        plugins = _plugins()
 
     def gen(plugin, instances):
         """Generate pair of context/instance"""
@@ -65,8 +103,10 @@ def process(plugins, process, context):
         vars["order"] = plugin.order
 
         if test(**vars):
-            instances = instances_by_plugin(context, plugin)
+            if hasattr(_context, "__call__"):
+                context = _context()
 
+            instances = instances_by_plugin(context, plugin)
             # Process once, regardless of available instances if
             # plug-in isn't associated with any particular family.
             if not instances and "*" not in plugin.families:
@@ -102,10 +142,49 @@ def process(plugins, process, context):
 
         else:
             yield TestFailed("Test failed", vars)
+            break
 
 
 process.next_plugin = None
 process.next_instance = None
+
+
+def register_test(test):
+    """Register test used to determine when to abort processing
+
+    Arguments:
+        test (callable): Called with argument `vars` and returns
+            either True or False. True means to continue,
+            False to abort.
+
+    Example:
+        >>> # Register custom test
+        >>> def my_test(**vars):
+        ...   return 1
+        ...
+        >>> register_test(my_test)
+        >>>
+        >>> # Run test
+        >>> if my_test(order=1, errorOrders=[]):
+        ...   print("Test passed")
+        Test passed
+        >>>
+        >>> # Restore default
+        >>> deregister_test()
+
+    """
+
+    pyblish._registered_test = test
+
+
+def registered_test():
+    """Return the currently registered test"""
+    return pyblish._registered_test
+
+
+def deregister_test():
+    """Restore default test"""
+    register_test(default_test)
 
 
 def plugins_by_family(plugins, family):

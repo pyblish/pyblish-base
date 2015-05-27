@@ -779,7 +779,7 @@ def plugin_is_valid(plugin):
         return False
 
     if not isinstance(plugin.requires, basestring):
-        log.error("Plug-in requires must be of type string: %s", plugin)
+        log.debug("Plug-in requires must be of type string: %s", plugin)
         return False
 
     try:
