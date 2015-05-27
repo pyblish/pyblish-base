@@ -53,35 +53,85 @@ def test_di():
 
 
 @with_setup(lib.setup_empty, lib.teardown)
-def test_initialisation_only():
-    """Not processing, only initialising, still triggers DI"""
+def test_init():
+    """__init__ is triggered along with every process"""
 
-    counter = {
-        "SelectSmurf": 0,
-        "ValidateSmurf": 0
-    }
+    count = {"#": 0}
 
-    class SelectSmurf(pyblish.api.Selector):
+    class HappensOnce1(pyblish.api.Selector):
+        def process(self, context):
+            count["#"] += 1
+            for name in ("Smurfette", "Passive-aggressive smurf"):
+                instance = context.create_instance(name)
+                instance.set_data("family", "smurfFamily")
+
+    class HappensPerInstance(pyblish.api.Validator):
         def __init__(self):
-            counter["SelectSmurf"] += 1
+            count["#"] += 1
 
-    class ValidateSmurf(pyblish.api.Validator):
-        def __init__(self):
-            counter["ValidateSmurf"] += 1
+        def process(self, instance):
+            pass
 
-    for plugin in (SelectSmurf, ValidateSmurf):
+    for plugin in (HappensOnce1,
+                   HappensPerInstance):
+        pyblish.api.register_plugin(plugin)
+
+    list(pyblish.logic.process(
+        plugins=pyblish.api.discover(),
+        process=pyblish.util.process,
+        context=pyblish.api.Context()))
+
+    assert_equals(count["#"], 3)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_occurence():
+    """Test when and how often plug-ins process"""
+
+    count = {"#": 0}
+
+    class HappensOnce1(pyblish.api.Selector):
+        def process(self, context):
+            count["#"] += 1
+            for name in ("Smurfette", "Passive-aggressive smurf"):
+                instance = context.create_instance(name)
+                instance.set_data("family", "smurfFamily")
+
+    class HappensOnce2(pyblish.api.Validator):
+        def process(self):
+            count["#"] += 1
+
+    class DoesNotHappen1(pyblish.api.Validator):
+        families = ["unsupportedFamily"]
+
+        def process(self):
+            count["#"] += 1
+
+    class DoesNotHappen2(pyblish.api.Validator):
+        families = ["unsupportedFamily"]
+
+        def process(self, instance):
+            count["#"] += 1
+
+    class HappensEveryInstance(pyblish.api.Validator):
+        def process(self, instance):
+            count["#"] += 1
+
+    for plugin in (HappensOnce1,
+                   HappensOnce2,
+                   DoesNotHappen1,
+                   DoesNotHappen2,
+                   HappensEveryInstance):
         pyblish.api.register_plugin(plugin)
 
     context = pyblish.api.Context()
 
-    for result in pyblish.logic.process(
-            plugins=pyblish.api.discover(),
-            process=pyblish.util.process,
-            context=context):
-        pass
+    list(pyblish.logic.process(
+        plugins=pyblish.api.discover(),
+        process=pyblish.util.process,
+        context=context))
 
-    assert_equals(counter["SelectSmurf"], 1)
-    assert_equals(counter["ValidateSmurf"], 1)
+    assert_equals(count["#"], 4)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -91,7 +141,7 @@ def test_no_instances():
     count = {"#": 0}
 
     class Extract(pyblish.api.Extractor):
-        def process(self):
+        def process(self, context):
             count["#"] += 1
 
     class Extract2(pyblish.api.Extractor):
@@ -100,7 +150,7 @@ def test_no_instances():
             count["#"] += 1
 
     class Conform(pyblish.api.Conformer):
-        def process(self):
+        def process(self, context):
             count["#"] += 1
 
     for plugin in (Extract, Extract2, Conform):
@@ -128,3 +178,71 @@ def test_unavailable_service():
 
     provider.inject("arg1", lambda: True)
     assert_raises(KeyError, provider.invoke, func)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_test_failure():
+    """Failing the test yields an exception"""
+
+    triggered = list()
+
+    class ValidateFailure(pyblish.api.Validator):
+        def process(self, context):
+            triggered.append(self)
+            assert False
+
+    class ExtractFailure(pyblish.api.Extractor):
+        def process(self, context):
+            triggered.append(self)
+            pass
+
+    pyblish.api.register_plugin(ValidateFailure)
+    pyblish.api.register_plugin(ExtractFailure)
+
+    context = pyblish.api.Context()
+
+    results = list(pyblish.logic.process(
+        plugins=pyblish.api.discover(),
+        process=pyblish.util.process,
+        context=context))
+
+    assert_equals(len(triggered), 1)
+    assert type(triggered[0]) == ValidateFailure
+    assert isinstance(results[-1], Exception)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_when_to_trigger_process():
+    """process() should be triggered whenever `context` is requested"""
+
+    _data = {"error": False}
+
+    class SelectInstance(pyblish.api.Selector):
+        def process(self, context):
+            instance = context.create_instance("MyInstance")
+            instance.set_data("family", "compatibleFamily")
+
+    class IncompatibleValidator(pyblish.api.Validator):
+        families = ["incompatibleFamily"]
+
+        def process(self, instance):
+            print "Instance is: %s" % instance
+            _data["error"] = True
+            assert False, "I should not have been run"
+
+    class CompatibleValiator(pyblish.api.Validator):
+        families = ["compatibleFamily"]
+
+        def process(self, instance):
+            assert True
+
+    for plugin in (SelectInstance, IncompatibleValidator, CompatibleValiator):
+        pyblish.api.register_plugin(plugin)
+
+    context = pyblish.api.Context()
+    list(pyblish.logic.process(
+        plugins=pyblish.api.discover(),
+        process=pyblish.util.process,
+        context=context))
+
+    assert_equals(_data["error"], False)

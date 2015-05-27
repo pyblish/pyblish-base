@@ -1,8 +1,4 @@
 
-import os
-import shutil
-import tempfile
-
 from . import lib
 
 import pyblish.util
