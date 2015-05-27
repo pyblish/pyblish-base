@@ -17,7 +17,6 @@ Attributes:
 import os
 import re
 import sys
-import shutil
 import logging
 import inspect
 
@@ -28,47 +27,6 @@ import pyblish.error
 
 from .vendor import yaml
 from .vendor import iscompatible
-
-__all__ = [
-    "Context",
-    "Instance",
-
-    "Selector",
-    "Validator",
-    "Extractor",
-    "Conformer",
-
-    "Provider",
-    "Config",
-
-    "discover",
-
-    "register_plugin",
-    "deregister_plugin",
-    "deregister_all_plugins",
-    "registered_plugins",
-
-    "register_service",
-    "deregister_service",
-    "deregister_all_services",
-    "registered_services",
-
-    "plugin_paths",
-    "register_plugin_path",
-    "deregister_plugin_path",
-    "deregister_all_paths",
-
-    "plugins_by_family",
-    "plugins_by_host",
-    "plugins_by_instance",
-    "instances_by_plugin",
-
-    "sort",
-    "registered_paths",
-    "environment_paths",
-    "configured_paths",
-    "current_host",
-]
 
 
 log = logging.getLogger("pyblish.plugin")
@@ -86,9 +44,10 @@ class Provider(object):
         s.update(self._services)
         return s
 
-    def args(self, func):
+    @classmethod
+    def args(cls, func):
         return [a for a in inspect.getargspec(func)[0]
-                if a not in ("self",)]
+                if a not in ("self", "cls")]
 
     def invoke(self, func):
         """Supply function `func` with objects to its signature
@@ -148,7 +107,6 @@ class Config(dict):
     def __new__(cls, *args, **kwargs):
         """Make Config into a singleton"""
         if cls._instance is None:
-            print "NEW CONFIG"
             cls._instance = super(Config, cls).__new__(
                 cls, *args, **kwargs)
             cls._instance.reset()
@@ -156,7 +114,6 @@ class Config(dict):
 
     def reset(self):
         """Remove all configuration and re-read from disk"""
-        print "RESETTING"
         self.clear()
         self.load()
 
