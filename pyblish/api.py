@@ -17,7 +17,6 @@ without breaking any of your tools.
 from __future__ import absolute_import
 
 import getpass
-import logging
 import pyblish
 import datetime
 
@@ -59,7 +58,6 @@ from .plugin import (
 from .lib import (
     log,
     format_filename,
-    setup_log as __setup_log,
 )
 
 from .logic import (
@@ -89,9 +87,6 @@ config = __Config()
 
 
 def __init__():
-    # Initialise log
-    log = __setup_log()
-
     # Register default services
     def time():
         return datetime.datetime.now().strftime(config["date_format"])

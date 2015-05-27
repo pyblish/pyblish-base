@@ -19,8 +19,11 @@ Version 1.1.0
 - API: Added pyblish.api.deregister_plugin()
 - API: Added pyblish.api.registered_plugins()
 - API: Added pyblish.api.deregister_all_plugins()
-- API: Renamed pyblish.api.sort() to pyblish.api.sort_plugins()
-- API: Renamed pyblish.api.deregister_all -> deregister_all_paths
+- API: Renamed pyblish.api.sort() to pyblish.api.sort_plugins(), original deprecated
+- API: Renamed pyblish.api.deregister_all -> deregister_all_paths, original deprecated
+- BACKWARD INCOMPATIBLE Removed Extractor.compute_commit_dir
+- BACKWARD INCOMPATIBLE Removed Extractor.commit
+- BACKWARD INCOMPATIBLE Removed validate_naming_convention plug-in
 
 Version 1.0.16
 --------------

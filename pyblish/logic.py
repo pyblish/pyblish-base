@@ -4,8 +4,16 @@ Dependencies are injected via third-party modules.
 
 """
 
+import sys
+import traceback
 
-TestFailed = type("TestFailed", (Exception,), {})
+from plugin import Provider
+
+
+class TestFailed(Exception):
+    def __init__(self, msg, vars):
+        super(TestFailed, self).__init__(msg)
+        self.vars = vars
 
 
 def test(**vars):
@@ -35,36 +43,69 @@ def process(plugins, process, context):
 
     """
 
-    def gen(plugin, context):
+    def gen(plugin, instances):
         """Generate pair of context/instance"""
-        instances = instances_by_plugin(context, plugin)
         if len(instances) > 0:
             for instance in instances:
-                yield context, instance
+                yield instance
         else:
-            yield context, None
+            yield None
 
     vars = {
         "order": None,
         "errorOrders": list()
     }
 
-    results = list()
+    # Clear introspection values
+    self = sys.modules[__name__]
+    self.process.next_plugin = None
+    self.process.next_instance = None
 
     for plugin in plugins:
         vars["order"] = plugin.order
 
         if test(**vars):
-            for context, instance in gen(plugin, context):
-                result = process(plugin, context, instance)
-                if result["error"]:
-                    vars["errorOrders"].append(plugin.order)
+            instances = instances_by_plugin(context, plugin)
 
-                results.append(result)
-                yield result
+            # Process once, regardless of available instances if
+            # plug-in isn't associated with any particular family.
+            if not instances and "*" not in plugin.families:
+                continue
+
+            for instance in gen(plugin, instances):
+
+                # Provide introspection
+                self.process.next_instance = instance
+                self.process.next_plugin = plugin
+
+                try:
+                    result = process(plugin, context, instance)
+
+                except Exception as exception:
+                    # If this happens, there is a bug
+                    _extract_traceback(exception)
+                    yield exception
+
+                else:
+                    # Make note of the order at which
+                    # the potential error error occured.
+                    if result["error"]:
+                        if plugin.order not in vars["errorOrders"]:
+                            vars["errorOrders"].append(plugin.order)
+                    yield result
+
+                # If the plug-in doesn't have a compatible instance,
+                # and the context isn't being processed, discard plug-in.
+                args = Provider.args(plugin.process)
+                if "instance" not in args:
+                    break
 
         else:
-            raise TestFailed("Test failed")
+            yield TestFailed("Test failed", vars)
+
+
+process.next_plugin = None
+process.next_instance = None
 
 
 def plugins_by_family(plugins, family):
@@ -157,3 +198,15 @@ def instances_by_plugin(instances, plugin):
             compatible.append(instance)
 
     return compatible
+
+
+def _extract_traceback(exception):
+    try:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        exception.traceback = traceback.extract_tb(exc_traceback)[-1]
+
+    except:
+        pass
+
+    finally:
+        del(exc_type, exc_value, exc_traceback)

@@ -72,14 +72,18 @@ def publish(context=None,
     if plugins is None:
         plugins = pyblish.api.discover()
 
-    try:
-        for result in pyblish.logic.process(
-                plugins=plugins,
-                process=process,
-                context=context):
-            pass
-    except pyblish.logic.TestFailed:
-        pass
+    for result in pyblish.logic.process(
+            plugins=plugins,
+            process=process,
+            context=context):
+
+        if isinstance(result, pyblish.logic.TestFailed):
+            log.error("Stopped due to: %s" % result)
+            break
+
+        if isinstance(result, Exception):
+            log.critical("Got an exception: %s" % result)
+            break
 
     return context
 
@@ -88,63 +92,6 @@ def publish(context=None,
 def time():
     return datetime.datetime.now().strftime(
             pyblish.api.config["date_format"])
-
-
-# def test(**vars):
-#     """Evaluate whether or not to continue processing"""
-#     if vars["order"] >= 2:  # If validation is done
-#         for order in vars["errorOrders"]:
-#             if order < 2:  # Were there any error before validation?
-#                 return False
-#     return True
-
-
-# def coprocess(plugins, process, context):
-#     """Co-routine
-
-#     Takes callables and data as input, and performs
-#     logical operations on them
-
-#     """
-
-#     def gen(plugin, context):
-#         """Generate pair of context/instance"""
-#         instances = pyblish.api.instances_by_plugin(context, plugin)
-#         if len(instances) > 0:
-#             for instance in instances:
-#                 yield context, instance
-#         else:
-#             yield context, None
-
-#     vars = {
-#         "order": None,
-#         "errorOrders": list()
-#     }
-
-#     results = list()
-
-#     for plugin in plugins:
-#         vars["order"] = plugin.order
-
-#         if test(**vars):
-#             for context, instance in gen(plugin, context):
-#                 result = process(plugin, context, instance)
-#                 if result["error"]:
-#                     vars["errorOrders"].append(plugin.order)
-
-#                 results.append(result)
-#                 yield result
-
-#         else:
-#             # Before proceeding with extraction, ensure
-#             # that there are no failed validators.
-#             log.warning("")  # newline
-#             log.warning("There were errors:")
-#             for result in results:
-#                 item = result["instance"] or "Context"
-#                 log.warning("%s: %s" % (item, result["error"]))
-
-#             break
 
 
 def process(plugin, context, instance=None):
@@ -157,13 +104,11 @@ def process(plugin, context, instance=None):
 
 
 def _process(plugin, context, instance=None):
-    """A single process
+    """Process plug-in given an optional Context and Instance
 
-    Context is always present, an instance is optional.
-    Whether an instance is used depends on:
+    Context and Instance are injected prior to processing.
 
-    1. Whether one exists
-    2. Whether it is asked for
+    Returns result.
 
     """
 
@@ -238,6 +183,12 @@ def _process_legacy(plugin, context, instance=None):
         "duration": None
     }
 
+    records = list()
+    handler = MessageHandler(records)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+
     __start = time.time()
 
     try:
@@ -257,161 +208,17 @@ def _process_legacy(plugin, context, instance=None):
 
     __end = time.time()
 
+    for record in records:
+        result["records"].append(record)
+
+    # Restore balance to the world
+    root_logger.removeHandler(handler)
+
     result["duration"] = (__end - __start) * 1000  # ms
 
     context.data("results").append(result)
 
     return result
-
-
-# def process(plugin, context, instances=None):
-#     """Determine whether the given plug-in to be dependency injected"""
-#     if (hasattr(plugin, "process_instance")
-#             or hasattr(plugin, "process_context")):
-#         return _process_legacy(plugin, context, instances)
-#     else:
-#         return _process(plugin, context, instances)
-
-
-# def _process_legacy(plugin, context, instances=None):
-#     """Primary event loop
-
-#     Arguments:
-#         plugin (Plugin): Plug-in to process
-#         context (Context): Context to process
-#         instances (list, optional): Names of instances to process,
-#             names not in list will not be processed.
-
-#     .. note:: If an instance contains the data "publish" and that data is
-#         `False` the instance will not be processed.
-
-#     Injected data during processing:
-#     - `__is_processed__`: Whether or not the instance was processed
-#     - `__processed_by__`: Plugins which processed the given instance
-
-#     Returns:
-#         :meth:`process` returns a generator with (instance, error), with
-#             error defaulted to `None`. Each error is injected with a
-#             stack-trace of what went wrong, accessible via error.traceback.
-
-#     Yields:
-#         Tuple (Instance, Exception)
-
-#     """
-
-#     # Patch up now-missing processing functions
-#     if not hasattr(plugin, "process_context"):
-#         plugin.process_context = lambda self, context: None
-
-#     if not hasattr(plugin, "process_instance"):
-#         plugin.process_instance = lambda self, instance: None
-
-#     try:
-#         plugin().process_context(context)
-
-#     except Exception as err:
-#         try:
-#             _, _, exc_tb = sys.exc_info()
-#             err.traceback = traceback.extract_tb(
-#                 exc_tb)[-1]
-#         except:
-#             pass
-
-#         yield None, err
-
-#     finally:
-#         for instance in pyblish.api.instances_by_plugin(
-#                 context, plugin):
-
-#             # Limit instances to those specified in `instances`
-#             if instances is not None and \
-#                     instance.name not in instances:
-#                 plugin.log.debug("Skipping %s, "
-#                                  "not included in "
-#                                  "exclusive list (%s)" % (instance,
-#                                                           instances))
-#                 continue
-
-#             if instance.has_data("publish"):
-#                 if instance.data("publish", default=True) is False:
-#                     plugin.log.debug("Skipping %s, "
-#                                      "publish-flag was false" % instance)
-#                     continue
-
-#             elif not pyblish.api.config["publish_by_default"]:
-#                 plugin.log.debug("Skipping %s, "
-#                                  "no publish-flag was "
-#                                  "set, and publishing "
-#                                  "by default is False" % instance)
-#                 continue
-
-#             plugin.log.info("Processing instance: \"%s\"" % instance)
-
-#             # Inject data
-#             processed_by = instance.data("__processed_by__") or list()
-#             processed_by.append(plugin)
-#             instance.set_data("__processed_by__", processed_by)
-#             instance.set_data("__is_processed__", True)
-
-#             try:
-#                 plugin().process_instance(instance)
-#                 err = None
-
-#             except Exception as err:
-#                 try:
-#                     _, _, exc_tb = sys.exc_info()
-#                     err.traceback = traceback.extract_tb(
-#                         exc_tb)[-1]
-#                 except:
-#                     pass
-
-#             finally:
-#                 yield instance, err
-
-
-# def _process(plugin, context, instances=None):
-#     """Dependency Injection event loop
-
-#     Plug-ins are initialised once and only once, whereas
-#     it's call to :meth:`Plugin.process` is called once per
-#     available instance.
-
-#     """
-
-#     def gen(plugin, context):
-#         """Generate pair of context/instance"""
-#         instances = pyblish.api.instances_by_plugin(context, plugin)
-#         if instances:
-#             for instance in instances:
-#                 yield context, instance
-#         else:
-#             yield context, None
-
-#     provider = pyblish.plugin.Provider()
-#     provider.inject("context", context)
-
-#     plugin = plugin()  # Initialise
-
-#     for context, instance in gen(plugin, context):
-#         provider.inject("instance", instance)
-
-#         plugin.log.info("%s processing: %s" % (
-#             plugin, provider.args(plugin.process)))
-
-#         if instance is not None:
-#             processed_by = instance.data("__processed_by__") or list()
-#             processed_by.append(plugin)
-#             instance.set_data("__processed_by__", processed_by)
-#             instance.set_data("__is_processed__", True)
-
-#         try:
-#             provider.invoke(plugin.process)
-#             err = None
-#         except Exception as err:
-#             _, _, exc_tb = sys.exc_info()
-#             err.traceback = traceback.extract_tb(exc_tb)[-1]
-
-#         yield instance, err
 
 
 def process_all(plugin, context):
@@ -433,42 +240,28 @@ def process_all(plugin, context):
 
 def select(*args, **kwargs):
     """Convenience function for selection"""
-    return _convenience(
-        ["selectors"],
-        *args, **kwargs)
+    return _convenience(1, *args, **kwargs)
 
 
 def validate(*args, **kwargs):
     """Convenience function for validation"""
-    return _convenience(
-        ["selectors",
-         "validators"],
-        *args, **kwargs)
+    return _convenience(2, *args, **kwargs)
 
 
 def extract(*args, **kwargs):
     """Convenience function for extraction"""
-    return _convenience(
-        ["selectors",
-         "validators",
-         "extractors"],
-        *args, **kwargs)
+    return _convenience(3, *args, **kwargs)
 
 
 def conform(*args, **kwargs):
     """Convenience function for conform"""
-    return _convenience(
-        ["selectors",
-         "validators",
-         "extractors",
-         "conformers"],
-        *args, **kwargs)
+    return _convenience(4, *args, **kwargs)
 
 
-def _convenience(types, *args, **kwargs):
-    plugins = list()
-    for type in types:
-        plugins.extend(pyblish.api.discover(type=type))
+def _convenience(order, *args, **kwargs):
+    plugins = [p for p in pyblish.api.discover()
+               if p.order < order]
+
     args = list(args)
     if len(args) > 1:
         args[1] = plugins
