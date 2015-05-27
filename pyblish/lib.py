@@ -97,9 +97,10 @@ def parse_environment_paths(paths):
     """Given a (semi-)colon separated string of paths, return a list
 
     Example:
-        >>> parse_environment_paths("path1;path2")
+        >>> import os
+        >>> parse_environment_paths("path1" + os.pathsep + "path2")
         ['path1', 'path2']
-        >>> parse_environment_paths("path1;")
+        >>> parse_environment_paths("path1" + os.pathsep)
         ['path1', '']
 
     Arguments:
@@ -235,18 +236,13 @@ def setup_log(root='pyblish', level=logging.DEBUG):
     formatter = logging.Formatter("%(levelname)s - %(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
-    
+
     log = logging.getLogger(root)
     log.propagate = True
     log.handlers[:] = []
     log.addHandler(handler)
 
     log.setLevel(level)
-
-    formatter = get_formatter()
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    log.addHandler(stream_handler)
 
     return log
 
@@ -292,35 +288,3 @@ def import_module(name, package=None):
     __import__(name)
 
     return sys.modules[name]
-
-
-def where(program):
-    r"""Parse PATH for executables
-
-    Windows note:
-        PATHEXT yields possible suffixes, such as .exe, .bat and .cmd
-
-    Usage:
-        >> where("python")
-        'c:\\python27\\python.exe'
-
-    """
-
-    suffixes = [""]
-
-    try:
-        # Append Windows suffixes, such as .exe, .bat and .cmd
-        suffixes.extend(os.environ.get("PATHEXT").split(os.pathsep))
-    except:
-        pass
-
-    for path in os.environ["PATH"].split(os.pathsep):
-
-        # A path may be empty.
-        if not path:
-            continue
-
-        for suffix in suffixes:
-            full_path = os.path.join(path, program + suffix)
-            if os.path.isfile(full_path):
-                return full_path
