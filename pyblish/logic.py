@@ -17,11 +17,11 @@ def default_test(**vars):
     r"""Evaluate whether or not to continue processing
 
     The test determines whether or not to proceed from one
-    plug-in to the next. The `vars` are updated for once
-    a plug-in has completed processing and the test re-run
-    prior to triggering the next.
+    plug-in to the next. The `vars` are updated everytime
+    a plug-in is about to be processed with information about
+    the upcoming plug-in.
 
-    You can provide your own test by registering it, see example.
+    You can provide your own test by registering it, see example below.
 
     Variables:
         order (int): Order of next plugin
