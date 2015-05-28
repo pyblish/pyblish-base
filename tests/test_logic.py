@@ -36,8 +36,8 @@ def test_process_callables():
     _context = pyblish.plugin.Context()
 
     for result in pyblish.logic.process(
+            func=pyblish.util.process,
             plugins=pyblish.plugin.discover(),
-            process=pyblish.util.process,
             context=_context):
 
         if isinstance(result, pyblish.logic.TestFailed):
@@ -54,8 +54,8 @@ def test_process_callables():
     count["#"] = 0
 
     for result in pyblish.logic.process(
+            func=pyblish.util.process,
             plugins=pyblish.plugin.discover,  # <- Callable
-            process=pyblish.util.process,
             context=context):  # <- Callable
 
         if isinstance(result, pyblish.logic.TestFailed):

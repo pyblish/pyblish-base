@@ -36,8 +36,8 @@ def default_test(**vars):
     return True
 
 
-def process(plugins, process, context):
-    """Primary processing logic
+def process(func, plugins, context, test=None):
+    r"""Primary processing logic
 
     Takes callables and data as input, and performs
     logical operations on them until the currently
@@ -47,41 +47,76 @@ def process(plugins, process, context):
     processing begins. If `context` is a callable, it will
     be called once per plug-in.
 
-    Example:
-        >> import pyblish.api
-        >> context = pyblish.api.Context()
-        >> for result in process(
-        ..         plugins=pyblish.api.discover,
-        ..         process=pyblish.util.process,
-        ..         context=context):
-        ..     if isinstance(result, TestFailed):
-        ..         print(result)
-
-
     Arguments:
+        func (callable): Callable taking three arguments;
+             plugin(Plugin), context(Context) and optional
+             instance(Instance). Each must provide a matching
+             interface to their corresponding objects.
         plugins (list, callable): Plug-ins to process. If a
             callable is provided, the return value is used
             as plug-ins. It is called with no arguments.
-        process (callable): Callable with which to process
         context (Context, callable): Context whose instances
             are to be processed. If a callable is provided,
             the return value is used as context. It is called
             with no arguments.
+        test (callable, optional): Provide custom test, defaults
+            to the currently registered test.
 
-    Raises:
-        Exception when test fails.
+    Yields:
+        A result per complete process. If test fails,
+        a TestFailed exception is returned, containing the
+        variables used in the test. Finally, any exception
+        thrown by `process` is yielded. Note that this is
+        considered a bug in *your* code as you are the one
+        supplying it.
+
+    Example:
+        >>> import pyblish.api
+        >>> import pyblish.plugin
+        >>>
+        >>> context = pyblish.api.Context()
+        >>> provider = pyblish.plugin.Provider()
+        >>>
+        >>> def my_process(plugin, context, instance=None):
+        ...   result = {
+        ...     "success": False,
+        ...     "plugin": plugin,
+        ...     "instance": instance,
+        ...     "error": None,
+        ...     "records": list(),
+        ...     "duration": None
+        ...   }
+        ...   plugin = plugin()
+        ...   provider.inject("context", context)
+        ...   provider.inject("instance", instance)
+        ...   provider.invoke(plugin.process)
+        ...   return result
+        ...
+        >>> class SelectInstance(pyblish.api.Selector):
+        ...   def process(self, context):
+        ...     context.create_instance("MyInstance")
+        ...
+        >>> for result in process(
+        ...         plugins=[SelectInstance],
+        ...         func=my_process,
+        ...         context=context):
+        ...     assert not isinstance(result, TestFailed)
+        ...
+        >>> len(context) == 1
+        True
 
     """
 
-    test = registered_test()
+    __plugins = plugins
+    __context = context
 
-    _plugins = plugins
-    _context = context
+    if test is None:
+        test = registered_test()
 
-    if hasattr(_plugins, "__call__"):
-        plugins = _plugins()
+    if hasattr(__plugins, "__call__"):
+        plugins = __plugins()
 
-    def gen(plugin, instances):
+    def gen(instances):
         """Generate pair of context/instance"""
         if len(instances) > 0:
             for instance in instances:
@@ -103,8 +138,8 @@ def process(plugins, process, context):
         vars["order"] = plugin.order
 
         if test(**vars):
-            if hasattr(_context, "__call__"):
-                context = _context()
+            if hasattr(__context, "__call__"):
+                context = __context()
 
             instances = instances_by_plugin(context, plugin)
             # Process once, regardless of available instances if
@@ -112,14 +147,14 @@ def process(plugins, process, context):
             if not instances and "*" not in plugin.families:
                 continue
 
-            for instance in gen(plugin, instances):
+            for instance in gen(instances):
 
                 # Provide introspection
                 self.process.next_instance = instance
                 self.process.next_plugin = plugin
 
                 try:
-                    result = process(plugin, context, instance)
+                    result = func(plugin, context, instance)
 
                 except Exception as exception:
                     # If this happens, there is a bug
@@ -289,3 +324,8 @@ def _extract_traceback(exception):
 
     finally:
         del(exc_type, exc_value, exc_traceback)
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

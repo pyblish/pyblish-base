@@ -73,12 +73,12 @@ def publish(context=None,
         plugins = pyblish.api.discover()
 
     for result in pyblish.logic.process(
+            func=process,
             plugins=plugins,
-            process=process,
             context=context):
 
         if isinstance(result, pyblish.logic.TestFailed):
-            log.error("Stopped due to: %s" % result)
+            log.error("Stopped due to: %s (%s)" % (result, result.vars))
             break
 
         if isinstance(result, Exception):
@@ -126,11 +126,11 @@ def _process(plugin, context, instance=None):
         "duration": None
     }
 
+    plugin = plugin()
+
     provider = pyblish.plugin.Provider()
     provider.inject("context", context)
     provider.inject("instance", instance)
-
-    plugin = plugin()  # Initialise
 
     records = list()
     handler = MessageHandler(records)

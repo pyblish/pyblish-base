@@ -44,8 +44,8 @@ def test_di():
     context = pyblish.api.Context()
 
     for result in pyblish.logic.process(
+            func=pyblish.util.process,
             plugins=pyblish.api.discover(),
-            process=pyblish.util.process,
             context=context):
         print result
 
@@ -54,34 +54,36 @@ def test_di():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_init():
-    """__init__ is triggered along with every process"""
+    """__init__ is triggered once per process"""
 
     count = {"#": 0}
 
-    class HappensOnce1(pyblish.api.Selector):
-        def process(self, context):
+    class HappensOnce(pyblish.api.Selector):
+        def __init__(self):
             count["#"] += 1
+
+        def process(self, context):
             for name in ("Smurfette", "Passive-aggressive smurf"):
                 instance = context.create_instance(name)
                 instance.set_data("family", "smurfFamily")
 
-    class HappensPerInstance(pyblish.api.Validator):
+    class HappensTwice(pyblish.api.Validator):
         def __init__(self):
-            count["#"] += 1
+            count["#"] += 10
 
         def process(self, instance):
             pass
 
-    for plugin in (HappensOnce1,
-                   HappensPerInstance):
+    for plugin in (HappensOnce,
+                   HappensTwice):
         pyblish.api.register_plugin(plugin)
 
     list(pyblish.logic.process(
+        func=pyblish.util.process,
         plugins=pyblish.api.discover(),
-        process=pyblish.util.process,
         context=pyblish.api.Context()))
 
-    assert_equals(count["#"], 3)
+    assert_equals(count["#"], 21)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -127,8 +129,8 @@ def test_occurence():
     context = pyblish.api.Context()
 
     list(pyblish.logic.process(
+        func=pyblish.util.process,
         plugins=pyblish.api.discover(),
-        process=pyblish.util.process,
         context=context))
 
     assert_equals(count["#"], 4)
@@ -159,8 +161,8 @@ def test_no_instances():
     context = pyblish.api.Context()
 
     for result in pyblish.logic.process(
+            func=pyblish.util.process,
             plugins=pyblish.api.discover(),
-            process=pyblish.util.process,
             context=context):
         pass
 
@@ -202,8 +204,8 @@ def test_test_failure():
     context = pyblish.api.Context()
 
     results = list(pyblish.logic.process(
+        func=pyblish.util.process,
         plugins=pyblish.api.discover(),
-        process=pyblish.util.process,
         context=context))
 
     assert_equals(len(triggered), 1)
@@ -241,8 +243,8 @@ def test_when_to_trigger_process():
 
     context = pyblish.api.Context()
     list(pyblish.logic.process(
+        func=pyblish.util.process,
         plugins=pyblish.api.discover(),
-        process=pyblish.util.process,
         context=context))
 
     assert_equals(_data["error"], False)

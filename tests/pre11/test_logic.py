@@ -154,7 +154,7 @@ def test_wildcard_plugins():
 
     for type in ('selectors', 'validators'):
         for plugin in pyblish.plugin.discover(type=type):
-            for instance, error in pyblish.util.process(plugin, context):
+            for instance, error in pyblish.util.process(plugin(), context):
                 if error:
                     raise error
 
@@ -312,9 +312,9 @@ def test_selection_appends():
     assert len(context) == 1
 
     for result in pyblish.logic.process(
+            func=pyblish.util.process,
             plugins=pyblish.plugin.discover(
                 'selectors', regex='SelectInstances$'),
-            process=pyblish.util.process,
             context=context):
         assert_equals(result.get("error"), None)
 
@@ -325,17 +325,31 @@ def test_selection_appends():
     assert len(context) > 1
 
 
-@with_setup(setup, teardown)
+@with_setup(setup_empty, teardown)
 def test_interface():
     """The interface of plugins works fine"""
     context = pyblish.plugin.Context()
-    instance = context.create_instance(name='test_instance')
-    instance.add('test_PLY')
+
+    class SelectInstance(pyblish.api.Selector):
+        def process_context(self, context):
+            instance = context.create_instance(name='test_instance')
+            instance.add('test_PLY')
+
+    class ValidateInstance(pyblish.api.Validator):
+        def process_instance(self, instance):
+            assert True
 
     for result in pyblish.logic.process(
-            plugins=pyblish.plugin.discover(),
-            process=pyblish.util.process,
+            func=pyblish.util.process,
+            plugins=[SelectInstance, ValidateInstance],
             context=context):
+
+        if isinstance(result, pyblish.logic.TestFailed):
+            print result
+
+        if isinstance(result, Exception):
+            raise result
+
         assert_equals(result.get("error"), None)
 
 
@@ -349,8 +363,8 @@ def test_failing_context():
     context = pyblish.plugin.Context()
 
     for result in pyblish.logic.process(
+            func=pyblish.util.process,
             plugins=[SelectFailure],
-            process=pyblish.util.process,
             context=context):
         error = result.get("error")
         assert_not_equals(error, None)
@@ -390,47 +404,46 @@ def test_failing_validator():
 def test_order():
     """Ordering with util.publish works fine"""
 
+    order = {"#": "0"}
+
     class SelectInstance(pyblish.plugin.Selector):
         def process_context(self, context):
+            order["#"] += "1"
             instance = context.create_instance("MyInstance")
-            instance.set_data("current", "1")
+            instance.set_data("family", "myFamily")
 
     class Validator1(pyblish.plugin.Validator):
         def process_instance(self, instance):
-            value = instance.data("current") + "2"
-            instance.set_data("current", value)
+            order["#"] += "2"
 
     class Validator2(pyblish.plugin.Validator):
         order = pyblish.plugin.Validator.order + 0.1
+
         def process_instance(self, instance):
-            value = instance.data("current") + "3"
-            instance.set_data("current", value)
+            order["#"] += "3"
 
     class Validator3(pyblish.plugin.Validator):
         order = pyblish.plugin.Validator.order + 0.2
+
         def process_instance(self, instance):
-            value = instance.data("current") + "4"
-            instance.set_data("current", value)
+            order["#"] += "4"
 
     class Extractor1(pyblish.plugin.Extractor):
         def process_instance(self, instance):
-            value = instance.data("current") + "5"
-            instance.set_data("current", value)
+            order["#"] += "5"
 
     class Extractor2(pyblish.plugin.Extractor):
         order = pyblish.plugin.Extractor.order + 0.1
+
         def process_instance(self, instance):
-            value = instance.data("current") + "6"
-            instance.set_data("current", value)
+            order["#"] += "6"
 
     for plugin in (Extractor2, Extractor1, Validator3,
                    Validator2, Validator1, SelectInstance):
         pyblish.plugin.register_plugin(plugin)
 
-    context = pyblish.util.publish()
-
-    assert_equal(len(context), 1)
-    assert_equal(context[0].data("current"), "123456")
+    pyblish.util.publish()
+    assert_equal(order["#"], "0123456")
 
 
 def test_plugins_by_family():

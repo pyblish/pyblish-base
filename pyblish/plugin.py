@@ -75,7 +75,7 @@ class Provider(object):
 
 
 class Config(dict):
-    """Wrapper for default-, user- and custom-configuration
+    """Wrapper for Pyblish configuration file.
 
     .. note:: Config is a singleton.
 
@@ -101,8 +101,6 @@ class Config(dict):
     DEFAULTCONFIGPATH = os.path.join(PACKAGEDIR, DEFAULTCONFIG)
 
     log = logging.getLogger("pyblish.Config")
-
-    default = dict()  # Default configuration data
 
     def __new__(cls, *args, **kwargs):
         """Make Config into a singleton"""
@@ -459,7 +457,14 @@ def register_plugin(plugin):
     Arguments:
         plugin (Plugin): Plug-in to register
 
+    Raises:
+        TypeError if `plugin` is not callable
+
     """
+
+    if not hasattr(plugin, "__call__"):
+        raise TypeError("Plug-in must be callable "
+                        "returning an instance of a class")
 
     pyblish._registered_plugins[plugin.__name__] = plugin
 
