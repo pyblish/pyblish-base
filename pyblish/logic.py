@@ -117,7 +117,6 @@ def process(func, plugins, context, test=None):
         plugins = __plugins()
 
     def gen(instances):
-        """Generate pair of context/instance"""
         if len(instances) > 0:
             for instance in instances:
                 yield instance
@@ -130,11 +129,14 @@ def process(func, plugins, context, test=None):
     }
 
     # Clear introspection values
-    self = sys.modules[__name__]
-    self.process.next_plugin = None
-    self.process.next_instance = None
+    # TODO(marcus): Return *next* pair, this currently
+    #   returns the current pair.
+    self = process
+    self.next_plugin = None
+    self.next_instance = None
 
     for plugin in plugins:
+        self.next_plugin = plugin
         vars["order"] = plugin.order
 
         if test(**vars):
@@ -148,10 +150,8 @@ def process(func, plugins, context, test=None):
                 continue
 
             for instance in gen(instances):
-
                 # Provide introspection
-                self.process.next_instance = instance
-                self.process.next_plugin = plugin
+                self.next_instance = instance
 
                 try:
                     result = func(plugin, context, instance)
@@ -171,9 +171,15 @@ def process(func, plugins, context, test=None):
 
                 # If the plug-in doesn't have a compatible instance,
                 # and the context isn't being processed, discard plug-in.
-                args = Provider.args(plugin.process)
-                if "instance" not in args:
-                    break
+                # TODO(marcus): Checking the arguments of `.process` even
+                # though we don't know what function `func` will call.
+                if not plugin.__islegacy__:
+                    args = Provider.args(plugin.process)
+                    if "instance" not in args:
+                        break
+
+            # Clear current
+            self.next_instance = None
 
         else:
             yield TestFailed("Test failed", vars)

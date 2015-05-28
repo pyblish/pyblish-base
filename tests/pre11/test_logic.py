@@ -537,7 +537,7 @@ def test_repair():
             _data["broken"] = True
             assert False, "Broken"
 
-        def repair(self, instance):
+        def repair_instance(self, instance):
             _data["broken"] = False
 
     context = pyblish.api.Context()

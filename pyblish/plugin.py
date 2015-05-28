@@ -134,6 +134,15 @@ class Config(dict):
         return True
 
 
+class MetaPlugin(type):
+    """Determine whether plug-in is legacy (i.e. pre 1.1)"""
+    def __init__(cls, *args, **kwargs):
+        cls.__islegacy__ = any(p in dir(cls) for p in (
+            "process_context", "process_instance"))
+
+        return super(MetaPlugin, cls).__init__(*args, **kwargs)
+
+
 @pyblish.lib.log
 class Plugin(object):
     """Abstract base-class for plugins
@@ -159,6 +168,8 @@ class Plugin(object):
             will not be loaded. 1.0.8 was when :attr:`Plugin.requires`
             was first introduced.
     """
+
+    __metaclass__ = MetaPlugin
 
     hosts = list("*")    # Hosts compatible with plugin
     families = list("*")    # Hosts compatible with plugin
@@ -234,8 +245,7 @@ Integrator = Conformer
 
 def process(plugin, context, instance=None):
     """Determine whether the given plug-in to be dependency injected"""
-    if (hasattr(plugin, "process_instance")
-            or hasattr(plugin, "process_context")):
+    if plugin.__islegacy__:
         return pyblish.legacy.process_1_0(plugin, context, instance)
     else:
         return _process(plugin, context, instance)
@@ -243,8 +253,7 @@ def process(plugin, context, instance=None):
 
 def repair(plugin, context, instance=None):
     """Determine whether the given plug-in to be dependency injected"""
-    if (hasattr(plugin, "repair_instance")
-            or hasattr(plugin, "repair_context")):
+    if plugin.__islegacy__:
         return pyblish.legacy.repair_1_0(plugin, context, instance)
     else:
         return _repair(plugin, context, instance)
