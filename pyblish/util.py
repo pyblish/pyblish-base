@@ -19,9 +19,9 @@ from __future__ import absolute_import
 # Standard library
 import logging
 import warnings
-import datetime
 
 # Local library
+import pyblish
 import pyblish.lib
 import pyblish.logic
 import pyblish.plugin
@@ -74,12 +74,6 @@ def publish(context=None, plugins=None, **kwargs):
             break
 
     return context
-
-
-# Utilities
-def time():
-    return datetime.datetime.now().strftime(
-            pyblish.config["date_format"])
 
 
 def process_all(plugin, context):

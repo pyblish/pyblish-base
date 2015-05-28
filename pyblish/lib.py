@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import logging
+import datetime
 import traceback
 
 _filename_ascii_strip_re = re.compile(r'[^-\w.]')
@@ -29,6 +30,10 @@ def extract_traceback(exception):
 
     finally:
         del(exc_type, exc_value, exc_traceback)
+
+
+def time():
+    return datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class ItemList(list):

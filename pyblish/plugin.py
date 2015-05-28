@@ -236,7 +236,7 @@ def process(plugin, context, instance=None):
     """Determine whether the given plug-in to be dependency injected"""
     if (hasattr(plugin, "process_instance")
             or hasattr(plugin, "process_context")):
-        return pyblish.legacy._process_legacy(plugin, context, instance)
+        return pyblish.legacy.process_1_0(plugin, context, instance)
     else:
         return _process(plugin, context, instance)
 
@@ -245,7 +245,7 @@ def repair(plugin, context, instance=None):
     """Determine whether the given plug-in to be dependency injected"""
     if (hasattr(plugin, "repair_instance")
             or hasattr(plugin, "repair_context")):
-        return pyblish.legacy._repair_legacy(plugin, context, instance)
+        return pyblish.legacy.repair_1_0(plugin, context, instance)
     else:
         return _repair(plugin, context, instance)
 

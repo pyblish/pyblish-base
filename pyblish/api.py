@@ -18,7 +18,6 @@ from __future__ import absolute_import
 
 import getpass
 import pyblish
-import datetime
 
 from .plugin import (
     Context,
@@ -57,6 +56,7 @@ from .plugin import (
 
 from .lib import (
     log,
+    time as __time,
     format_filename,
 )
 
@@ -92,10 +92,8 @@ config = __Config()
 
 def __init__():
     # Register default services
-    def time():
-        return datetime.datetime.now().strftime(config["date_format"])
 
-    register_service("time", time)
+    register_service("time", __time)
     register_service("user", getpass.getuser)
     register_service("context", None)
     register_service("instance", None)

@@ -5,7 +5,7 @@ import logging
 import pyblish.lib
 
 
-def _process_legacy(plugin, context, instance=None):
+def process_1_0(plugin, context, instance=None):
     import time
 
     if "results" not in context.data():
@@ -64,7 +64,7 @@ def _process_legacy(plugin, context, instance=None):
     return result
 
 
-def _repair_legacy(plugin, context, instance=None):
+def repair_1_0(plugin, context, instance=None):
     import time
 
     if "results" not in context.data():
