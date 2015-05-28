@@ -44,7 +44,7 @@ def test_di():
     context = pyblish.api.Context()
 
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=pyblish.api.discover(),
             context=context):
         print result
@@ -79,7 +79,7 @@ def test_init():
         pyblish.api.register_plugin(plugin)
 
     list(pyblish.logic.process(
-        func=pyblish.util.process,
+        func=pyblish.plugin.process,
         plugins=pyblish.api.discover(),
         context=pyblish.api.Context()))
 
@@ -129,7 +129,7 @@ def test_occurence():
     context = pyblish.api.Context()
 
     list(pyblish.logic.process(
-        func=pyblish.util.process,
+        func=pyblish.plugin.process,
         plugins=pyblish.api.discover(),
         context=context))
 
@@ -161,7 +161,7 @@ def test_no_instances():
     context = pyblish.api.Context()
 
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=pyblish.api.discover(),
             context=context):
         pass
@@ -204,7 +204,7 @@ def test_test_failure():
     context = pyblish.api.Context()
 
     results = list(pyblish.logic.process(
-        func=pyblish.util.process,
+        func=pyblish.plugin.process,
         plugins=pyblish.api.discover(),
         context=context))
 
@@ -243,7 +243,7 @@ def test_when_to_trigger_process():
 
     context = pyblish.api.Context()
     list(pyblish.logic.process(
-        func=pyblish.util.process,
+        func=pyblish.plugin.process,
         plugins=pyblish.api.discover(),
         context=context))
 

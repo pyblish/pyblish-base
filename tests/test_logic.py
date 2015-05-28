@@ -36,7 +36,7 @@ def test_process_callables():
     _context = pyblish.plugin.Context()
 
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=pyblish.plugin.discover(),
             context=_context):
 
@@ -54,7 +54,7 @@ def test_process_callables():
     count["#"] = 0
 
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=pyblish.plugin.discover,  # <- Callable
             context=context):  # <- Callable
 
@@ -75,7 +75,8 @@ def test_repair():
 
     class SelectInstance(pyblish.api.Selector):
         def process(self, context):
-            context.create_instance("MyInstance")
+            instance = context.create_instance("MyInstance")
+            instance.set_data("family", "MyFamily")
 
     class ValidateInstance(pyblish.api.Validator):
         def process(self, instance):
@@ -89,7 +90,7 @@ def test_repair():
 
     results = list()
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=[SelectInstance, ValidateInstance],
             context=context):
 
@@ -106,7 +107,7 @@ def test_repair():
             repair.append(result["plugin"])
 
     for result in pyblish.logic.process(
-            func=pyblish.util.repair,
+            func=pyblish.plugin.repair,
             plugins=repair,
             context=context):
         print result

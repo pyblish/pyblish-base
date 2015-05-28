@@ -17,32 +17,20 @@ Attributes:
 from __future__ import absolute_import
 
 # Standard library
-import sys
 import logging
 import warnings
 import datetime
-import traceback
 
 # Local library
-import pyblish.api
+import pyblish.lib
 import pyblish.logic
+import pyblish.plugin
+import pyblish.legacy
 
 log = logging.getLogger("pyblish")
 
 
-__all__ = ["select",
-           "validate",
-           "extract",
-           "conform",
-           "publish",
-           "publish_all",
-           "validate_all",
-           "process"]
-
-
-def publish(context=None,
-            plugins=None,
-            **kwargs):
+def publish(context=None, plugins=None, **kwargs):
     """Publish everything
 
     This function will process all available plugins of the
@@ -50,30 +38,30 @@ def publish(context=None,
     during selection.
 
     Arguments:
-        context (pyblish.api.Context): Optional Context,
+        context (pyblish.plugin.Context): Optional Context,
             defaults to creating a new context
         plugins (list): (Optional) Plug-ins to include,
             defaults to discover()
 
     Usage:
-        >> context = pyblish.api.Context()
+        >> context = pyblish.plugin.Context()
         >> publish(context)  # Pass..
         >> context = publish()  # ..or receive a new
 
     """
 
-    assert context is None or isinstance(context, pyblish.api.Context)
+    assert context is None or isinstance(context, pyblish.plugin.Context)
 
     # Must check against None, as the
     # Context may come in empty.
     if context is None:
-        context = pyblish.api.Context()
+        context = pyblish.plugin.Context()
 
     if plugins is None:
-        plugins = pyblish.api.discover()
+        plugins = pyblish.plugin.discover()
 
     for result in pyblish.logic.process(
-            func=process,
+            func=pyblish.plugin.process,
             plugins=plugins,
             context=context):
 
@@ -91,259 +79,7 @@ def publish(context=None,
 # Utilities
 def time():
     return datetime.datetime.now().strftime(
-            pyblish.api.config["date_format"])
-
-
-def process(plugin, context, instance=None):
-    """Determine whether the given plug-in to be dependency injected"""
-    if (hasattr(plugin, "process_instance")
-            or hasattr(plugin, "process_context")):
-        return _process_legacy(plugin, context, instance)
-    else:
-        return _process(plugin, context, instance)
-
-
-def repair(plugin, context, instance=None):
-    """Determine whether the given plug-in to be dependency injected"""
-    if (hasattr(plugin, "repair_instance")
-            or hasattr(plugin, "repair_context")):
-        return _repair_legacy(plugin, context, instance)
-    else:
-        return _repair(plugin, context, instance)
-
-
-def _repair(plugin, context, instance=None):
-    import time
-
-    if "results" not in context.data():
-        context.set_data("results", list())
-
-    result = {
-        "success": False,
-        "plugin": plugin,
-        "instance": instance,
-        "error": None,
-        "records": list(),
-        "duration": None
-    }
-
-    plugin = plugin()
-
-    provider = pyblish.plugin.Provider()
-    provider.inject("context", context)
-    provider.inject("instance", instance)
-
-    records = list()
-    handler = MessageHandler(records)
-
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-
-    __start = time.time()
-
-    try:
-        provider.invoke(plugin.repair)
-        result["success"] = True
-    except Exception as error:
-        extract_traceback(error)
-        result["error"] = error
-
-    __end = time.time()
-
-    for record in records:
-        result["records"].append(record)
-
-    # Restore balance to the world
-    root_logger.removeHandler(handler)
-
-    result["duration"] = (__end - __start) * 1000  # ms
-
-    context.data("results").append(result)
-
-    return result
-
-
-def _repair_legacy(plugin, context, instance=None):
-    import time
-
-    if "results" not in context.data():
-        context.set_data("results", list())
-
-    if not hasattr(plugin, "process_context"):
-        plugin.process_context = lambda self, context: None
-
-    if not hasattr(plugin, "process_instance"):
-        plugin.process_instance = lambda self, instance: None
-
-    if not hasattr(plugin, "repair_context"):
-        plugin.repair_context = lambda self, context: None
-
-    if not hasattr(plugin, "repair_instance"):
-        plugin.repair_instance = lambda self, instance: None
-
-    result = {
-        "success": False,
-        "plugin": plugin,
-        "instance": instance,
-        "error": None,
-        "records": list(),
-        "duration": None
-    }
-
-    records = list()
-    handler = MessageHandler(records)
-
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-
-    __start = time.time()
-
-    try:
-        plugin().repair_context(context)
-        result["success"] = True
-    except Exception as exc:
-        extract_traceback(exc)
-        result["error"] = exc
-
-    if instance is not None:
-        try:
-            plugin().repair_instance(instance)
-            result["success"] = True
-        except Exception as exc:
-            extract_traceback(exc)
-            result["error"] = exc
-
-    __end = time.time()
-
-    for record in records:
-        result["records"].append(record)
-
-    # Restore balance to the world
-    root_logger.removeHandler(handler)
-
-    result["duration"] = (__end - __start) * 1000  # ms
-
-    context.data("results").append(result)
-
-    return result
-
-
-def _process(plugin, context, instance=None):
-    """Process plug-in given an optional Context and Instance
-
-    Context and Instance are injected prior to processing.
-
-    Returns result.
-
-    """
-
-    import time
-
-    if "results" not in context.data():
-        context.set_data("results", list())
-
-    result = {
-        "success": False,
-        "plugin": plugin,
-        "instance": instance,
-        "error": None,
-        "records": list(),
-        "duration": None
-    }
-
-    plugin = plugin()
-
-    provider = pyblish.plugin.Provider()
-    provider.inject("context", context)
-    provider.inject("instance", instance)
-
-    records = list()
-    handler = MessageHandler(records)
-
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-
-    __start = time.time()
-
-    try:
-        provider.invoke(plugin.process)
-        result["success"] = True
-    except Exception as error:
-        extract_traceback(error)
-        result["error"] = error
-
-    __end = time.time()
-
-    for record in records:
-        result["records"].append(record)
-
-    # Restore balance to the world
-    root_logger.removeHandler(handler)
-
-    result["duration"] = (__end - __start) * 1000  # ms
-
-    context.data("results").append(result)
-
-    return result
-
-
-def _process_legacy(plugin, context, instance=None):
-    import time
-
-    if "results" not in context.data():
-        context.set_data("results", list())
-
-    if not hasattr(plugin, "process_context"):
-        plugin.process_context = lambda self, context: None
-
-    if not hasattr(plugin, "process_instance"):
-        plugin.process_instance = lambda self, instance: None
-
-    result = {
-        "success": False,
-        "plugin": plugin,
-        "instance": instance,
-        "error": None,
-        "records": list(),
-        "duration": None
-    }
-
-    records = list()
-    handler = MessageHandler(records)
-
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-
-    __start = time.time()
-
-    try:
-        plugin().process_context(context)
-        result["success"] = True
-    except Exception as exc:
-        extract_traceback(exc)
-        result["error"] = exc
-
-    if instance is not None:
-        try:
-            plugin().process_instance(instance)
-            result["success"] = True
-        except Exception as exc:
-            extract_traceback(exc)
-            result["error"] = exc
-
-    __end = time.time()
-
-    for record in records:
-        result["records"].append(record)
-
-    # Restore balance to the world
-    root_logger.removeHandler(handler)
-
-    result["duration"] = (__end - __start) * 1000  # ms
-
-    context.data("results").append(result)
-
-    return result
+            pyblish.config["date_format"])
 
 
 def process_all(plugin, context):
@@ -358,7 +94,7 @@ def process_all(plugin, context):
 
     """
 
-    for instance, error in process(plugin, context):
+    for instance, error in pyblish.plugin.process(plugin, context):
         if error is not None:
             raise error
 
@@ -384,7 +120,7 @@ def conform(*args, **kwargs):
 
 
 def _convenience(order, *args, **kwargs):
-    plugins = [p for p in pyblish.api.discover()
+    plugins = [p for p in pyblish.plugin.discover()
                if p.order < order]
 
     args = list(args)
@@ -393,28 +129,6 @@ def _convenience(order, *args, **kwargs):
     else:
         kwargs["plugins"] = plugins
     return publish(*args, **kwargs)
-
-
-class MessageHandler(logging.Handler):
-    def __init__(self, records, *args, **kwargs):
-        # Not using super(), for compatibility with Python 2.6
-        logging.Handler.__init__(self, *args, **kwargs)
-        self.records = records
-
-    def emit(self, record):
-        self.records.append(record)
-
-
-def extract_traceback(exception):
-    try:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        exception.traceback = traceback.extract_tb(exc_traceback)[-1]
-
-    except:
-        pass
-
-    finally:
-        del(exc_type, exc_value, exc_traceback)
 
 
 # Backwards compatibility

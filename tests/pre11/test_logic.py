@@ -154,7 +154,7 @@ def test_wildcard_plugins():
 
     for type in ('selectors', 'validators'):
         for plugin in pyblish.plugin.discover(type=type):
-            for instance, error in pyblish.util.process(plugin(), context):
+            for instance, error in pyblish.plugin.process(plugin(), context):
                 if error:
                     raise error
 
@@ -312,7 +312,7 @@ def test_selection_appends():
     assert len(context) == 1
 
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=pyblish.plugin.discover(
                 'selectors', regex='SelectInstances$'),
             context=context):
@@ -340,7 +340,7 @@ def test_interface():
             assert True
 
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=[SelectInstance, ValidateInstance],
             context=context):
 
@@ -363,7 +363,7 @@ def test_failing_context():
     context = pyblish.plugin.Context()
 
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=[SelectFailure],
             context=context):
         error = result.get("error")
@@ -394,7 +394,7 @@ def test_failing_validator():
     instance = context.create_instance("MyInstance")
     instance.set_data("family", "test")
 
-    result = pyblish.util.process(ValidateFailure, context, instance)
+    result = pyblish.plugin.process(ValidateFailure, context, instance)
     error = result["error"]
     assert_equal(error.message, "instance failed")
     assert_true(hasattr(error, "traceback"))
@@ -544,7 +544,7 @@ def test_repair():
 
     results = list()
     for result in pyblish.logic.process(
-            func=pyblish.util.process,
+            func=pyblish.plugin.process,
             plugins=[SelectInstance, ValidateInstance],
             context=context):
 
@@ -561,7 +561,7 @@ def test_repair():
             repair.append(result["plugin"])
 
     for result in pyblish.logic.process(
-            func=pyblish.util.repair,
+            func=pyblish.plugin.repair,
             plugins=repair,
             context=context):
         print result

@@ -24,6 +24,7 @@ import inspect
 import pyblish
 import pyblish.lib
 import pyblish.error
+import pyblish.legacy
 
 from .vendor import yaml
 from .vendor import iscompatible
@@ -229,6 +230,133 @@ class Conformer(Plugin):
 # Aliases
 Collector = Selector
 Integrator = Conformer
+
+
+def process(plugin, context, instance=None):
+    """Determine whether the given plug-in to be dependency injected"""
+    if (hasattr(plugin, "process_instance")
+            or hasattr(plugin, "process_context")):
+        return pyblish.legacy._process_legacy(plugin, context, instance)
+    else:
+        return _process(plugin, context, instance)
+
+
+def repair(plugin, context, instance=None):
+    """Determine whether the given plug-in to be dependency injected"""
+    if (hasattr(plugin, "repair_instance")
+            or hasattr(plugin, "repair_context")):
+        return pyblish.legacy._repair_legacy(plugin, context, instance)
+    else:
+        return _repair(plugin, context, instance)
+
+
+def _process(plugin, context, instance=None):
+    """Produce a single result from a Plug-in
+
+    Returns:
+        Result dictionary
+
+    """
+
+    import time
+
+    if "results" not in context.data():
+        context.set_data("results", list())
+
+    result = {
+        "success": False,
+        "plugin": plugin,
+        "instance": instance,
+        "error": None,
+        "records": list(),
+        "duration": None
+    }
+
+    plugin = plugin()
+
+    provider = pyblish.plugin.Provider()
+    provider.inject("context", context)
+    provider.inject("instance", instance)
+
+    records = list()
+    handler = pyblish.lib.MessageHandler(records)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+
+    __start = time.time()
+
+    try:
+        provider.invoke(plugin.process)
+        result["success"] = True
+    except Exception as error:
+        pyblish.lib.extract_traceback(error)
+        result["error"] = error
+
+    __end = time.time()
+
+    for record in records:
+        result["records"].append(record)
+
+    # Restore balance to the world
+    root_logger.removeHandler(handler)
+
+    result["duration"] = (__end - __start) * 1000  # ms
+
+    context.data("results").append(result)
+
+    return result
+
+
+def _repair(plugin, context, instance=None):
+    import time
+
+    if "results" not in context.data():
+        context.set_data("results", list())
+
+    result = {
+        "success": False,
+        "plugin": plugin,
+        "instance": instance,
+        "error": None,
+        "records": list(),
+        "duration": None
+    }
+
+    plugin = plugin()
+
+    provider = pyblish.plugin.Provider()
+    provider.inject("context", context)
+    provider.inject("instance", instance)
+
+    records = list()
+    handler = pyblish.lib.MessageHandler(records)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+
+    __start = time.time()
+
+    try:
+        provider.invoke(plugin.repair)
+        result["success"] = True
+    except Exception as error:
+        pyblish.lib.extract_traceback(error)
+        result["error"] = error
+
+    __end = time.time()
+
+    for record in records:
+        result["records"].append(record)
+
+    # Restore balance to the world
+    root_logger.removeHandler(handler)
+
+    result["duration"] = (__end - __start) * 1000  # ms
+
+    context.data("results").append(result)
+
+    return result
 
 
 class AbstractEntity(list):

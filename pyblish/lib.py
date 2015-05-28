@@ -2,10 +2,33 @@ import os
 import re
 import sys
 import logging
+import traceback
 
 _filename_ascii_strip_re = re.compile(r'[^-\w.]')
 _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
+
+
+class MessageHandler(logging.Handler):
+    def __init__(self, records, *args, **kwargs):
+        # Not using super(), for compatibility with Python 2.6
+        logging.Handler.__init__(self, *args, **kwargs)
+        self.records = records
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def extract_traceback(exception):
+    try:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        exception.traceback = traceback.extract_tb(exc_traceback)[-1]
+
+    except:
+        pass
+
+    finally:
+        del(exc_type, exc_value, exc_traceback)
 
 
 class ItemList(list):
