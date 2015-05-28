@@ -520,3 +520,50 @@ def test_instances_by_plugin():
     # This plugin is only compatible with
     # the family is "TestInstance1"
     assert compatible[0].name == 'TestInstance1'
+
+
+@with_setup(setup_empty, teardown)
+def test_repair():
+    """Repairing works well"""
+
+    _data = {}
+
+    class SelectInstance(pyblish.api.Selector):
+        def process_context(self, context):
+            context.create_instance("MyInstance")
+
+    class ValidateInstance(pyblish.api.Validator):
+        def process_instance(self, instance):
+            _data["broken"] = True
+            assert False, "Broken"
+
+        def repair(self, instance):
+            _data["broken"] = False
+
+    context = pyblish.api.Context()
+
+    results = list()
+    for result in pyblish.logic.process(
+            func=pyblish.util.process,
+            plugins=[SelectInstance, ValidateInstance],
+            context=context):
+
+        if isinstance(result, pyblish.logic.TestFailed):
+            assert str(result) == "Broken"
+
+        results.append(result)
+
+    assert_true(_data["broken"])
+
+    repair = list()
+    for result in results:
+        if result["error"]:
+            repair.append(result["plugin"])
+
+    for result in pyblish.logic.process(
+            func=pyblish.util.repair,
+            plugins=repair,
+            context=context):
+        print result
+
+    assert_false(_data["broken"])
