@@ -173,7 +173,9 @@ def process(func, plugins, context, test=None):
                 # and the context isn't being processed, discard plug-in.
                 # TODO(marcus): Checking the arguments of `.process` even
                 # though we don't know what function `func` will call.
-                if not plugin.__islegacy__:
+                if plugin.__pre11__:
+                    pass
+                else:
                     args = Provider.args(plugin.process)
                     if "instance" not in args:
                         break

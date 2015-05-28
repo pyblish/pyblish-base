@@ -32,7 +32,7 @@ def test_legacy():
         def process(self, context):
             pass
 
-    assert_true(hasattr(LegacyPlugin, "__islegacy__"))
-    assert_equals(LegacyPlugin.__islegacy__, True)
-    assert_true(hasattr(NotLegacyPlugin, "__islegacy__"))
-    assert_equals(NotLegacyPlugin.__islegacy__, False)
+    assert_true(hasattr(LegacyPlugin, "__pre11__"))
+    assert_equals(LegacyPlugin.__pre11__, True)
+    assert_true(hasattr(NotLegacyPlugin, "__pre11__"))
+    assert_equals(NotLegacyPlugin.__pre11__, False)

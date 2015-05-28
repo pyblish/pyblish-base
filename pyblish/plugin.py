@@ -137,7 +137,7 @@ class Config(dict):
 class MetaPlugin(type):
     """Determine whether plug-in is legacy (i.e. pre 1.1)"""
     def __init__(cls, *args, **kwargs):
-        cls.__islegacy__ = any(p in dir(cls) for p in (
+        cls.__pre11__ = any(p in dir(cls) for p in (
             "process_context", "process_instance"))
 
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
@@ -245,7 +245,7 @@ Integrator = Conformer
 
 def process(plugin, context, instance=None):
     """Determine whether the given plug-in to be dependency injected"""
-    if plugin.__islegacy__:
+    if plugin.__pre11__:
         return pyblish.legacy.process_1_0(plugin, context, instance)
     else:
         return _process(plugin, context, instance)
@@ -253,7 +253,7 @@ def process(plugin, context, instance=None):
 
 def repair(plugin, context, instance=None):
     """Determine whether the given plug-in to be dependency injected"""
-    if plugin.__islegacy__:
+    if plugin.__pre11__:
         return pyblish.legacy.repair_1_0(plugin, context, instance)
     else:
         return _repair(plugin, context, instance)
