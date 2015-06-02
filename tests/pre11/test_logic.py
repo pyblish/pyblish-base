@@ -130,7 +130,7 @@ def test_process():
 
     class ValidateInstance(pyblish.plugin.Validator):
         def process_instance(self, instance):
-            print "Setting valid to true"
+            self.log.critical("Setting valid to true")
             instance.set_data("valid", True)
 
     class ExtractInstance(pyblish.plugin.Extractor):
@@ -154,7 +154,7 @@ def test_wildcard_plugins():
 
     for type in ('selectors', 'validators'):
         for plugin in pyblish.plugin.discover(type=type):
-            for instance, error in pyblish.plugin.process(plugin(), context):
+            for instance, error in pyblish.plugin.process(plugin, context):
                 if error:
                     raise error
 
@@ -567,3 +567,55 @@ def test_repair():
         print result
 
     assert_false(_data["broken"])
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_context_once():
+    """Context is only processed once"""
+
+    count = {"#": 0}
+
+    class SelectMany(pyblish.api.Selector):
+        def process_context(self, context):
+            for name in ("A", "B", "C"):
+                instance = context.create_instance(name)
+                instance.set_data("family", "myFamily")
+
+    class ValidateContext(pyblish.api.Validator):
+        def process_context(self, context):
+            count["#"] += 1
+
+    context = pyblish.api.Context()
+    for result in pyblish.logic.process(
+            func=pyblish.plugin.process,
+            plugins=[SelectMany, ValidateContext],
+            context=context):
+        pass
+
+    assert_equals(count["#"], 1)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_instance_every():
+    """Plug-ins process each instance"""
+
+    count = {"#": 0}
+
+    class SelectMany(pyblish.api.Selector):
+        def process_context(self, context):
+            for name in ("A", "B", "C"):
+                instance = context.create_instance(name)
+                instance.set_data("family", "myFamily")
+
+    class ValidateContext(pyblish.api.Validator):
+        def process_instance(self, instance):
+            count["#"] += 1
+
+    context = pyblish.api.Context()
+    for result in pyblish.logic.process(
+            func=pyblish.plugin.process,
+            plugins=[SelectMany, ValidateContext],
+            context=context):
+        pass
+
+    assert_equals(count["#"], 3)

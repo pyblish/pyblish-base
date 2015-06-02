@@ -24,7 +24,6 @@ import inspect
 import pyblish
 import pyblish.lib
 import pyblish.error
-import pyblish.legacy
 
 from .vendor import yaml
 from .vendor import iscompatible
@@ -135,11 +134,47 @@ class Config(dict):
 
 
 class MetaPlugin(type):
-    """Determine whether plug-in is legacy (i.e. pre 1.1)"""
-    def __init__(cls, *args, **kwargs):
-        cls.__pre11__ = any(p in dir(cls) for p in (
-            "process_context", "process_instance"))
+    """Rewrite plug-ins written prior to 1.1
 
+    ..warning:: In case of plug-ins written prior to 1.1,
+        that also process both instance and context,
+        only the instance process will remain available.
+
+    """
+
+    def __init__(cls, *args, **kwargs):
+        cls.__pre11__ = False
+        cls.__contextEnabled__ = False
+        cls.__instanceEnabled__ = False
+
+        if hasattr(cls, "process_context"):
+            cls.__pre11__ = True
+            cls.process = cls.process_context
+            del(cls.process_context)
+
+        if hasattr(cls, "process_instance"):
+            cls.__pre11__ = True
+            cls.process = cls.process_instance
+            del(cls.process_instance)
+
+        # Repair is deprecated
+        if hasattr(cls, "repair_context"):
+            cls.__pre11__ = True
+            cls.repair = cls.repair_context
+            del(cls.repair_context)
+
+        if hasattr(cls, "repair_instance"):
+            cls.__pre11__ = True
+            cls.repair = cls.repair_instance
+            del(cls.repair_instance)
+
+        argspec = inspect.getargspec(cls.process)
+        if "instance" in argspec.args:
+            cls.__instanceEnabled__ = True
+
+        if "context" in argspec.args:
+            cls.__contextEnabled__ = True
+    
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
 
@@ -148,6 +183,11 @@ class Plugin(object):
     """Abstract base-class for plugins
 
     Attributes:
+        label: Printed name of plug-in
+        active: Whether or not to use plug-in during processing
+        weight: Estimate of how long the plug-in takes to process,
+            in Pyblish-units. E.g. a plugin of weight 2 and takes
+            twice as long as a plugin of weight 1.
         hosts: Mandatory specifier for which host application
             this plug-in is compatible with.
         families: Supported families.
@@ -171,6 +211,9 @@ class Plugin(object):
 
     __metaclass__ = MetaPlugin
 
+    label = None
+    active = True
+    weight = 1
     hosts = list("*")    # Hosts compatible with plugin
     families = list("*")    # Hosts compatible with plugin
     version = (0, 0, 0)  # Current version of plugin
@@ -179,7 +222,7 @@ class Plugin(object):
     requires = "pyblish>=1"
 
     def __str__(self):
-        return type(self).__name__
+        return self.label or type(self).__name__
 
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
@@ -244,22 +287,6 @@ Integrator = Conformer
 
 
 def process(plugin, context, instance=None):
-    """Determine whether the given plug-in to be dependency injected"""
-    if plugin.__pre11__:
-        return pyblish.legacy.process_1_0(plugin, context, instance)
-    else:
-        return _process(plugin, context, instance)
-
-
-def repair(plugin, context, instance=None):
-    """Determine whether the given plug-in to be dependency injected"""
-    if plugin.__pre11__:
-        return pyblish.legacy.repair_1_0(plugin, context, instance)
-    else:
-        return _repair(plugin, context, instance)
-
-
-def _process(plugin, context, instance=None):
     """Produce a single result from a Plug-in
 
     Returns:
@@ -317,7 +344,9 @@ def _process(plugin, context, instance=None):
     return result
 
 
-def _repair(plugin, context, instance=None):
+def repair(plugin, context, instance=None):
+    """Produce single result from repairing"""
+
     import time
 
     if "results" not in context.data():

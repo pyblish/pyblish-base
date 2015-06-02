@@ -70,15 +70,7 @@ Available plugins:
 
 def _setup_log(root="pyblish"):
     log = logging.getLogger(root)
-
-    log.setLevel(logging.WARNING)
-
-    formatter = logging.Formatter(LOG_TEMPATE.format(tab=TAB))
-
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    log.addHandler(stream_handler)
-
+    log.setLevel(logging.INFO)
     return log
 
 

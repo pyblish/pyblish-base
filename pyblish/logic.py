@@ -1,6 +1,7 @@
 """Shared processing logic"""
 
 import sys
+import inspect
 import traceback
 
 import pyblish
@@ -25,12 +26,12 @@ def default_test(**vars):
 
     Variables:
         order (int): Order of next plugin
-        errorOrders (list): Orders at which an error has occured
+        ordersWithError (list): Orders at which an error has occured
 
     """
 
-    if vars["order"] >= 2:  # If validation is done
-        for order in vars["errorOrders"]:
+    if vars["nextOrder"] >= 2:  # If validation is done
+        for order in vars["ordersWithError"]:
             if order < 2:  # Were there any error before validation?
                 return False
     return True
@@ -116,16 +117,16 @@ def process(func, plugins, context, test=None):
     if hasattr(__plugins, "__call__"):
         plugins = __plugins()
 
-    def gen(instances):
-        if len(instances) > 0:
+    def gen(plugin, instances):
+        if plugin.__instanceEnabled__ and len(instances) > 0:
             for instance in instances:
                 yield instance
         else:
             yield None
 
     vars = {
-        "order": None,
-        "errorOrders": list()
+        "nextOrder": None,
+        "ordersWithError": list()
     }
 
     # Clear introspection values
@@ -137,48 +138,36 @@ def process(func, plugins, context, test=None):
 
     for plugin in plugins:
         self.next_plugin = plugin
-        vars["order"] = plugin.order
+        vars["nextOrder"] = plugin.order
 
         if test(**vars):
             if hasattr(__context, "__call__"):
                 context = __context()
 
+            args = inspect.getargspec(plugin.process).args
             instances = instances_by_plugin(context, plugin)
-            # Process once, regardless of available instances if
-            # plug-in isn't associated with any particular family.
-            if not instances and "*" not in plugin.families:
-                continue
+            for instance in gen(plugin, instances):
+                if instance is None and "instance" in args:
+                    continue
 
-            for instance in gen(instances):
                 # Provide introspection
                 self.next_instance = instance
 
                 try:
                     result = func(plugin, context, instance)
 
-                except Exception as exception:
+                except Exception:
                     # If this happens, there is a bug
-                    _extract_traceback(exception)
-                    yield exception
+                    traceback.print_exc()
+                    assert False
 
                 else:
                     # Make note of the order at which
                     # the potential error error occured.
                     if result["error"]:
-                        if plugin.order not in vars["errorOrders"]:
-                            vars["errorOrders"].append(plugin.order)
+                        if plugin.order not in vars["ordersWithError"]:
+                            vars["ordersWithError"].append(plugin.order)
                     yield result
-
-                # If the plug-in doesn't have a compatible instance,
-                # and the context isn't being processed, discard plug-in.
-                # TODO(marcus): Checking the arguments of `.process` even
-                # though we don't know what function `func` will call.
-                if plugin.__pre11__:
-                    pass
-                else:
-                    args = Provider.args(plugin.process)
-                    if "instance" not in args:
-                        break
 
             # Clear current
             self.next_instance = None
@@ -208,7 +197,7 @@ def register_test(test):
         >>> register_test(my_test)
         >>>
         >>> # Run test
-        >>> if my_test(order=1, errorOrders=[]):
+        >>> if my_test(order=1, ordersWithError=[]):
         ...   print("Test passed")
         Test passed
         >>>

@@ -25,7 +25,6 @@ import pyblish
 import pyblish.lib
 import pyblish.logic
 import pyblish.plugin
-import pyblish.legacy
 
 log = logging.getLogger("pyblish")
 
@@ -67,10 +66,6 @@ def publish(context=None, plugins=None, **kwargs):
 
         if isinstance(result, pyblish.logic.TestFailed):
             log.error("Stopped due to: %s (%s)" % (result, result.vars))
-            break
-
-        if isinstance(result, Exception):
-            log.critical("Got an exception: %s" % result)
             break
 
     return context

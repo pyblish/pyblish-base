@@ -14,7 +14,7 @@ def test_di():
 
     # Plugins
     class SelectInstance(pyblish.api.Selector):
-        def process(self, context, instance):
+        def process(self, context):
             self.log.info("Test")
             for name in ("MyInstanceA", "MyInstanceB"):
                 instance = context.create_instance(name)
@@ -27,18 +27,18 @@ def test_di():
         def process(self, instance):
             assert instance.data("family") == "myFamily", "Wrong family"
 
-    class ExtractInstance(pyblish.api.Extractor):
+    class ExtractInstanceX(pyblish.api.Extractor):
         def __init__(self):
-            super(ExtractInstance, self).__init__()
+            super(ExtractInstanceX, self).__init__()
             self.instance_count = 0
 
         def process(self, context, instance, user, time):
             self.instance_count += 1
-
+            self.log.warning("Filling up disk..")
             _disk[instance.name] = "%s - %s: %s (%s)" % (
                 time(), user(), instance.data("value"), self.instance_count)
 
-    for plugin in (SelectInstance, ValidateInstance, ExtractInstance):
+    for plugin in (SelectInstance, ValidateInstance, ExtractInstanceX):
         pyblish.api.register_plugin(plugin)
 
     context = pyblish.api.Context()
@@ -47,7 +47,7 @@ def test_di():
             func=pyblish.plugin.process,
             plugins=pyblish.api.discover(),
             context=context):
-        print result
+        assert not result["error"]
 
     assert "MyInstanceB" in _disk
 
@@ -103,16 +103,33 @@ def test_occurence():
         def process(self):
             count["#"] += 1
 
-    class DoesNotHappen1(pyblish.api.Validator):
+    class HappensOnce3(pyblish.api.Validator):
+        """Does run
+
+        It's not supporting any available family, but it's
+        not limited to processing instances and so will get
+        run regardless.
+
+        """
+
         families = ["unsupportedFamily"]
 
         def process(self):
+            self.log.critical(str(self))
             count["#"] += 1
 
-    class DoesNotHappen2(pyblish.api.Validator):
+    class DoesNotHappen1(pyblish.api.Validator):
+        """Doesn't run.
+
+        Asking for `instance`, and only supporting an unavailable
+        family prevents this plug-in from running
+
+        """
+
         families = ["unsupportedFamily"]
 
         def process(self, instance):
+            self.log.critical(str(self))
             count["#"] += 1
 
     class HappensEveryInstance(pyblish.api.Validator):
@@ -121,8 +138,8 @@ def test_occurence():
 
     for plugin in (HappensOnce1,
                    HappensOnce2,
+                   HappensOnce3,
                    DoesNotHappen1,
-                   DoesNotHappen2,
                    HappensEveryInstance):
         pyblish.api.register_plugin(plugin)
 
@@ -133,7 +150,7 @@ def test_occurence():
         plugins=pyblish.api.discover(),
         context=context))
 
-    assert_equals(count["#"], 4)
+    assert_equals(count["#"], 5)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -147,6 +164,12 @@ def test_no_instances():
             count["#"] += 1
 
     class Extract2(pyblish.api.Extractor):
+        """This doesn't run
+
+        Because it asks for instance, and there aren't any instances
+
+        """
+
         def process(self, context, instance):
             assert instance is None
             count["#"] += 1
@@ -166,7 +189,7 @@ def test_no_instances():
             context=context):
         pass
 
-    assert_equals(count["#"], 3)
+    assert_equals(count["#"], 2)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
