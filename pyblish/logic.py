@@ -119,6 +119,11 @@ def process(func, plugins, context, test=None):
 
             args = inspect.getargspec(plugin.process).args
             instances = instances_by_plugin(context, plugin)
+
+            # Limit processing to plug-ins with an available instance
+            if not instances and "*" not in plugin.families:
+                continue
+
             for instance in gen(plugin, instances):
                 if instance is None and "instance" in args:
                     continue

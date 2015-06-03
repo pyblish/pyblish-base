@@ -98,12 +98,11 @@ def test_occurence():
         def process(self):
             count["#"] += 1
 
-    class HappensOnce3(pyblish.api.Validator):
-        """Does run
+    class DoesNotHappen1(pyblish.api.Validator):
+        """Doesn't run
 
-        It's not supporting any available family, but it's
-        not limited to processing instances and so will get
-        run regardless.
+        It's requesting to be triggered only in the presence
+        of an instance of a family that isn't present.
 
         """
 
@@ -113,7 +112,7 @@ def test_occurence():
             self.log.critical(str(self))
             count["#"] += 1
 
-    class DoesNotHappen1(pyblish.api.Validator):
+    class DoesNotHappen2(pyblish.api.Validator):
         """Doesn't run.
 
         Asking for `instance`, and only supporting an unavailable
@@ -133,8 +132,8 @@ def test_occurence():
 
     for plugin in (HappensOnce1,
                    HappensOnce2,
-                   HappensOnce3,
                    DoesNotHappen1,
+                   DoesNotHappen2,
                    HappensEveryInstance):
         pyblish.api.register_plugin(plugin)
 
@@ -145,7 +144,7 @@ def test_occurence():
         plugins=pyblish.api.discover(),
         context=context))
 
-    assert_equals(count["#"], 5)
+    assert_equals(count["#"], 4)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
