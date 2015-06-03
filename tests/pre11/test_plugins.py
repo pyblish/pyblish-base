@@ -76,12 +76,6 @@ def test_environment_paths():
         os.environ[key] = existing or ''
 
 
-@raises(ValueError)
-def test_discover_invalid_type():
-    """Discovering an invalid type raises an error"""
-    pyblish.plugin.discover(type='INVALID')
-
-
 def test_instances_by_plugin_invariant():
     ctx = pyblish.plugin.Context()
     for i in range(10):
@@ -218,15 +212,6 @@ def test_inmemory_discover_filtering():
                    ExtractInstances,
                    ConformInstances):
         pyblish.api.register_plugin(plugin)
-
-    for type, plugin in {"selectors": SelectInstances,
-                         "validators": ValidateInstances,
-                         "extractors": ExtractInstances,
-                         "conformers": ConformInstances}.items():
-        print "Comparing %s with type: %s" % (plugin, type)
-        discovered = pyblish.plugin.discover(type=type)
-        print "Discovered: %s" % discovered
-        assert_equals(discovered[0], plugin)
 
     assert_equals(
         pyblish.plugin.discover(regex="^Extract"),

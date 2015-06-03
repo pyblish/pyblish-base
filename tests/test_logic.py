@@ -192,7 +192,7 @@ def test_logic_process():
     provider = pyblish.plugin.Provider()
     provider.inject("context", context)
 
-    def my_process(plugin, provider):
+    def my_process(plugin, context, instance=None):
       result = {
         "success": False,
         "plugin": plugin,
@@ -202,6 +202,8 @@ def test_logic_process():
         "duration": None
       }
       plugin = plugin()
+      provider = pyblish.plugin.Provider()
+      provider.inject("context", context)
       provider.invoke(plugin.process)
       return result
     
@@ -216,3 +218,43 @@ def test_logic_process():
         assert not isinstance(result, pyblish.logic.TestFailed), result
     
     assert_equals(len(context), 1)
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_active():
+    """An inactive plug-in won't be processed by default logic"""
+
+    count = {"#": 0}
+
+    class SelectInstances4321(pyblish.api.Selector):
+        def process(self, context):
+            for name in ("A", "B"):
+                instance = context.create_instance(name)
+                instance.set_data("family", "myFamily")
+
+            count["#"] += 1
+
+    class ValidateNotActive(pyblish.api.Validator):
+        """Doesn't run, due to being inactive"""
+        active = False
+
+        def process(self, instance):
+            count["#"] += 10
+            assert False
+
+    class ValidateActive(pyblish.api.Validator):
+        """Runs twice, for both instances"""
+        active = True
+
+        def process(self, instance):
+            count["#"] += 100
+
+    context = pyblish.api.Context()
+    for result in pyblish.logic.process(
+            plugins=[SelectInstances4321,
+                     ValidateNotActive,
+                     ValidateActive],
+            func=pyblish.plugin.process,
+            context=context):
+        assert not isinstance(result, pyblish.logic.TestFailed), result
+
+    assert_equals(count["#"], 201)

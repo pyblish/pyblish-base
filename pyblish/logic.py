@@ -110,6 +110,9 @@ def process(func, plugins, context, test=None):
         self.next_plugin = plugin
         vars["nextOrder"] = plugin.order
 
+        if not plugin.active:
+            continue
+
         if not test(**vars):
             if hasattr(__context, "__call__"):
                 context = __context()
@@ -123,12 +126,8 @@ def process(func, plugins, context, test=None):
                 # Provide introspection
                 self.next_instance = instance
 
-                provider = pyblish.plugin.Provider()
-                provider.inject("context", context)
-                provider.inject("instance", instance)
-
                 try:
-                    result = func(plugin, provider)
+                    result = func(plugin, context, instance)
 
                 except Exception:
                     # If this happens, there is a bug

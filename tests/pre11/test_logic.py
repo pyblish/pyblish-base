@@ -161,7 +161,9 @@ def test_wildcard_plugins():
     assert_equals(result["plugin"], plugin)
     assert_equals(next(iterator, None), None)
 
-    plugin = pyblish.plugin.discover(type="validators")[0]
+    plugin = [p for p in pyblish.plugin.discover()
+              if issubclass(p, pyblish.api.Validator)][0]
+
     iterator = pyblish.logic.process(
         func=pyblish.plugin.process,
         plugins=[plugin],
@@ -281,8 +283,8 @@ def test_extraction_failure():
     context.add(instance)
 
     # Assuming validations pass
-    extractor = pyblish.plugin.discover(
-        type='extractors', regex='.*Fail$')[0]
+    extractor = [p for p in pyblish.plugin.discover(regex='.*Fail$')
+                 if issubclass(p, pyblish.api.Extractor)][0]
 
     print extractor
     assert extractor.__name__ == "ExtractInstancesFail"

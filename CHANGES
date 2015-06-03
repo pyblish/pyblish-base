@@ -8,12 +8,15 @@ Version 1.1.0
 
 - Feature: In-memory plug-ins (see #140)
 - Feature: Custom test (see #183)
+- Feature: SimplePlugin (see #186)
 - Enhancement: Logic unified between pyblish.util and pyblish.cli
 - Bugfix: Order now works with pyblish.util and pyblish.cli
 - Standardised time format (see #181)
 - pyblish.util minified. For data visualisation, refer to pyblish-qml
 - Bugfix: True singleton configuration (see #182)
 - Added pyblish.lib.ItemList
+- API: Added Plugin.label
+- API: Added Plugin.active
 - API: Added pyblish.api.register_test()
 - API: Added pyblish.api.deregister_test()
 - API: Added pyblish.api.registered_test()

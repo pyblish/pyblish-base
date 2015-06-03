@@ -32,16 +32,20 @@ from .vendor import iscompatible
 log = logging.getLogger("pyblish.plugin")
 
 
-class Provider(dict):
+class Provider(object):
     """Dependency provider"""
 
-    @property
-    def registered(self):
-        return pyblish._registered_services.copy()
+    def __init__(self):
+        self._services = dict()
+
+    def get(self, service):
+        return self.services.get(service)
 
     @property
-    def injected(self):
-        return self
+    def services(self):
+        services = pyblish._registered_services.copy()
+        services.update(self._services)
+        return services
 
     @classmethod
     def args(cls, func):
@@ -59,21 +63,19 @@ class Provider(dict):
 
         """
 
-
         args = self.args(func)
-        services = dict(self.registered, **self.injected)
-        unavailable = [a for a in args if a not in services]
+        unavailable = [a for a in args if a not in self.services]
 
         if unavailable:
             raise KeyError("Unavailable service requested: %s" % unavailable)
 
-        inject = dict((k, v) for k, v in services.items()
+        inject = dict((k, v) for k, v in self.services.items()
                       if k in args)
 
         return func(**inject)
 
     def inject(self, name, obj):
-        self[name] = obj
+        self._services[name] = obj
 
 
 class Config(dict):
@@ -182,14 +184,11 @@ class MetaPlugin(type):
 
 @pyblish.lib.log
 class Plugin(object):
-    """Abstract base-class for plugins
+    """Base-class for plugins
 
     Attributes:
         label: Printed name of plug-in
         active: Whether or not to use plug-in during processing
-        weight: Estimate of how long the plug-in takes to process,
-            in Pyblish-units. E.g. a plugin of weight 2 and takes
-            twice as long as a plugin of weight 1.
         hosts: Mandatory specifier for which host application
             this plug-in is compatible with.
         families: Supported families.
@@ -213,13 +212,12 @@ class Plugin(object):
 
     __metaclass__ = MetaPlugin
 
+    hosts = ["*"]
+    families = ["*"]
     label = None
     active = True
-    weight = 1
-    hosts = list("*")    # Hosts compatible with plugin
-    families = list("*")    # Hosts compatible with plugin
-    version = (0, 0, 0)  # Current version of plugin
-    order = None
+    version = (0, 0, 0)
+    order = -1
     optional = False
     requires = "pyblish>=1"
 
@@ -288,7 +286,7 @@ Collector = Selector
 Integrator = Conformer
 
 
-def process(plugin, provider):
+def process(plugin, context, instance=None):
     """Produce a single result from a Plug-in
 
     Returns:
@@ -297,9 +295,6 @@ def process(plugin, provider):
     """
 
     import time
-
-    context = provider.get("context")
-    instance = provider.get("instance")
 
     result = {
         "success": False,
@@ -317,6 +312,10 @@ def process(plugin, provider):
 
     root_logger = logging.getLogger()
     root_logger.addHandler(handler)
+
+    provider = pyblish.plugin.Provider()
+    provider.inject("context", context)
+    provider.inject("instance", instance)
 
     __start = time.time()
 
@@ -346,13 +345,10 @@ def process(plugin, provider):
 
 
 
-def repair(plugin, provider):
+def repair(plugin, context, instance=None):
     """Produce single result from repairing"""
 
     import time
-
-    context = provider.get("context")
-    instance = provider.get("instance")
 
     if "results" not in context.data():
         context.set_data("results", list())
@@ -373,6 +369,10 @@ def repair(plugin, provider):
 
     root_logger = logging.getLogger()
     root_logger.addHandler(handler)
+
+    provider = pyblish.plugin.Provider()
+    provider.inject("context", context)
+    provider.inject("instance", instance)
 
     __start = time.time()
 
@@ -839,30 +839,10 @@ def discover(type=None, regex=None, paths=None):
 
     """
 
-    config = Config()
-
-    patterns = {"validators": config["validators_regex"],
-                "extractors": config["extractors_regex"],
-                "selectors": config["selectors_regex"],
-                "integrators": config["integrators_regex"],
-                "collectors": config["collectors_regex"],
-                "conformers": config["conformers_regex"]}
-
-    types = {"validators": Validator,
-             "extractors": Extractor,
-             "selectors": Selector,
-             "integrators": Conformer,
-             "collectors": Selector,
-             "conformers": Conformer}
-
-    if type is not None and type not in patterns:
-        raise ValueError("Type not recognised: %s" % type)
-
     # Include plug-ins from registration
     discovered_plugins = pyblish._registered_plugins.copy()
 
     # Include plug-ins from registered paths
-    types_to_check = [type] if type is not None else patterns.keys()
     for path in paths or plugin_paths():
         path = os.path.normpath(path)
         if not os.path.isdir(path):
@@ -870,10 +850,6 @@ def discover(type=None, regex=None, paths=None):
 
         for fname in os.listdir(path):
             abspath = os.path.join(path, fname)
-
-            if not any(re.match(patterns[type], fname)
-                       for type in types_to_check):
-                continue
 
             if not os.path.isfile(abspath):
                 continue
@@ -924,9 +900,6 @@ def discover(type=None, regex=None, paths=None):
 
         if plugin in plugins:
             log.debug("Duplicate plugin found: %s", plugin)
-            continue
-
-        if not any(issubclass(plugin, types[type]) for type in types_to_check):
             continue
 
         if regex is None or re.match(regex, name):
