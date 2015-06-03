@@ -159,9 +159,11 @@ def test_inmemory_plugins():
     pyblish.api.register_plugin(InMemoryPlugin)
 
     context = pyblish.api.Context()
-    for plugin in pyblish.api.discover():
-        assert plugin is InMemoryPlugin
-        pyblish.plugin.process(plugin, context)
+    for result in pyblish.logic.process(
+            func=pyblish.plugin.process,
+            plugins=pyblish.api.discover,
+            context=context):
+        assert_is(result["plugin"], InMemoryPlugin)
 
     assert context.data("workingFine") is True
 

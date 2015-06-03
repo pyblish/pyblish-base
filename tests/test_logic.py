@@ -179,3 +179,40 @@ def test_context_no_instance():
         pass
 
     assert_equals(count["#"], 1)
+
+
+def test_custom_test():
+    """Registering a custom test works fine"""
+
+
+def test_logic_process():
+    """logic.process works fine"""
+    
+    context = pyblish.api.Context()
+    provider = pyblish.plugin.Provider()
+    provider.inject("context", context)
+
+    def my_process(plugin, provider):
+      result = {
+        "success": False,
+        "plugin": plugin,
+        "instance": None,
+        "error": None,
+        "records": list(),
+        "duration": None
+      }
+      plugin = plugin()
+      provider.invoke(plugin.process)
+      return result
+    
+    class SelectInstance(pyblish.api.Selector):
+      def process(self, context):
+        context.create_instance("MyInstance")
+    
+    for result in pyblish.logic.process(
+            plugins=[SelectInstance],
+            func=my_process,
+            context=context):
+        assert not isinstance(result, pyblish.logic.TestFailed), result
+    
+    assert_equals(len(context), 1)

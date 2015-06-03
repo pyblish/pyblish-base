@@ -146,17 +146,29 @@ def test_process():
     assert _disk[0] == "secret"
 
 
-@raises(ValueError)
 @with_setup(setup_wildcard, teardown)
 def test_wildcard_plugins():
     """Wildcard plugins process instances without family"""
     context = pyblish.plugin.Context()
 
-    for type in ('selectors', 'validators'):
-        for plugin in pyblish.plugin.discover(type=type):
-            for instance, error in pyblish.plugin.process(plugin, context):
-                if error:
-                    raise error
+    plugin = pyblish.plugin.discover(type="selectors")[0]
+    iterator = pyblish.logic.process(
+        func=pyblish.plugin.process,
+        plugins=[plugin],
+        context=context)
+
+    result = next(iterator)
+    assert_equals(result["plugin"], plugin)
+    assert_equals(next(iterator, None), None)
+
+    plugin = pyblish.plugin.discover(type="validators")[0]
+    iterator = pyblish.logic.process(
+        func=pyblish.plugin.process,
+        plugins=[plugin],
+        context=context)
+
+    result = next(iterator)
+    assert_true(isinstance(result["error"], Exception))
 
 
 @with_setup(setup_empty, teardown)
@@ -231,21 +243,24 @@ def test_failing_context_processing():
     assert_true(value["a"])
 
 
-@raises(ValueError)
 @with_setup(setup_failing, teardown)
 def test_process_context_error():
     """Processing context raises an exception"""
 
     context = pyblish.plugin.Context()
 
-    selectors = pyblish.plugin.discover(
-        'selectors', regex='^SelectInstancesError$')
+    selector = pyblish.plugin.discover(
+        'selectors', regex='^SelectInstancesError$')[0]
 
-    for selector in selectors:
-        pyblish.util.process_all(selector, context)
+    iterator = pyblish.logic.process(
+        func=pyblish.plugin.process,
+        plugins=[selector],
+        context=context)
 
+    result = next(iterator)
+    assert_equals(result["plugin"], selector)
+    assert_true(isinstance(result["error"], Exception))
 
-@raises(ValueError)
 @with_setup(setup_failing, teardown)
 def test_extraction_failure():
     """Extraction fails ok
@@ -271,31 +286,13 @@ def test_extraction_failure():
 
     print extractor
     assert extractor.__name__ == "ExtractInstancesFail"
-    pyblish.util.process_all(extractor, context)
+    for result in pyblish.logic.process(
+            func=pyblish.plugin.process,
+            plugins=[extractor],
+            context=context):
 
-
-@raises(ValueError)
-@with_setup(setup_failing, teardown)
-def test_validation_failure():
-    """Validation throws exception upon failure"""
-
-    context = pyblish.plugin.Context()
-
-    # Manually create instance and nodes, bypassing selection
-    instance = context.create_instance(name='test_instance')
-
-    instance.add('test_PLY')
-    instance.add('test_misnamed')
-
-    instance.set_data(lib.config['identifier'], value=True)
-    instance.set_data('family', value=FAMILY)
-
-    context.add(instance)
-
-    validator = pyblish.plugin.discover(
-        type='validators', regex='^ValidateInstanceFail$')[0]
-
-    pyblish.util.process_all(validator, context)
+        if result["error"] is not None:
+            assert_true(isinstance(result["error"], Exception))
 
 
 @with_setup(setup, teardown)
@@ -394,7 +391,11 @@ def test_failing_validator():
     instance = context.create_instance("MyInstance")
     instance.set_data("family", "test")
 
-    result = pyblish.plugin.process(ValidateFailure, context, instance)
+    iterator = pyblish.logic.process(
+        func=pyblish.plugin.process,
+        plugins=[ValidateFailure],
+        context=context)
+    result = next(iterator)
     error = result["error"]
     assert_equal(error.message, "instance failed")
     assert_true(hasattr(error, "traceback"))

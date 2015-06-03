@@ -32,17 +32,16 @@ from .vendor import iscompatible
 log = logging.getLogger("pyblish.plugin")
 
 
-class Provider(object):
+class Provider(dict):
     """Dependency provider"""
 
-    def __init__(self):
-        self._services = dict()
+    @property
+    def registered(self):
+        return pyblish._registered_services.copy()
 
     @property
-    def services(self):
-        s = pyblish._registered_services.copy()
-        s.update(self._services)
-        return s
+    def injected(self):
+        return self
 
     @classmethod
     def args(cls, func):
@@ -60,18 +59,21 @@ class Provider(object):
 
         """
 
-        services = self.services
 
-        if not all(arg in services.keys() for arg in self.args(func)):
-            raise KeyError("Unavailable service requested.")
+        args = self.args(func)
+        services = dict(self.registered, **self.injected)
+        unavailable = [a for a in args if a not in services]
 
-        inject = dict((k, v) for k, v in self.services.items()
-                      if k in self.args(func))
+        if unavailable:
+            raise KeyError("Unavailable service requested: %s" % unavailable)
+
+        inject = dict((k, v) for k, v in services.items()
+                      if k in args)
 
         return func(**inject)
 
     def inject(self, name, obj):
-        self._services[name] = obj
+        self[name] = obj
 
 
 class Config(dict):
@@ -286,7 +288,7 @@ Collector = Selector
 Integrator = Conformer
 
 
-def process(plugin, context, instance=None):
+def process(plugin, provider):
     """Produce a single result from a Plug-in
 
     Returns:
@@ -296,8 +298,8 @@ def process(plugin, context, instance=None):
 
     import time
 
-    if "results" not in context.data():
-        context.set_data("results", list())
+    context = provider.get("context")
+    instance = provider.get("instance")
 
     result = {
         "success": False,
@@ -309,10 +311,6 @@ def process(plugin, context, instance=None):
     }
 
     plugin = plugin()
-
-    provider = pyblish.plugin.Provider()
-    provider.inject("context", context)
-    provider.inject("instance", instance)
 
     records = list()
     handler = pyblish.lib.MessageHandler(records)
@@ -339,15 +337,22 @@ def process(plugin, context, instance=None):
 
     result["duration"] = (__end - __start) * 1000  # ms
 
+    if "results" not in context.data():
+        context.set_data("results", list())
+
     context.data("results").append(result)
 
     return result
 
 
-def repair(plugin, context, instance=None):
+
+def repair(plugin, provider):
     """Produce single result from repairing"""
 
     import time
+
+    context = provider.get("context")
+    instance = provider.get("instance")
 
     if "results" not in context.data():
         context.set_data("results", list())
@@ -362,10 +367,6 @@ def repair(plugin, context, instance=None):
     }
 
     plugin = plugin()
-
-    provider = pyblish.plugin.Provider()
-    provider.inject("context", context)
-    provider.inject("instance", instance)
 
     records = list()
     handler = pyblish.lib.MessageHandler(records)

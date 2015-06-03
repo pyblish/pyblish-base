@@ -28,15 +28,10 @@ def test_di():
             assert instance.data("family") == "myFamily", "Wrong family"
 
     class ExtractInstanceX(pyblish.api.Extractor):
-        def __init__(self):
-            super(ExtractInstanceX, self).__init__()
-            self.instance_count = 0
-
         def process(self, context, instance, user, time):
-            self.instance_count += 1
             self.log.warning("Filling up disk..")
-            _disk[instance.name] = "%s - %s: %s (%s)" % (
-                time(), user(), instance.data("value"), self.instance_count)
+            _disk[instance.name] = "%s - %s: %s" % (
+                time(), user(), instance.data("value"))
 
     for plugin in (SelectInstance, ValidateInstance, ExtractInstanceX):
         pyblish.api.register_plugin(plugin)
@@ -47,7 +42,7 @@ def test_di():
             func=pyblish.plugin.process,
             plugins=pyblish.api.discover(),
             context=context):
-        assert not result["error"]
+        assert result["error"] is None, result["error"]
 
     assert "MyInstanceB" in _disk
 

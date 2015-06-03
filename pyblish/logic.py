@@ -5,7 +5,6 @@ import inspect
 import traceback
 
 import pyblish
-from plugin import Provider
 
 
 class TestFailed(Exception):
@@ -22,10 +21,16 @@ def default_test(**vars):
     a plug-in is about to be processed with information about
     the upcoming plug-in.
 
+    Returning any value means failure, whereas 0, False and None
+    represents success. Similar to return/exit codes. You can provide
+    a message along with a failure, such as specifying why the test
+    failed. The message can then be used by process handlers,
+    such as a GUI.
+
     You can provide your own test by registering it, see example below.
 
-    Variables:
-        order (int): Order of next plugin
+    Contents of `vars`:
+        nextOrder (int): Order of next plugin
         ordersWithError (list): Orders at which an error has occured
 
     """
@@ -33,8 +38,8 @@ def default_test(**vars):
     if vars["nextOrder"] >= 2:  # If validation is done
         for order in vars["ordersWithError"]:
             if order < 2:  # Were there any error before validation?
-                return False
-    return True
+                return "failed validation"
+    return
 
 
 def process(func, plugins, context, test=None):
@@ -71,41 +76,6 @@ def process(func, plugins, context, test=None):
         considered a bug in *your* code as you are the one
         supplying it.
 
-    Example:
-        >>> import pyblish.api
-        >>> import pyblish.plugin
-        >>>
-        >>> context = pyblish.api.Context()
-        >>> provider = pyblish.plugin.Provider()
-        >>>
-        >>> def my_process(plugin, context, instance=None):
-        ...   result = {
-        ...     "success": False,
-        ...     "plugin": plugin,
-        ...     "instance": instance,
-        ...     "error": None,
-        ...     "records": list(),
-        ...     "duration": None
-        ...   }
-        ...   plugin = plugin()
-        ...   provider.inject("context", context)
-        ...   provider.inject("instance", instance)
-        ...   provider.invoke(plugin.process)
-        ...   return result
-        ...
-        >>> class SelectInstance(pyblish.api.Selector):
-        ...   def process(self, context):
-        ...     context.create_instance("MyInstance")
-        ...
-        >>> for result in process(
-        ...         plugins=[SelectInstance],
-        ...         func=my_process,
-        ...         context=context):
-        ...     assert not isinstance(result, TestFailed)
-        ...
-        >>> len(context) == 1
-        True
-
     """
 
     __plugins = plugins
@@ -140,7 +110,7 @@ def process(func, plugins, context, test=None):
         self.next_plugin = plugin
         vars["nextOrder"] = plugin.order
 
-        if test(**vars):
+        if not test(**vars):
             if hasattr(__context, "__call__"):
                 context = __context()
 
@@ -153,13 +123,18 @@ def process(func, plugins, context, test=None):
                 # Provide introspection
                 self.next_instance = instance
 
+                provider = pyblish.plugin.Provider()
+                provider.inject("context", context)
+                provider.inject("instance", instance)
+
                 try:
-                    result = func(plugin, context, instance)
+                    result = func(plugin, provider)
 
                 except Exception:
                     # If this happens, there is a bug
                     traceback.print_exc()
-                    assert False
+                    trace = traceback.format_exc()
+                    assert False, trace
 
                 else:
                     # Make note of the order at which
@@ -173,7 +148,7 @@ def process(func, plugins, context, test=None):
             self.next_instance = None
 
         else:
-            yield TestFailed("Test failed", vars)
+            yield TestFailed(test(**vars), vars)
             break
 
 
@@ -301,9 +276,6 @@ def instances_by_plugin(instances, plugin):
     compatible = list()
 
     for instance in instances:
-        if not hasattr(plugin, "families"):
-            continue
-
         family = instance.data("family")
         if any(x in plugin.families for x in (family, "*")):
             compatible.append(instance)

@@ -71,23 +71,6 @@ def publish(context=None, plugins=None, **kwargs):
     return context
 
 
-def process_all(plugin, context):
-    """Convenience method of the above :func:`process`
-
-    Arguments:
-        plugin (Plugin): Plug-in to process
-        context (Context): Context to process
-
-    Return:
-        None
-
-    """
-
-    for instance, error in pyblish.plugin.process(plugin, context):
-        if error is not None:
-            raise error
-
-
 def select(*args, **kwargs):
     """Convenience function for selection"""
     return _convenience(1, *args, **kwargs)
