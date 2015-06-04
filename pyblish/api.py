@@ -22,6 +22,7 @@ import pyblish
 from .plugin import (
     Context,
     Instance,
+    Asset,
     Plugin,
     Selector,
     Validator,
@@ -109,6 +110,7 @@ __all__ = [
     # Base objects
     "Context",
     "Instance",
+    "Asset",
 
     "Plugin",
 
