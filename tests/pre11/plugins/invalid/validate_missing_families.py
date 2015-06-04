@@ -8,4 +8,4 @@ class ValidateMissingFamilies(pyblish.api.Validator):
     """Select instances"""
 
     hosts = ['python']
-    version = (0, 1, 0)
+    version = list()

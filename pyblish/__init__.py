@@ -2,19 +2,15 @@
 
 Attributes:
     config: Currently active instance of configuration.
-    manager: Currently active plug-in manager.
     _registered_paths: Currently registered plug-in paths.
+    _registered_plugins: Currently registered plug-ins.
 
 """
 
 from .version import *
 
 
-config = {}
-manager = None
-
 _registered_paths = list()
-
-
-def is_initialized():
-    return True if config else False
+_registered_plugins = dict()
+_registered_services = dict()
+_registered_test = None

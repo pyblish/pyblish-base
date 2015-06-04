@@ -26,17 +26,12 @@ import logging
 
 import pyblish.api
 import pyblish.lib
+import pyblish.util
 import pyblish.plugin
 import pyblish.version
 
 from pyblish.vendor import yaml
 from pyblish.vendor import click
-
-try:
-    # Used in package control sub-commands
-    import pip
-except ImportError:
-    pip = None
 
 # Current Click context
 _ctx = None
@@ -45,10 +40,10 @@ log = logging.getLogger()
 main_log = pyblish.lib.setup_log(level=logging.ERROR)
 
 # Constants
-CONFIG_PATH = os.path.join(os.getcwd(), 'config.yaml')
-DATA_PATH = os.path.join(os.getcwd(), 'data.yaml')
+CONFIG_PATH = "config.yaml"
+DATA_PATH = "data.yaml"
 
-PATH_TEMPLATE = "{tab}{path} <{typ}>"
+PATH_TEMPLATE = "{path} <{typ}>"
 LOG_TEMPATE = "{tab}<log>: %(message)s"
 
 SCREEN_WIDTH = 80
@@ -73,38 +68,30 @@ Available plugins:
 {plugins}"""
 
 
-def _setup_log(root=''):
+def _setup_log(root="pyblish"):
     log = logging.getLogger(root)
-
-    log.setLevel(logging.WARNING)
-
-    formatter = logging.Formatter(LOG_TEMPATE.format(tab=TAB))
-
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    log.addHandler(stream_handler)
-
+    log.setLevel(logging.INFO)
     return log
 
 
 def _format_paths(paths):
     """Return paths at one new each"""
-    message = ''
+    message = ""
     for path in paths:
-        message += "{0}- {1}\n".format(TAB, path)
+        message += "{0}\n".format(path)
     return message[:-1]  # Discard last newline
 
 
 def _format_plugins(plugins):
-    message = ''
+    message = ""
     for plugin in plugins:
-        message += "{0}- {1}\n".format(TAB, plugin.__name__)
+        message += "{0}\n".format(plugin.__name__)
     return message[:-1]
 
 
 def _format_time(start, finish):
     """Return right-aligned time-taken message"""
-    message = 'Time taken: %.2fs' % (finish - start)
+    message = "Time taken: %.2fs" % (finish - start)
     return message.rjust(SCREEN_WIDTH)
 
 
@@ -161,7 +148,7 @@ add-plugin-path: >
 
 logging-level: >
     Specify with which level to produce logging messages.
-    A value lower than the default 'warning' will produce more
+    A value lower than the default "warning" will produce more
     messages. This can be useful for debugging.
 
 data: >
@@ -193,40 +180,40 @@ configured-paths: >
 
 
 @click.group(invoke_without_command=True)
-@click.option("--verbose", is_flag=True, help=_help['verbose'])
-@click.option("--version", is_flag=True, help=_help['version'])
-@click.option("--paths", is_flag=True, help=_help['paths'])
-@click.option("--plugins", is_flag=True, help=_help['plugins'])
+@click.option("--verbose", is_flag=True, help=_help["verbose"])
+@click.option("--version", is_flag=True, help=_help["version"])
+@click.option("--paths", is_flag=True, help=_help["paths"])
+@click.option("--plugins", is_flag=True, help=_help["plugins"])
 @click.option("--registered-paths", is_flag=True,
-              help=_help['registered-paths'])
+              help=_help["registered-paths"])
 @click.option("--environment-paths", is_flag=True,
-              help=_help['environment-paths'])
+              help=_help["environment-paths"])
 @click.option("--configured-paths", is_flag=True,
-              help=_help['configured-paths'])
+              help=_help["configured-paths"])
 @click.option("-pp",
               "--plugin-path",
               "plugin_paths",
               multiple=True,
-              help=_help['plugin-path'])
+              help=_help["plugin-path"])
 @click.option("-ap",
               "--add-plugin-path",
               "add_plugin_paths",
               multiple=True,
-              help=_help['add-plugin-path'])
+              help=_help["add-plugin-path"])
 @click.option("-c",
               "--config",
               default=None,
-              help=_help['config'])
+              help=_help["config"])
 @click.option("-d",
               "--data",
               nargs=2,
               multiple=True,
-              help=_help['data'])
+              help=_help["data"])
 @click.option("-ll",
               "--logging-level",
               type=click.Choice(LOG_LEVEL.keys()),
               default="error",
-              help=_help['logging-level'])
+              help=_help["logging-level"])
 @click.pass_context
 def main(ctx,
          verbose,
@@ -263,8 +250,6 @@ def main(ctx,
     level = LOG_LEVEL[logging_level]
     logging.getLogger().setLevel(level)
 
-    config_loaded = _load_config()
-
     # Process top-level arguments
     if version:
         click.echo("pyblish version %s" % pyblish.__version__)
@@ -275,6 +260,7 @@ def main(ctx,
 
     # Initialise context with data passed as argument
     context = pyblish.api.Context()
+    ctx.obj["context"] = context
 
     for key, value in data:
         try:
@@ -282,28 +268,23 @@ def main(ctx,
         except Exception as err:
             log.error("Error: Data must be YAML formatted: "
                       "--data %s %s" % (key, value))
-            ctx.obj['error'] = err
+            ctx.obj["error"] = err
         else:
             context.set_data(str(key), yaml_loaded)
 
     # Load user data
     data_loaded = _load_data(context)
+    config_loaded = _load_config()
 
     if not plugin_paths:
         plugin_paths = pyblish.api.plugin_paths()
     plugin_paths += add_plugin_paths
     ctx.obj["plugin_paths"] = plugin_paths
 
-    try:
-        available_plugins = pyblish.api.discover(paths=plugin_paths)
-    except OSError as err:
-        log.error('Error: Registered path "%s" could not '
-                  'be found.' % err.filename)
-        ctx.obj['error'] = err
+    available_plugins = pyblish.api.discover(paths=plugin_paths)
 
     if plugins:
         click.echo()  # newline
-        click.echo("Available plugins:")
         click.echo(_format_plugins(available_plugins))
 
     if verbose:
@@ -318,9 +299,6 @@ def main(ctx,
 
     # Visualise available paths
     if any([paths, environment_paths, registered_paths, configured_paths]):
-        click.echo()  # Newline
-        click.echo("Available paths:")
-
         _paths = list()
 
         if paths:
@@ -331,37 +309,33 @@ def main(ctx,
         for path in plugin_paths:
 
             # Determine the source of each path
-            _typ = 'custom'
+            _typ = "custom"
             if path in pyblish.api.environment_paths():
-                _typ = 'environment'
+                _typ = "environment"
 
             elif path in pyblish.api.registered_paths():
-                _typ = 'registered'
+                _typ = "registered"
 
             elif path in pyblish.api.configured_paths():
-                _typ = 'configured'
+                _typ = "configured"
 
             # Only display queried paths
-            if _typ == 'environment' and not environment_paths:
+            if _typ == "environment" and not environment_paths:
                 continue
 
-            if _typ == 'configured' and not configured_paths:
+            if _typ == "configured" and not configured_paths:
                 continue
 
-            if _typ == 'registered' and not registered_paths:
+            if _typ == "registered" and not registered_paths:
                 continue
 
             click.echo(PATH_TEMPLATE.format(
-                tab=TAB, path=path, typ=_typ))
+                path=path, typ=_typ))
             _paths.append(path)
 
-        if not _paths:
-            click.echo("{tab}None".format(tab=TAB))
-
     # Pass data to sub-commands
-    ctx.obj['verbose'] = verbose
-    ctx.obj['context'] = context
-    ctx.obj['plugin_paths'] = plugin_paths
+    ctx.obj["verbose"] = verbose
+    ctx.obj["plugin_paths"] = plugin_paths
 
 
 _help = yaml.load("""
@@ -386,12 +360,12 @@ delay: >
               "--instance",
               "instances",
               multiple=True,
-              help=_help['instance'])
+              help=_help["instance"])
 @click.option("-de",
               "--delay",
               default=None,
               type=float,
-              help=_help['delay'])
+              help=_help["delay"])
 @click.pass_context
 def publish(ctx,
             path,
@@ -412,65 +386,28 @@ def publish(ctx,
 
     """
 
-    # sys.exit(1)
-
-    if 'error' in ctx.obj:
-        # Halt execution if an error has occured in main()
-        click.echo("publish: An error has occured.")
-        sys.exit(1)
-
-    _start_time = time.time()  # Benchmark
-
-    # Resolve incoming path argument into an absolute path
-    path = os.path.abspath(path)
-
-    if not os.path.exists(path):
-        click.echo("Path did not exist: %s" % path)
-        sys.exit(1)
+    _start = time.time()  # Benchmark
 
     # Use `path` argument as initial data for context
-    context = ctx.obj['context']
+    context = ctx.obj["context"]
 
     if os.path.isdir(path):
-        context.set_data('current_dir', path)
+        context.set_data("current_dir", path)
     else:
-        context.set_data('current_file', path)
+        context.set_data("current_file", path)
 
     # Begin processing
     click.echo()  # newline
-    for typ in ('selectors',
-                'validators',
-                'extractors',
-                'conformers'):
 
-        paths = ctx.obj['plugin_paths']
-        plugins = pyblish.api.discover(typ, paths=paths)
-        errors = {}
+    plugins = pyblish.api.discover(paths=ctx.obj["plugin_paths"])
+    pyblish.util.publish(context=context,
+                         plugins=plugins)
 
-        for plugin in plugins:
-            click.echo("%s..." % plugin.__name__)
-
-            if delay:
-                time.sleep(delay)
-
-            for instance, error in plugin().process(context):
-                if error is not None:
-                    errors[error] = instance
-
-            if errors and plugin.order >= 2:
-                # Before proceeding with extraction, ensure
-                # that there are no failed validators.
-                click.echo()  # newline
-                click.echo("There were errors:")
-                for error, instance in errors.iteritems():
-                    item = instance or "Context"
-                    click.echo("{tab}%s: %s".format(tab=TAB)
-                               % (item, error))
-                sys.exit(1)
+    _end = time.time()
 
     click.echo()
     click.echo("-" * 80)
-    click.echo(_format_time(_start_time, time.time()))
+    click.echo(_format_time(_start, _end))
 
 
 @click.command()
@@ -489,7 +426,7 @@ def config(ctx):
         date_format = %Y%m%d_%H%M%S
         extractors_regex = ^extract_.*\.py$
         identifier = publishable
-        paths = ['{pyblish}/plugins']
+        paths = ["{pyblish}/plugins"]
         paths_environment_variable = PYBLISHPLUGINPATH
         prefix = published
         publish_by_default = True

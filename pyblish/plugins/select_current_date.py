@@ -1,6 +1,6 @@
 
-import time
 import pyblish.api
+import pyblish.lib
 
 
 @pyblish.api.log
@@ -10,7 +10,7 @@ class SelectCurrentDate(pyblish.api.Selector):
     hosts = ['*']
     version = (0, 1, 0)
 
-    def process_context(self, context):
+    def process(self, context):
         """Formatting is coming from configuration"""
-        date = time.strftime(pyblish.api.config['date_format'])
+        date = pyblish.lib.time()
         context.set_data('date', value=date)

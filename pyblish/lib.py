@@ -2,10 +2,87 @@ import os
 import re
 import sys
 import logging
+import datetime
+import traceback
 
 _filename_ascii_strip_re = re.compile(r'[^-\w.]')
 _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
+
+
+class MessageHandler(logging.Handler):
+    def __init__(self, records, *args, **kwargs):
+        # Not using super(), for compatibility with Python 2.6
+        logging.Handler.__init__(self, *args, **kwargs)
+        self.records = records
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def extract_traceback(exception):
+    try:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        exception.traceback = traceback.extract_tb(exc_traceback)[-1]
+
+    except:
+        pass
+
+    finally:
+        del(exc_type, exc_value, exc_traceback)
+
+
+def time():
+    return datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+class ItemList(list):
+    """List with keys
+
+    Raises:
+        KeyError is item is not in list
+
+    Example:
+        >>> Obj = type("Object", (object,), {})
+        >>> obj = Obj()
+        >>> obj.name = "Test"
+        >>> l = ItemList(key="name")
+        >>> l.append(obj)
+        >>> l[0] == obj
+        True
+        >>> l["Test"] == obj
+        True
+        >>> try:
+        ...   l["NotInList"]
+        ... except KeyError:
+        ...   print True
+        True
+        >>> obj == l.get("Test")
+        True
+        >>> l.get("NotInList") == None
+        True
+
+    """
+
+    def __init__(self, key, object=list()):
+        super(ItemList, self).__init__(object)
+        self.key = key
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return super(ItemList, self).__getitem__(index)
+
+        for item in self:
+            if getattr(item, self.key) == index:
+                return item
+
+        raise KeyError("%s not in list" % index)
+
+    def get(self, key, default=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            return default
 
 
 class classproperty(object):
@@ -46,6 +123,13 @@ def log(cls):
 
 def parse_environment_paths(paths):
     """Given a (semi-)colon separated string of paths, return a list
+
+    Example:
+        >>> import os
+        >>> parse_environment_paths("path1" + os.pathsep + "path2")
+        ['path1', 'path2']
+        >>> parse_environment_paths("path1" + os.pathsep)
+        ['path1', '']
 
     Arguments:
         paths (str): Colon or semi-colon (depending on platform)
@@ -99,12 +183,12 @@ def format_filename(filename):
 def format_filename2(filename):
     """Convert arbitrary string to valid filename, werkzeug-style.
 
-    Modifier from werkzeug.utils.secure_filename()
+    Modified from werkzeug.utils.secure_filename()
 
     Pass it a filename and it will return a secure version of it.  This
     filename can then safely be stored on a regular file system and passed
-    to :func:`os.path.join`.  The filename returned is an ASCII only string
-    for maximum portability.secure_fil
+    to :func:`os.path.join`. The filename returned is an ASCII only string
+    for maximum portability.
 
     On windows system the function also makes sure that the file is not
     named after one of the special device files.
@@ -149,6 +233,16 @@ def format_filename2(filename):
 
 
 def get_formatter():
+    """Return a default Pyblish formatter for logging
+
+    Example:
+        >>> import logging
+        >>> log = logging.getLogger("myLogger")
+        >>> handler = logging.StreamHandler()
+        >>> handler.setFormatter(get_formatter())
+
+    """
+
     formatter = logging.Formatter(
         '%(asctime)s - '
         '%(levelname)s - '
@@ -159,17 +253,24 @@ def get_formatter():
 
 
 def setup_log(root='pyblish', level=logging.DEBUG):
-    log = logging.getLogger(root)
+    """Setup a default logger for Pyblish
 
-    if log.handlers:
-        return log.handlers[0]
+    Example:
+        >>> log = setup_log()
+        >>> log.info("Hello, World")
+
+    """
+
+    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    log = logging.getLogger(root)
+    log.propagate = True
+    log.handlers[:] = []
+    log.addHandler(handler)
 
     log.setLevel(level)
-
-    formatter = get_formatter()
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    log.addHandler(stream_handler)
 
     return log
 
@@ -215,35 +316,3 @@ def import_module(name, package=None):
     __import__(name)
 
     return sys.modules[name]
-
-
-def where(program):
-    r"""Parse PATH for executables
-
-    Windows note:
-        PATHEXT yields possible suffixes, such as .exe, .bat and .cmd
-
-    Usage:
-        >> where("python")
-        'c:\\python27\\python.exe'
-
-    """
-
-    suffixes = [""]
-
-    try:
-        # Append Windows suffixes, such as .exe, .bat and .cmd
-        suffixes.extend(os.environ.get("PATHEXT").split(os.pathsep))
-    except:
-        pass
-
-    for path in os.environ["PATH"].split(os.pathsep):
-
-        # A path may be empty.
-        if not path:
-            continue
-
-        for suffix in suffixes:
-            full_path = os.path.join(path, program + suffix)
-            if os.path.isfile(full_path):
-                return full_path

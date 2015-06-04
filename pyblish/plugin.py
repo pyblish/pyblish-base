@@ -17,10 +17,8 @@ Attributes:
 import os
 import re
 import sys
-import shutil
 import logging
 import inspect
-import traceback
 
 # Local library
 import pyblish
@@ -31,83 +29,115 @@ from .vendor import yaml
 from .vendor import iscompatible
 
 
-__all__ = ["Plugin",
-           "Selector",
-           "Validator",
-           "Extractor",
-           "Conformer",
-           "Context",
-           "Instance",
-           "discover",
-           "plugin_paths",
-           "registered_paths",
-           "environment_paths",
-           "configured_paths",
-           "register_plugin_path",
-           "deregister_plugin_path",
-           "deregister_all"]
-
-
 log = logging.getLogger("pyblish.plugin")
 
 
+class Provider(object):
+    """Dependency provider"""
+
+    def __init__(self):
+        self._services = dict()
+
+    def get(self, service):
+        return self.services.get(service)
+
+    @property
+    def services(self):
+        services = pyblish._registered_services.copy()
+        services.update(self._services)
+
+        # Forwards-compatibility alias
+        services["asset"] = services["instance"]
+
+        return services
+
+    @classmethod
+    def args(cls, func):
+        return [a for a in inspect.getargspec(func)[0]
+                if a not in ("self", "cls")]
+
+    def invoke(self, func):
+        """Supply function `func` with objects to its signature
+
+        Raises:
+            KeyError if an argument asked for is not available
+
+        Returns:
+            Result of `func`
+
+        """
+
+        args = self.args(func)
+        unavailable = [a for a in args if a not in self.services]
+
+        if unavailable:
+            raise KeyError("Unavailable service requested: %s" % unavailable)
+
+        inject = dict((k, v) for k, v in self.services.items()
+                      if k in args)
+
+        return func(**inject)
+
+    def inject(self, name, obj):
+        self._services[name] = obj
+
+
 class Config(dict):
-    """Wrapper for default-, user- and custom-configuration
+    """Wrapper for Pyblish configuration file.
 
     .. note:: Config is a singleton.
 
     Attributes:
-        DEFAULTCONFIG: Name of default configuration file
-        PACKAGEDIR: Absolute path to parent package of Config
-        DEFAULTCONFIGPATH: Absolute path to default configuration file
-
-        default: Access to default configuration
+        CONFIGPATH: Path to configuration, overridable
+            via environment variable PYBLISHCONFIGPATH.
 
     Usage:
         >>> config = Config()
         >>> for key, value in config.iteritems():
         ...     assert key in config
+        >>> assert Config() is Config()
 
     """
 
     _instance = None
 
-    HOMEDIR = os.path.expanduser("~")
-    PACKAGEDIR = os.path.dirname(__file__)
-    DEFAULTCONFIG = "config.yaml"
-    DEFAULTCONFIGPATH = os.path.join(PACKAGEDIR, DEFAULTCONFIG)
+    CONFIGPATH = (os.environ.get("PYBLISHCONFIGPATH") or
+                  os.path.join(os.path.dirname(__file__), "config.yaml"))
 
     log = logging.getLogger("pyblish.Config")
-
-    default = dict()  # Default configuration data
 
     def __new__(cls, *args, **kwargs):
         """Make Config into a singleton"""
         if cls._instance is None:
             cls._instance = super(Config, cls).__new__(
                 cls, *args, **kwargs)
+            cls._instance.reset()
         return cls._instance
-
-    def __init__(self):
-        """Read all configuration upon instantiation"""
-        self.reset()
 
     def reset(self):
         """Remove all configuration and re-read from disk"""
         self.clear()
         self.load()
 
+        # Deprecated and undocumented variables
+        self.update({
+            "validators_regex": "^validate_.*\.py$",
+            "extractors_regex": "^extract_.*\.py$",
+            "selectors_regex": "^select_.*\.py$",
+            "conformers_regex": "^conform_.*\.py$",
+            "collectors_regex": "^collect_.*\.py$",
+            "integrators_regex": "^integrate_.*\.py$",
+            "commit_template": "{prefix}/{date}/{family}/{instance}",
+            "publish_by_default": True,
+            "prefix": "published",
+            "identifier": "publishable"
+        })
+
+
     def load(self):
         """Load default configuration from package dir"""
-        path = self.DEFAULTCONFIGPATH
-        data = {"DEFAULTCONFIG": self.DEFAULTCONFIG,
-                "DEFAULTCONFIGPATH": self.DEFAULTCONFIGPATH}
-
-        with open(path, "r") as f:
+        with open(self.CONFIGPATH, "r") as f:
             loaded_data = yaml.load(f)
-
-        if data is not None:
-            loaded_data.update(data)
 
         for key, value in loaded_data.iteritems():
             self[key] = value
@@ -115,14 +145,66 @@ class Config(dict):
         return True
 
 
+class MetaPlugin(type):
+    """Rewrite plug-ins written prior to 1.1
+
+    ..warning:: In case of plug-ins written prior to 1.1,
+        that also process both instance and context,
+        only the instance process will remain available.
+
+    """
+
+    def __init__(cls, *args, **kwargs):
+        cls.__pre11__ = False
+        cls.__contextEnabled__ = False
+        cls.__instanceEnabled__ = False
+
+        if hasattr(cls, "process_context"):
+            cls.__pre11__ = True
+            cls.process = cls.process_context
+            del(cls.process_context)
+
+        if hasattr(cls, "process_instance"):
+            cls.__pre11__ = True
+            cls.process = cls.process_instance
+            del(cls.process_instance)
+
+        # Repair is deprecated
+        if hasattr(cls, "repair_context"):
+            cls.__pre11__ = True
+            cls.repair = cls.repair_context
+            del(cls.repair_context)
+
+        if hasattr(cls, "repair_instance"):
+            cls.__pre11__ = True
+            cls.repair = cls.repair_instance
+            del(cls.repair_instance)
+
+        args_ = inspect.getargspec(cls.process).args
+
+        if "instance" in args_:
+            cls.__instanceEnabled__ = True
+
+        if "context" in args_:
+            cls.__contextEnabled__ = True
+
+        # Forwards-compatibility with asset
+        if "asset" in args_:
+            cls.__instanceEnabled__ = True
+    
+        return super(MetaPlugin, cls).__init__(*args, **kwargs)
+
+
 @pyblish.lib.log
 class Plugin(object):
-    """Abstract base-class for plugins
+    """Base-class for plugins
 
     Attributes:
-        hosts: Mandatory specifier for which host application
-            this plug-in is compatible with.
-        version: Mandatory version for forwards-compatibility.
+        hosts: Optionally limit a plug-in to one or more hosts
+        families: Optionally limit a plug-in to one or more families
+        label: Printed name of plug-in
+        active: Whether or not to use plug-in during processing
+        version: Optional version for forwards-compatibility.
             Pyblish is (currently not) using the version to allow
             for plug-ins incompatible with a particular running
             instance of Pyblish to co-exist alongside compatible
@@ -140,14 +222,19 @@ class Plugin(object):
             was first introduced.
     """
 
-    hosts = list()       # Hosts compatible with plugin
-    version = (0, 0, 0)  # Current version of plugin
-    order = None
+    __metaclass__ = MetaPlugin
+
+    hosts = ["*"]
+    families = ["*"]
+    label = None
+    active = True
+    version = (0, 0, 0)
+    order = -1
     optional = False
     requires = "pyblish>=1"
 
     def __str__(self):
-        return type(self).__name__
+        return self.label or type(self).__name__
 
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
@@ -156,166 +243,30 @@ class Plugin(object):
     def id(cls):
         return cls.__name__
 
-    def process(self, context, instances=None):
-        """Perform processing upon context `context`
+    def process(self):
+        """Primary processing method
 
-        Arguments:
-            context (Context): Context to process
-            instances (list, optional): Names of instances to process,
-                names not in list will not be processed.
+        This method is called whenever your plug-in is invoked
+        and is injected with object relative to it's signature.
 
-        .. note:: If an instance contains the data "publish" and that data is
-            `False` the instance will not be processed.
+        E.g. process(self, context, instance) will have the current
+        context and instance injected into it at run-time.
 
-        Injected data during processing:
-        - `__is_processed__`: Whether or not the instance was processed
-        - `__processed_by__`: Plugins which processed the given instance
-
-        Returns:
-            :meth:`process` returns a generator with (instance, error), with
-                error defaulted to `None`. Each error is injected with a
-                stack-trace of what went wrong, accessible via error.traceback.
-
-        Yields:
-            Tuple (Instance, Exception)
-
-        """
-
-        try:
-            self.process_context(context)
-
-        except Exception as err:
-            try:
-                _, _, exc_tb = sys.exc_info()
-                err.traceback = traceback.extract_tb(
-                    exc_tb)[-1]
-            except:
-                pass
-
-            yield None, err
-
-        finally:
-            compatible_instances = instances_by_plugin(
-                instances=context, plugin=self)
-
-            if compatible_instances:
-                for instance in compatible_instances:
-                    # Limit instances to those specified in `instances`
-                    if instances is not None and \
-                            instance.name not in instances:
-                        self.log.debug("Skipping %s, "
-                                       "not included in "
-                                       "exclusive list (%s)" % (instance,
-                                                                instances))
-                        continue
-
-                    if instance.has_data("publish"):
-                        if instance.data("publish", default=True) is False:
-                            self.log.debug("Skipping %s, "
-                                           "publish-flag was false" % instance)
-                            continue
-
-                    elif not pyblish.config["publish_by_default"]:
-                        self.log.debug("Skipping %s, "
-                                       "no publish-flag was "
-                                       "set, and publishing "
-                                       "by default is False" % instance)
-                        continue
-
-                    self.log.info("Processing instance: \"%s\"" % instance)
-
-                    # Inject data
-                    processed_by = instance.data("__processed_by__") or list()
-                    processed_by.append(type(self))
-                    instance.set_data("__processed_by__", processed_by)
-                    instance.set_data("__is_processed__", True)
-
-                    try:
-                        self.process_instance(instance)
-                        err = None
-
-                    except Exception as err:
-                        try:
-                            _, _, exc_tb = sys.exc_info()
-                            err.traceback = traceback.extract_tb(
-                                exc_tb)[-1]
-                        except:
-                            pass
-
-                    finally:
-                        yield instance, err
-
-    def process_context(self, context):
-        """Process `context`
-
-        Implement this method in your subclasses whenever you need
-        to process the full context. The principal difference here
-        is that only one return value is required, exceptions are
-        handled gracefully by :meth:`process` above.
-
-        Returns:
-            None
+        Available objects:
+            - context
+            - instance
+            - user
+            - time
 
         Raises:
             Any error
 
         """
 
-    def process_instance(self, instance):
-        """Process individual, compatible instances
+        pass
 
-        Implement this method in your subclasses to handle processing
-        of compatible instances. It is run once per instance and
-        distinguishes between instances compatible with the plugin's
-        family and host automatically.
-
-        Returns:
-            None
-
-        Raises:
-            Any error
-
-        """
-
-    def repair_instance(self, instance):
-        """Repair given `instance`
-
-        Implement this method in your subclasses in order for
-        the given instance to be repaired.
-
-        Returns:
-            None
-
-        Raises:
-            Any error
-
-        """
-
-    def repair_context(self, context):
-        """Repair given `context`
-
-        Implement this method in your subclasses in order for
-        the context to be repaired.
-
-        Returns:
-            None
-
-        Raises:
-            Any error
-
-        """
-
-    def process_all(self, context):
-        """Convenience method of the above :meth:`process`
-
-        Return:
-            None
-
-        """
-
-        for instance, error in self.process(context):
-            if error is not None:
-                raise error
+    def repair(self):
+        pass
 
 
 class Selector(Plugin):
@@ -325,142 +276,138 @@ class Selector(Plugin):
 
 
 class Validator(Plugin):
-    """Validate/check/test individual instance for correctness.
+    """Validate/check/test individual instance for correctness."""
 
-    Raises exception upon failure.
-
-    Attributes:
-        families: Supported families.
-
-    """
-
-    families = list()
     order = 1
 
 
 class Extractor(Plugin):
-    """Physically separate Instance from Host into corresponding resources
+    """Physically separate Instance from Host into corresponding resources"""
 
-    By convention, an extractor always positions files relative the
-    current working file. Use the convenience :meth:`commit` to maintain
-    this convention.
-
-    Attributes:
-        families: Supported families.
-
-    """
-
-    families = list()
     order = 2
-
-    def compute_commit_directory(self, instance):
-        """Return commit directory for `instance`
-
-        The commit directory is derived from a template, located within
-        the configuration. The following variables are substituted at
-        run-time:
-
-        - pyblish: With absolute path to pyblish package directory
-        - prefix: With Config["prefix"]
-        - date: With date embedded into `instance`
-        - family: With instance embedded into `instance`
-        - instance: Name of `instance`
-        - user: Currently logged on user, as derived from `instance`
-
-        Arguments:
-            instance (Instance): Instance for which to compute a directory
-
-        Returns:
-            Absolute path to directory as string
-
-        Raises:
-            ExtractorError: When data is missing from `instance`
-
-        """
-
-        workspace_dir = instance.context.data("workspace_dir")
-        if not workspace_dir:
-            # Project has not been set. Files will
-            # instead end up next to the working file.
-            current_file = instance.context.data("current_file")
-            workspace_dir = os.path.dirname(current_file)
-
-        date = instance.context.data("date")
-
-        # This is assumed from default plugins
-        assert date
-
-        if not workspace_dir:
-            raise pyblish.error.ExtractorError(
-                "Could not determine commit directory. "
-                "Instance MUST supply either \"current_file\" or "
-                "\"workspace_dir\" as data prior to commit")
-
-        # Remove invalid characters from output name
-        name = instance.data("name")
-        valid_name = pyblish.lib.format_filename(name)
-        if name != valid_name:
-            self.log.info("Formatting instance name: "
-                          "\"%s\" -> \"%s\""
-                          % (name, valid_name))
-            name = valid_name
-
-        variables = {"pyblish": pyblish.lib.main_package_path(),
-                     "prefix": pyblish.config["prefix"],
-                     "date": date,
-                     "family": instance.data("family"),
-                     "instance": name,
-                     "user": instance.data("user")}
-
-        # Restore separators to those native to the current OS
-        commit_template = pyblish.config["commit_template"]
-        commit_template = commit_template.replace("/", os.sep)
-
-        commit_dir = commit_template.format(**variables)
-        commit_dir = os.path.join(workspace_dir, commit_dir)
-
-        return commit_dir
-
-    def commit(self, path, instance):
-        """Move path `path` relative current workspace
-
-        Arguments:
-            path (str): Absolute path to where files are currently located;
-                usually a temporary directory.
-            instance (Instance): Instance located at `path`
-
-        """
-
-        commit_dir = self.compute_commit_directory(instance=instance)
-
-        self.log.info("Moving \"%s\" relative working file.." % instance)
-
-        if os.path.isdir(commit_dir):
-            self.log.info("Existing directory found, merging..")
-            for fname in os.listdir(path):
-                abspath = os.path.join(path, fname)
-                commit_path = os.path.join(commit_dir, fname)
-                shutil.copy(abspath, commit_path)
-        else:
-            self.log.info("No existing directory found, creating..")
-            shutil.copytree(path, commit_dir)
-
-        # Persist path of commit within instance
-        instance.set_data("commit_dir", value=commit_dir)
-
-        return commit_dir
 
 
 class Conformer(Plugin):
-    """Integrates publishes into a pipeline
+    """Integrates publishes into a pipeline"""
 
-    Attributes:
-        families: Supported families.
+    order = 3
+
+
+# Forwards-compatibility aliases
+Collector = Selector
+Integrator = Conformer
+
+
+def process(plugin, context, instance=None):
+    """Produce a single result from a Plug-in
+
+    Returns:
+        Result dictionary
 
     """
 
-    families = list()
-    order = 3
+    import time
+
+    result = {
+        "success": False,
+        "plugin": plugin,
+        "instance": instance,
+        "error": None,
+        "records": list(),
+        "duration": None
+    }
+
+    plugin = plugin()
+
+    records = list()
+    handler = pyblish.lib.MessageHandler(records)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+
+    provider = pyblish.plugin.Provider()
+    provider.inject("context", context)
+    provider.inject("instance", instance)
+
+    __start = time.time()
+
+    try:
+        provider.invoke(plugin.process)
+        result["success"] = True
+    except Exception as error:
+        pyblish.lib.extract_traceback(error)
+        result["error"] = error
+
+    __end = time.time()
+
+    for record in records:
+        result["records"].append(record)
+
+    # Restore balance to the world
+    root_logger.removeHandler(handler)
+
+    result["duration"] = (__end - __start) * 1000  # ms
+
+    if "results" not in context.data():
+        context.set_data("results", list())
+
+    context.data("results").append(result)
+
+    return result
+
+
+
+def repair(plugin, context, instance=None):
+    """Produce single result from repairing"""
+
+    import time
+
+    if "results" not in context.data():
+        context.set_data("results", list())
+
+    result = {
+        "success": False,
+        "plugin": plugin,
+        "instance": instance,
+        "error": None,
+        "records": list(),
+        "duration": None
+    }
+
+    plugin = plugin()
+
+    records = list()
+    handler = pyblish.lib.MessageHandler(records)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+
+    provider = pyblish.plugin.Provider()
+    provider.inject("context", context)
+    provider.inject("instance", instance)
+
+    __start = time.time()
+
+    try:
+        provider.invoke(plugin.repair)
+        result["success"] = True
+    except Exception as error:
+        pyblish.lib.extract_traceback(error)
+        result["error"] = error
+
+    __end = time.time()
+
+    for record in records:
+        result["records"].append(record)
+
+    # Restore balance to the world
+    root_logger.removeHandler(handler)
+
+    result["duration"] = (__end - __start) * 1000  # ms
+
+    context.data("results").append(result)
+
+    return result
 
 
 class AbstractEntity(list):
@@ -540,18 +487,9 @@ class AbstractEntity(list):
 
 
 class Context(AbstractEntity):
-    """Maintain a collection of Instances
+    """Maintain a collection of Instances"""
 
-    .. note:: Context is a singleton.
-
-    """
-
-    @classmethod
-    def delete(cls):
-        """Force re-instantiation of context"""
-        log.warning("Context.delete has been deprecated")
-
-    def create_instance(self, name):
+    def create_instance(self, name, **kwargs):
         """Convenience method of the following.
 
         >>> ctx = Context()
@@ -565,7 +503,11 @@ class Context(AbstractEntity):
         """
 
         instance = Instance(name, parent=self)
+        instance._data.update(kwargs)
         return instance
+
+    # Alias
+    create_asset = create_instance
 
 
 @pyblish.lib.log
@@ -647,6 +589,10 @@ class Instance(AbstractEntity):
         return value
 
 
+# Forwards-compatibility alias
+Asset = Instance
+
+
 def current_host():
     """Return currently active host
 
@@ -692,7 +638,80 @@ def current_host():
         # Running from standalone Python
         return "python"
 
-    raise ValueError("Could not determine host")
+    raise ValueError("Could not determine host from \"%s\"" % executable)
+
+
+def register_plugin(plugin):
+    """Register a new plug-in
+
+    Arguments:
+        plugin (Plugin): Plug-in to register
+
+    Raises:
+        TypeError if `plugin` is not callable
+
+    """
+
+    if not hasattr(plugin, "__call__"):
+        raise TypeError("Plug-in must be callable "
+                        "returning an instance of a class")
+
+    pyblish._registered_plugins[plugin.__name__] = plugin
+
+
+def deregister_plugin(plugin):
+    """De-register an existing plug-in
+
+    Arguments:
+        plugin (Plugin): Existing plug-in to de-register
+
+    """
+
+    pyblish._registered_plugins.pop(plugin.__name__)
+
+
+def deregister_all_plugins():
+    """De-register all plug-ins"""
+    pyblish._registered_plugins.clear()
+
+
+def register_service(name, obj):
+    """Register a new service
+
+    Arguments:
+        name (str): Name of service
+        obj (object): Any object
+
+    """
+
+    pyblish._registered_services[name] = obj
+
+
+def deregister_service(name):
+    """De-register an existing service by name
+
+    Arguments:
+        name (str): Name of service
+
+    """
+
+    pyblish._registered_services.pop(name)
+
+
+def deregister_all_services():
+    """De-register all existing services"""
+    pyblish._registered_services.clear()
+
+
+def registered_services():
+    """Return the currently registered services as a dictionary
+
+    .. note:: This returns a copy of the registered paths
+        and can therefore not be modified directly.
+
+    """
+
+    return pyblish._registered_services.copy()
 
 
 def register_plugin_path(path):
@@ -731,7 +750,7 @@ def deregister_plugin_path(path):
     pyblish._registered_paths.remove(path)
 
 
-def deregister_all():
+def deregister_all_paths():
     """Mainly used in tests"""
     pyblish._registered_paths[:] = []
 
@@ -747,11 +766,23 @@ def registered_paths():
     return list(pyblish._registered_paths)
 
 
+def registered_plugins():
+    """Return plug-ins added via :func:`register_plugin`
+
+    .. note:: This returns a copy of the registered plug-ins
+        and can therefore not be modified directly
+
+    """
+
+    return pyblish._registered_plugins.values()
+
+
 def configured_paths():
     """Return paths added via configuration"""
     paths = list()
+    config = Config()
 
-    for path_template in pyblish.config["paths"]:
+    for path_template in config["paths"]:
         variables = {"pyblish": pyblish.lib.main_package_path()}
 
         plugin_path = path_template.format(**variables)
@@ -765,8 +796,9 @@ def environment_paths():
     """Return paths added via environment variable"""
 
     paths = list()
+    config = Config()
 
-    env_var = pyblish.config["paths_environment_variable"]
+    env_var = config["paths_environment_variable"]
     env_val = os.environ.get(env_var)
     if env_val:
         env_paths = env_val.split(os.pathsep)
@@ -820,7 +852,7 @@ def discover(type=None, regex=None, paths=None):
         type (str, optional): Only return plugins of specified type
             E.g. validators, extractors. In None is specified, return
             all plugins. Available options are "selectors", validators",
-            "extractors", "conformers".
+            "extractors", "conformers", "collectors" and "integrators".
         regex (str, optional): Limit results to those matching `regex`.
             Matching is done on classes, as opposed to
             filenames, due to a file possibly hosting
@@ -830,80 +862,11 @@ def discover(type=None, regex=None, paths=None):
 
     """
 
-    patterns = {"validators": pyblish.config["validators_regex"],
-                "extractors": pyblish.config["extractors_regex"],
-                "selectors": pyblish.config["selectors_regex"],
-                "conformers": pyblish.config["conformers_regex"]}
+    # Include plug-ins from registration
+    discovered_plugins = pyblish._registered_plugins.copy()
 
-    if type is not None and type not in patterns:
-        raise ValueError("Type not recognised: %s" % type)
-
-    discovered_plugins = dict()
-
-    def version_is_compatible(plugin):
-        """Lookup compatibility between plug-in and current version of Pyblish
-
-        Arguments:
-            plugin (Plugin): Plug-in to test against
-
-        """
-
-        if not iscompatible.iscompatible(requirements=plugin.requires,
-                                         version=pyblish.version_info):
-            log.warning("Plug-in %s not compatible with this version "
-                        "(%s) of Pyblish." % (plugin, pyblish.__version__))
-            return False
-        return True
-
-    def plugin_is_valid(plugin):
-        if not inspect.isclass(plugin):
-            return False
-
-        if not issubclass(plugin, Plugin):
-            return False
-
-        if plugin.order is None:
-            log.error("Plug-in must have an order: %s", plugin)
-            return False
-
-        if not isinstance(plugin.requires, basestring):
-            log.error("Plug-in requires must be of type string: %s", plugin)
-            return False
-
-        try:
-            if (issubclass(plugin, Selector)
-                    and not getattr(plugin, "hosts")):
-                raise Exception(0)
-            if (issubclass(plugin, (Validator, Extractor))
-                    and not getattr(plugin, "families")
-                    and not getattr(plugin, "hosts")):
-                raise Exception(1)
-
-            if (issubclass(plugin, Conformer)
-                    and not getattr(plugin, "families")):
-                raise Exception(2)
-
-        except Exception as e:
-            if e.message == 0:
-                log.error("%s: Plug-in not valid, missing hosts.", plugin)
-            if e.message == 1:
-                log.error("%s: Plug-in not valid, missing hosts and families.",
-                          plugin)
-            if e.message == 2:
-                log.error("%s: Plug-in not valid, missing families.", plugin)
-            return False
-
-        return True
-
-    def host_is_compatible(plugin):
-        return any(["*" in plugin.hosts, current_host() in plugin.hosts])
-
-    paths_to_check = paths
-    if paths_to_check is None:
-        paths_to_check = plugin_paths()
-
-    types_to_check = [type] if type is not None else patterns.keys()
-    for path in paths_to_check:
+    # Include plug-ins from registered paths
+    for path in paths or plugin_paths():
         path = os.path.normpath(path)
         if not os.path.isdir(path):
             continue
@@ -914,50 +877,130 @@ def discover(type=None, regex=None, paths=None):
             if not os.path.isfile(abspath):
                 continue
 
-            for type in types_to_check:
-                if not re.match(patterns[type], fname):
+            mod_name, _ = os.path.splitext(fname)
+            try:
+                sys.path.insert(0, path)
+                module = pyblish.lib.import_module(mod_name)
+                reload(module)
+
+            except Exception as err:
+                log.warning("Skipped: \"%s\" (%s)", mod_name, err)
+                continue
+
+            finally:
+                # Restore sys.path
+                # sys.modules.pop(mod_name)
+                sys.path.remove(path)
+
+            for name in dir(module):
+                if name.startswith("_"):
                     continue
 
-                mod_name, _ = os.path.splitext(fname)
-                try:
-                    sys.path.insert(0, path)
-                    module = pyblish.lib.import_module(mod_name)
-                    reload(module)
+                obj = getattr(module, name)
 
-                except Exception as err:
-                    log.warning("Skipped: \"%s\" (%s)", mod_name, err)
+                if not inspect.isclass(obj):
                     continue
 
-                finally:
-                    # Restore sys.path
-                    # sys.modules.pop(mod_name)
-                    sys.path.remove(path)
+                if not issubclass(obj, Plugin):
+                    continue
 
-                for name in dir(module):
-                    if name.startswith("_"):
-                        continue
+                discovered_plugins[obj.__name__] = obj
 
-                    obj = getattr(module, name)
+    # Filter discovered
+    plugins = list()
+    for name, plugin in discovered_plugins.items():
+        if not plugin_is_valid(plugin):
+            continue
 
-                    if not plugin_is_valid(obj):
-                        continue
+        if not version_is_compatible(plugin):
+            log.warning("Plug-in %s not compatible with "
+                        "this version (%s) of Pyblish." % (
+                            plugin, pyblish.__version__))
+            continue
 
-                    if not version_is_compatible(obj):
-                        continue
+        if not host_is_compatible(plugin):
+            continue
 
-                    if not host_is_compatible(obj):
-                        continue
+        if plugin in plugins:
+            log.debug("Duplicate plugin found: %s", plugin)
+            continue
 
-                    if obj.__name__ in discovered_plugins:
-                        log.debug("Duplicate plugin found: %s", obj)
-                        continue
+        if regex is None or re.match(regex, name):
+            plugins.append(plugin)
 
-                    if regex is None or re.match(regex, obj.__name__):
-                        discovered_plugins[obj.__name__] = obj
-
-    plugins = discovered_plugins.values()
     sort(plugins)  # In-place
     return plugins
+
+
+def plugin_is_valid(plugin):
+    """Determine whether or not plug-in `plugin` is valid
+
+    Arguments:
+        plugin (Plugin): Plug-in to assess
+
+    """
+
+    if not inspect.isclass(plugin):
+        return False
+
+    if not issubclass(plugin, Plugin):
+        return False
+
+    if not isinstance(plugin.requires, basestring):
+        log.debug("Plug-in requires must be of type string: %s", plugin)
+        return False
+
+    try:
+        if (issubclass(plugin, Selector)
+                and not getattr(plugin, "hosts")):
+            raise Exception(0)
+        if (issubclass(plugin, (Validator, Extractor))
+                and not getattr(plugin, "families")
+                and not getattr(plugin, "hosts")):
+            raise Exception(1)
+
+        if (issubclass(plugin, Conformer)
+                and not getattr(plugin, "families")):
+            raise Exception(2)
+
+    except Exception as e:
+        if e.message == 0:
+            log.error("%s: Plug-in not valid, missing hosts.", plugin)
+        if e.message == 1:
+            log.error("%s: Plug-in not valid, missing hosts and families.",
+                      plugin)
+        if e.message == 2:
+            log.error("%s: Plug-in not valid, missing families.", plugin)
+        return False
+
+    return True
+
+
+def version_is_compatible(plugin):
+    """Lookup compatibility between plug-in and current version of Pyblish
+
+    Arguments:
+        plugin (Plugin): Plug-in to test against
+
+    """
+
+    if not iscompatible.iscompatible(requirements=plugin.requires,
+                                     version=pyblish.version_info):
+        return False
+    return True
+
+
+def host_is_compatible(plugin):
+    """Determine whether plug-in `plugin` is compatible with the current host
+
+    The current host is determined by :func:`current_host`.
+
+    Arguments:
+        plugin (Plugin): Plug-in to assess.
+
+    """
+
+    return any(["*" in plugin.hosts, current_host() in plugin.hosts])
 
 
 def sort(plugins):
@@ -980,80 +1023,3 @@ def sort(plugins):
 
     plugins.sort(key=lambda p: p.order)
     return plugins
-
-
-def plugins_by_family(plugins, family):
-    """Return compatible plugins `plugins` to family `family`
-
-    Arguments:
-        plugins (list): List of plugins
-        family (str): Family with which to compare against
-
-    Returns:
-        List of compatible plugins.
-
-    """
-
-    compatible = list()
-
-    for plugin in plugins:
-        if not hasattr(plugin, "families"):
-            continue
-
-        if any(x in plugin.families for x in (family, "*")):
-            compatible.append(plugin)
-
-    return compatible
-
-
-def plugins_by_host(plugins, host):
-    """Return compatible plugins `plugins` to host `host`
-
-    Arguments:
-        plugins (list): List of plugins
-        host (str): Host with which compatible plugins are returned
-
-    Returns:
-        List of compatible plugins.
-
-    """
-
-    compatible = list()
-
-    for plugin in plugins:
-        if not hasattr(plugin, "hosts"):
-            continue
-
-        # TODO(marcus): Expand to take partial wildcards e.g. "*Mesh"
-        if any(x in plugin.hosts for x in (host, "*")):
-            compatible.append(plugin)
-
-    return compatible
-
-
-def instances_by_plugin(instances, plugin):
-    """Return compatible instances `instances` to plugin `plugin`
-
-    Arguments:
-        instances (list): List of instances
-        plugin (Plugin): Plugin with which to compare against
-
-    Returns:
-        List of compatible instances
-
-    Invariant:
-        Order of remaining plug-ins must remain the same
-
-    """
-
-    compatible = list()
-
-    for instance in instances:
-        if not hasattr(plugin, "families"):
-            continue
-
-        family = instance.data("family")
-        if any(x in plugin.families for x in (family, "*")):
-            compatible.append(instance)
-
-    return compatible

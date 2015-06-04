@@ -7,7 +7,5 @@ import pyblish.api
 class SelectMissingHosts(pyblish.api.Selector):
     """Select instances"""
 
-    version = (0, 1, 0)
-
-    def process_context(self, context):
-        pass
+    requires = False
+    version = "Invalid"

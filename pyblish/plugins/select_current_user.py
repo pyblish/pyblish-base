@@ -10,5 +10,5 @@ class SelectCurrentUser(pyblish.api.Selector):
     hosts = ['*']
     version = (0, 1, 0)
 
-    def process_context(self, context):
+    def process(self, context):
         context.set_data('user', value=getpass.getuser())
