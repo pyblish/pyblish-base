@@ -334,15 +334,14 @@ def test_asset():
 def test_di_testing():
     """DI simplifies testing"""
 
-    count = {"#": 0, "instances": []}
+    instances = list()
 
     class SelectCharacters(pyblish.api.Validator):
         def process(self, context, host):
             for char in host.ls("*_char"):
                 instance = context.create_instance(char, family="character")
                 instance.add(host.listRelatives(char))
-                count["#"] += 1
-                count["instances"].append(instance.name)
+                instances.append(instance.name)
 
     class HostMock(object):
         def ls(self, query):
@@ -363,5 +362,5 @@ def test_di_testing():
             context=pyblish.api.Context()):
         assert_equals(result["error"], None)
 
-    assert_equals(count["#"], 2)
-    assert_equals(count["instances"], ["bobby_char", "rocket_char"])
+    assert_equals(len(instances), 2)
+    assert_equals(instances, ["bobby_char", "rocket_char"])
