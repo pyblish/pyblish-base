@@ -7,9 +7,9 @@ Version 1.1.0
 -------------
 
 - Feature: Dependency Injection (see #127)
+- Feature: SimplePlugin (see #186)
 - Feature: In-memory plug-ins (see #140)
 - Feature: Custom test (see #183)
-- Feature: SimplePlugin (see #186)
 - Feature: create_instance(name, **kwargs) (see #187)
 - Preview: Asset (see #188)
 - Enhancement: Logic unified between pyblish.util and pyblish.cli
