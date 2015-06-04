@@ -200,12 +200,11 @@ class Plugin(object):
     """Base-class for plugins
 
     Attributes:
+        hosts: Optionally limit a plug-in to one or more hosts
+        families: Optionally limit a plug-in to one or more families
         label: Printed name of plug-in
         active: Whether or not to use plug-in during processing
-        hosts: Mandatory specifier for which host application
-            this plug-in is compatible with.
-        families: Supported families.
-        version: Mandatory version for forwards-compatibility.
+        version: Optional version for forwards-compatibility.
             Pyblish is (currently not) using the version to allow
             for plug-ins incompatible with a particular running
             instance of Pyblish to co-exist alongside compatible
