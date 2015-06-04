@@ -118,6 +118,11 @@ def process(func, plugins, context, test=None):
                 context = __context()
 
             args = inspect.getargspec(plugin.process).args
+
+            # Forwards compatibility with `asset`
+            if "asset" in args:
+                args.append("instance")
+
             instances = instances_by_plugin(context, plugin)
 
             # Limit processing to plug-ins with an available instance
@@ -125,9 +130,11 @@ def process(func, plugins, context, test=None):
                 continue
 
             for instance in gen(plugin, instances):
+                print plugin, instance
                 if instance is None and "instance" in args:
                     continue
 
+                print "Made it"
                 # Provide introspection
                 self.next_instance = instance
 

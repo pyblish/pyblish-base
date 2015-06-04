@@ -93,9 +93,9 @@ config = __Config()
 
 def __init__():
     # Register default services
-
     register_service("time", __time)
-    register_service("user", getpass.getuser)
+    register_service("user", getpass.getuser())
+    register_service("config", config)
     register_service("context", None)
     register_service("instance", None)
 

@@ -31,7 +31,7 @@ def test_di():
         def process(self, context, instance, user, time):
             self.log.warning("Filling up disk..")
             _disk[instance.name] = "%s - %s: %s" % (
-                time(), user(), instance.data("value"))
+                time(), user, instance.data("value"))
 
     for plugin in (SelectInstance, ValidateInstance, ExtractInstanceX):
         pyblish.api.register_plugin(plugin)
@@ -265,3 +265,52 @@ def test_when_to_trigger_process():
         context=context))
 
     assert_equals(_data["error"], False)
+
+
+def test_default_services():
+    """Default services are operational"""
+
+    services = ["user", "time", "config"]
+    for service in services:
+        assert_true(service in pyblish.api.registered_services())
+
+    # user is passed by value, as it does not change at run-time
+    user = pyblish.api.registered_services()["user"]
+    assert_false(hasattr(user, "__call__"))
+
+    # time is passed by reference, and is callable, as it changes
+    time = pyblish.api.registered_services()["time"]
+    time()
+
+    # config is the global configuration
+    config = pyblish.api.registered_services()["config"]
+    assert_equals(config, pyblish.api.config)
+
+
+def test_asset():
+    """Assets with DI works well"""
+
+    count = {"#": 0}
+
+    class SelectCharacters(pyblish.api.Selector):
+        """Called once"""
+        def process(self, context):
+            for name in ("A", "B"):
+                context.create_asset(name, family="myFamily")
+            count["#"] += 1
+
+
+    class ValidateColor(pyblish.api.Validator):
+        """Called twice"""
+        families = ["myFamily"]
+
+        def process(self, asset):
+            count["#"] += 1
+
+    for result in pyblish.logic.process(
+            func=pyblish.plugin.process,
+            plugins=[SelectCharacters, ValidateColor],
+            context=pyblish.api.Context()):
+        print result
+
+    assert_equals(count["#"], 3)

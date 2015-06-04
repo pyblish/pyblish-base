@@ -10,8 +10,10 @@ Version 1.1.0
 - Feature: In-memory plug-ins (see #140)
 - Feature: Custom test (see #183)
 - Feature: SimplePlugin (see #186)
+- Feature: create_instance(name, **kwargs) (see #187)
+- Preview: Asset (see #188)
 - Enhancement: Logic unified between pyblish.util and pyblish.cli
-- Bugfix: Order now works with pyblish.util and pyblish.cli
+- Bugfix: Order now works with pyblish.util and pyblish.cli (see #178)
 - Standardised time format (see #181)
 - pyblish.util minified. For data visualisation, refer to pyblish-qml
 - Bugfix: True singleton configuration (see #182)

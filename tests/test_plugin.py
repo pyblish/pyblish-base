@@ -36,3 +36,14 @@ def test_legacy():
     assert_equals(LegacyPlugin.__pre11__, True)
     assert_true(hasattr(NotLegacyPlugin, "__pre11__"))
     assert_equals(NotLegacyPlugin.__pre11__, False)
+
+
+def test_asset():
+    """Using asset over instance works fine"""
+    context = pyblish.plugin.Context()
+    
+    asseta = context.create_asset("MyAssetA", family="myFamily")
+    assetb = context.create_asset("MyAssetB", family="myFamily")
+
+    assert_true(asseta in context)
+    assert_true(assetb in context)

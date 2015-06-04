@@ -45,6 +45,10 @@ class Provider(object):
     def services(self):
         services = pyblish._registered_services.copy()
         services.update(self._services)
+
+        # Forwards-compatibility alias
+        services["asset"] = services["instance"]
+
         return services
 
     @classmethod
@@ -84,11 +88,8 @@ class Config(dict):
     .. note:: Config is a singleton.
 
     Attributes:
-        DEFAULTCONFIG: Name of default configuration file
-        PACKAGEDIR: Absolute path to parent package of Config
-        DEFAULTCONFIGPATH: Absolute path to default configuration file
-
-        default: Access to default configuration
+        CONFIGPATH: Path to configuration, overridable
+            via environment variable PYBLISHCONFIGPATH.
 
     Usage:
         >>> config = Config()
@@ -100,9 +101,8 @@ class Config(dict):
 
     _instance = None
 
-    PACKAGEDIR = os.path.dirname(__file__)
-    DEFAULTCONFIG = "config.yaml"
-    DEFAULTCONFIGPATH = os.path.join(PACKAGEDIR, DEFAULTCONFIG)
+    CONFIGPATH = (os.environ.get("PYBLISHCONFIGPATH") or
+                  os.path.join(os.path.dirname(__file__), "config.yaml"))
 
     log = logging.getLogger("pyblish.Config")
 
@@ -119,17 +119,25 @@ class Config(dict):
         self.clear()
         self.load()
 
+        # Deprecated and undocumented variables
+        self.update({
+            "validators_regex": "^validate_.*\.py$",
+            "extractors_regex": "^extract_.*\.py$",
+            "selectors_regex": "^select_.*\.py$",
+            "conformers_regex": "^conform_.*\.py$",
+            "collectors_regex": "^collect_.*\.py$",
+            "integrators_regex": "^integrate_.*\.py$",
+            "commit_template": "{prefix}/{date}/{family}/{instance}",
+            "publish_by_default": True,
+            "prefix": "published",
+            "identifier": "publishable"
+        })
+
+
     def load(self):
         """Load default configuration from package dir"""
-        path = self.DEFAULTCONFIGPATH
-        data = {"DEFAULTCONFIG": self.DEFAULTCONFIG,
-                "DEFAULTCONFIGPATH": self.DEFAULTCONFIGPATH}
-
-        with open(path, "r") as f:
+        with open(self.CONFIGPATH, "r") as f:
             loaded_data = yaml.load(f)
-
-        if data is not None:
-            loaded_data.update(data)
 
         for key, value in loaded_data.iteritems():
             self[key] = value
@@ -172,12 +180,17 @@ class MetaPlugin(type):
             cls.repair = cls.repair_instance
             del(cls.repair_instance)
 
-        argspec = inspect.getargspec(cls.process)
-        if "instance" in argspec.args:
+        args_ = inspect.getargspec(cls.process).args
+
+        if "instance" in args_:
             cls.__instanceEnabled__ = True
 
-        if "context" in argspec.args:
+        if "context" in args_:
             cls.__contextEnabled__ = True
+
+        # Forwards-compatibility with asset
+        if "asset" in args_:
+            cls.__instanceEnabled__ = True
     
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
@@ -281,7 +294,7 @@ class Conformer(Plugin):
     order = 3
 
 
-# Aliases
+# Forwards-compatibility aliases
 Collector = Selector
 Integrator = Conformer
 
@@ -477,7 +490,7 @@ class AbstractEntity(list):
 class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
-    def create_instance(self, name):
+    def create_instance(self, name, **kwargs):
         """Convenience method of the following.
 
         >>> ctx = Context()
@@ -491,7 +504,11 @@ class Context(AbstractEntity):
         """
 
         instance = Instance(name, parent=self)
+        instance._data.update(kwargs)
         return instance
+
+    # Alias
+    create_asset = create_instance
 
 
 @pyblish.lib.log
@@ -571,6 +588,10 @@ class Instance(AbstractEntity):
             return self.name
 
         return value
+
+
+# Forwards-compatibility alias
+Asset = Instance
 
 
 def current_host():
