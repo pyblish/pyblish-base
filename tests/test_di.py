@@ -186,7 +186,6 @@ def test_no_instances():
     assert_equals(count["#"], 2)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
 def test_unavailable_service():
     """Asking for unavailable service throws exception"""
 
@@ -197,6 +196,21 @@ def test_unavailable_service():
 
     provider.inject("arg1", lambda: True)
     assert_raises(KeyError, provider.invoke, func)
+
+
+def test_unavailable_service_logic():
+    """Asking for unavailable service ..?"""
+
+    class SelectUnavailable(pyblish.api.Selector):
+        def process(self, unavailable):
+            print "HHOH"
+            self.log.critical("Test")
+
+    for result in pyblish.logic.process(
+            func=pyblish.plugin.process,
+            plugins=[SelectUnavailable],
+            context=pyblish.api.Context()):
+        assert_true(isinstance(result["error"], KeyError))
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -226,8 +240,8 @@ def test_test_failure():
         context=context))
 
     assert_equals(len(triggered), 1)
-    assert type(triggered[0]) == ValidateFailure
-    assert isinstance(results[-1], Exception)
+    assert_equals(type(triggered[0]), ValidateFailure)
+    assert_true(isinstance(results[-1], Exception))
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -314,3 +328,39 @@ def test_asset():
         print result
 
     assert_equals(count["#"], 3)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_di_testing():
+    """DI simplifies testing"""
+
+    instances = list()
+
+    class SelectCharacters(pyblish.api.Validator):
+        def process(self, context, host):
+            for char in host.ls("*_char"):
+                instance = context.create_instance(char, family="character")
+                instance.add(host.listRelatives(char))
+                instances.append(instance.name)
+
+    class HostMock(object):
+        def ls(self, query):
+            return ["bobby_char", "rocket_char"]
+
+        def listRelatives(self, node):
+            if node == "bobby_char":
+                return ["arm", "leg"]
+            if node == "rocket_char":
+                return ["propeller"]
+            return []
+
+    pyblish.api.register_service("host", HostMock())
+
+    for result in pyblish.logic.process(
+            func=pyblish.plugin.process,
+            plugins=[SelectCharacters],
+            context=pyblish.api.Context()):
+        assert_equals(result["error"], None)
+
+    assert_equals(len(instances), 2)
+    assert_equals(instances, ["bobby_char", "rocket_char"])
