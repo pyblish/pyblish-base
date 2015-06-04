@@ -72,7 +72,7 @@ def process(func, plugins, context, test=None):
         A result per complete process. If test fails,
         a TestFailed exception is returned, containing the
         variables used in the test. Finally, any exception
-        thrown by `process` is yielded. Note that this is
+        thrown by `func` is yielded. Note that this is
         considered a bug in *your* code as you are the one
         supplying it.
 
@@ -130,22 +130,20 @@ def process(func, plugins, context, test=None):
                 continue
 
             for instance in gen(plugin, instances):
-                print plugin, instance
                 if instance is None and "instance" in args:
                     continue
 
-                print "Made it"
                 # Provide introspection
                 self.next_instance = instance
 
                 try:
                     result = func(plugin, context, instance)
 
-                except Exception:
-                    # If this happens, there is a bug
-                    traceback.print_exc()
-                    trace = traceback.format_exc()
-                    assert False, trace
+                except Exception as exc:
+                    # Any exception occuring within the function
+                    # you pass is yielded, you are expected to
+                    # handle it.
+                    yield exc
 
                 else:
                     # Make note of the order at which
