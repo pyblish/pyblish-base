@@ -159,15 +159,15 @@ def test_incompatible_context():
             count["#"] += 1
 
     context = pyblish.api.Context()
-    # for result in pyblish.logic.process(
-    #         func=pyblish.plugin.process,
-    #         plugins=[SelectMany, ValidateContext],
-    #         context=context):
-    #     pass
+    for result in pyblish.logic.process(
+            func=pyblish.plugin.process,
+            plugins=[SelectMany, ValidateContext],
+            context=context):
+        pass
 
-    # assert_equals(count["#"], 1)
+    assert_equals(count["#"], 1)
 
-    # count["#"] = 0
+    count["#"] = 0
 
     # When families are wildcard, it does process
     class ValidateContext(pyblish.api.Validator):
