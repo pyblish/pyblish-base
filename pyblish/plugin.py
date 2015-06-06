@@ -877,7 +877,8 @@ def discover(type=None, regex=None, paths=None):
             mod_name, _ = os.path.splitext(fname)
 
             try:
-                # Discard traces of previously imported of this name
+                # Discard traces of previously
+                # imported modules of this name.
                 sys.modules.pop(mod_name)
             except:
                 pass

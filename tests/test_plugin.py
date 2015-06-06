@@ -67,9 +67,15 @@ def test_asset():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_import_mechanism_duplication():
-    """Altering a plug-in after it has been loaded once merges old and new"""
+    """Plug-ins don't linger after a second discovery
+
+    E.g. when changing the name of a plug-in and then rediscover
+    the previous plug-ins is still around.
+
+    """
 
     with tempdir() as temp:
+        print("Writing temporarily to: %s" % temp)
         module = os.path.join(temp, "selector.py")
         pyblish.api.register_plugin_path(temp)
 
@@ -81,11 +87,19 @@ class MySelector(pyblish.api.Selector):
     pass
 """)
 
-        # MySelector should be accessible by now
-        plugins = pyblish.api.discover()
+        with open(module) as f:
+            print("File contents after first write:")
+            print(f.read())
 
-        assert_true("MySelector" in [p.__name__ for p in plugins])
-        assert_false("MyOtherSelector" in [p.__name__ for p in plugins])
+        # MySelector should be accessible by now
+        plugins = [p.__name__ for p in pyblish.api.discover()]
+
+        assert "MySelector" in plugins, plugins
+        assert "MyOtherSelector" not in plugins, plugins
+
+        # Remove module, and it's .pyc equivalent
+        [os.remove(os.path.join(temp, fname))
+         for fname in os.listdir(temp)]
 
         with open(module, "w") as f:
             f.write("""
@@ -95,9 +109,12 @@ class MyOtherSelector(pyblish.api.Selector):
     pass
 """)
 
+        with open(module) as f:
+            print("File contents after second write:")
+            print(f.read())
+
         # MySelector should be gone in favour of MyOtherSelector
+        plugins = [p.__name__ for p in pyblish.api.discover()]
 
-        plugins = pyblish.api.discover()
-
-        assert_false("MySelector" in [p.__name__ for p in plugins])
-        assert_true("MyOtherSelector" in [p.__name__ for p in plugins])
+        assert "MyOtherSelector" in plugins, plugins
+        assert "MySelector" not in plugins, plugins
