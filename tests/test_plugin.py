@@ -1,5 +1,21 @@
+import os
+import shutil
+import tempfile
+import contextlib
+
 import pyblish.plugin
 from pyblish.vendor.nose.tools import *
+
+import lib
+
+
+@contextlib.contextmanager
+def tempdir():
+    try:
+        tempdir = tempfile.mkdtemp()
+        yield tempdir
+    finally:
+        shutil.rmtree(tempdir)
 
 
 def test_unique_id():
@@ -47,3 +63,41 @@ def test_asset():
 
     assert_true(asseta in context)
     assert_true(assetb in context)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_import_mechanism_duplication():
+    """Altering a plug-in after it has been loaded once merges old and new"""
+
+    with tempdir() as temp:
+        module = os.path.join(temp, "selector.py")
+        pyblish.api.register_plugin_path(temp)
+
+        with open(module, "w") as f:
+            f.write("""
+import pyblish.api
+
+class MySelector(pyblish.api.Selector):
+    pass
+""")
+
+        # MySelector should be accessible by now
+        plugins = pyblish.api.discover()
+
+        assert_true("MySelector" in [p.__name__ for p in plugins])
+        assert_false("MyOtherSelector" in [p.__name__ for p in plugins])
+
+        with open(module, "w") as f:
+            f.write("""
+import pyblish.api
+
+class MyOtherSelector(pyblish.api.Selector):
+    pass
+""")
+
+        # MySelector should be gone in favour of MyOtherSelector
+
+        plugins = pyblish.api.discover()
+
+        assert_false("MySelector" in [p.__name__ for p in plugins])
+        assert_true("MyOtherSelector" in [p.__name__ for p in plugins])

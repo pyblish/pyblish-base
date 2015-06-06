@@ -875,11 +875,17 @@ def discover(type=None, regex=None, paths=None):
                 continue
 
             mod_name, _ = os.path.splitext(fname)
+
+            try:
+                # Discard traces of previously imported of this name
+                sys.modules.pop(mod_name)
+            except:
+                pass
+
             try:
                 sys.path.insert(0, path)
                 module = pyblish.lib.import_module(mod_name)
                 reload(module)
-
             except Exception as err:
                 log.warning("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
