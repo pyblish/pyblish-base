@@ -284,7 +284,6 @@ def main(ctx,
     available_plugins = pyblish.api.discover(paths=plugin_paths)
 
     if plugins:
-        click.echo()  # newline
         click.echo(_format_plugins(available_plugins))
 
     if verbose:
