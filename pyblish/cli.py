@@ -397,17 +397,16 @@ def publish(ctx,
         context.set_data("current_file", path)
 
     # Begin processing
-    click.echo()  # newline
-
     plugins = pyblish.api.discover(paths=ctx.obj["plugin_paths"])
     pyblish.util.publish(context=context,
                          plugins=plugins)
 
     _end = time.time()
 
-    click.echo()
-    click.echo("-" * 80)
-    click.echo(_format_time(_start, _end))
+    if ctx.obj["verbose"]:
+        click.echo()
+        click.echo("-" * 80)
+        click.echo(_format_time(_start, _end))
 
 
 @click.command()
