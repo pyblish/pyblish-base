@@ -890,7 +890,7 @@ def discover(type=None, regex=None, paths=None):
                 module = pyblish.lib.import_module(mod_name)
                 reload(module)
             except Exception as err:
-                log.warning("Skipped: \"%s\" (%s)", mod_name, err)
+                log.debug("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
 
             finally:
