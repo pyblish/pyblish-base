@@ -606,28 +606,22 @@ def current_host():
         >> # Running within Sidefx Houdini
         >> current_host()
         "houdini"
+        >> # Running from an unknown software
+        >> current_host()
+        "unknown"
 
     """
 
     executable = os.path.basename(sys.executable).lower()
 
     if "python" in executable:
-        # Running from standalone Python
         return "python"
 
     if "maya" in executable:
-        # Maya is distinguished by looking at the currently running
-        # executable of the Python interpreter. It will be something
-        # like: "maya.exe" or "mayapy.exe"; without suffix for
-        # posix platforms.
         return "maya"
 
     if "nuke" in executable:
-        # Nuke typically includes a version number, e.g. Nuke8.0.exe
-        # and mixed-case letters.
         return "nuke"
-
-    # ..note:: The following are guesses, feel free to correct
 
     if "modo" in executable:
         return "modo"
@@ -635,7 +629,7 @@ def current_host():
     if "houdini" in executable:
         return "houdini"
 
-    raise ValueError("Could not determine host from \"%s\"" % executable)
+    return "unknown"
 
 
 def register_plugin(plugin):
