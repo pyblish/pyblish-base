@@ -866,6 +866,9 @@ def discover(type=None, regex=None, paths=None):
             continue
 
         for fname in os.listdir(path):
+            if fname.startswith("_"):
+                continue
+
             abspath = os.path.join(path, fname)
 
             if not os.path.isfile(abspath):

@@ -176,3 +176,35 @@ def test_unsupported_host():
     finally:
         sys.executable = old
 
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_temporarily_disabled_plugins():
+    """Plug-ins as files starting with an underscore are hidden"""
+
+    discoverable = """
+import pyblish.api
+
+class Discoverable(pyblish.api.Plugin):
+    pass
+"""
+
+    notdiscoverable = """
+import pyblish.api
+
+class NotDiscoverable(pyblish.api.Plugin):
+    pass
+"""
+
+    with tempdir() as d:
+        pyblish.api.register_plugin_path(d)
+
+        with open(os.path.join(d, "discoverable.py"), "w") as f:
+            f.write(discoverable)
+
+        with open(os.path.join(d, "_undiscoverable.py"), "w") as f:
+            f.write(notdiscoverable)
+
+
+        plugins = [p.__name__ for p in pyblish.api.discover()]
+        assert "Discoverable" in plugins
+        assert "NotDiscoverable" not in plugins
