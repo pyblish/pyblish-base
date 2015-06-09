@@ -614,9 +614,6 @@ def current_host():
 
     executable = os.path.basename(sys.executable).lower()
 
-    if "python" in executable:
-        return "python"
-
     if "maya" in executable:
         return "maya"
 
@@ -626,8 +623,14 @@ def current_host():
     if "modo" in executable:
         return "modo"
 
+    if "houdini" in executable or "hou" in sys.modules:
+        return 'houdini'
+
     if "houdini" in executable:
         return "houdini"
+
+    if "python" in executable:
+        return "python"
 
     return "unknown"
 
