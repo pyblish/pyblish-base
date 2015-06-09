@@ -9,6 +9,7 @@ Version 1.1.1
 - Enhancement: Hosts limit, not allow (see #194)
 - Enhancement: CLI outputs less, more concise information
 - Enhancement: Lowering logging level for plug-ins skipped during discovery to DEBUG
+- Enhancement: Underscore-prefixed plug-ins are hidden from discovery (see #196)
 - Bugfix: Discover ignores non-Python files (see #192)
 
 Version 1.1.0
