@@ -606,39 +606,33 @@ def current_host():
         >> # Running within Sidefx Houdini
         >> current_host()
         "houdini"
+        >> # Running from an unknown software
+        >> current_host()
+        "unknown"
 
     """
 
     executable = os.path.basename(sys.executable).lower()
 
     if "maya" in executable:
-        # Maya is distinguished by looking at the currently running
-        # executable of the Python interpreter. It will be something
-        # like: "maya.exe" or "mayapy.exe"; without suffix for
-        # posix platforms.
         return "maya"
 
     if "nuke" in executable:
-        # Nuke typically includes a version number, e.g. Nuke8.0.exe
-        # and mixed-case letters.
         return "nuke"
-
-    # ..note:: The following are guesses, feel free to correct
 
     if "modo" in executable:
         return "modo"
 
-    # incase you are not using the build in python version check and see if
-    # hou is imported.
-    if 'hou' in sys.modules or 'houdini' in executable:
+    if "houdini" in executable or "hou" in sys.modules:
         return 'houdini'
 
-    # if all else fails.
+    if "houdini" in executable:
+        return "houdini"
+
     if "python" in executable:
-        # Running from standalone Python
         return "python"
 
-    raise ValueError("Could not determine host from \"%s\"" % executable)
+    return "unknown"
 
 
 def register_plugin(plugin):
@@ -872,12 +866,17 @@ def discover(type=None, regex=None, paths=None):
             continue
 
         for fname in os.listdir(path):
+            if fname.startswith("_"):
+                continue
+
             abspath = os.path.join(path, fname)
 
             if not os.path.isfile(abspath):
                 continue
 
-            mod_name, _ = os.path.splitext(fname)
+            mod_name, mod_ext = os.path.splitext(fname)
+            if not mod_ext == ".py":
+                continue
 
             try:
                 # Discard traces of previously
@@ -891,7 +890,7 @@ def discover(type=None, regex=None, paths=None):
                 module = pyblish.lib.import_module(mod_name)
                 reload(module)
             except Exception as err:
-                log.warning("Skipped: \"%s\" (%s)", mod_name, err)
+                log.debug("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
 
             finally:

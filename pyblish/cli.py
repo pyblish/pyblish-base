@@ -20,7 +20,6 @@ Note:
 """
 
 import os
-import sys
 import time
 import logging
 
@@ -36,7 +35,12 @@ from pyblish.vendor import click
 # Current Click context
 _ctx = None
 
-log = logging.getLogger()
+def _setup_log(root="pyblish"):
+    log = logging.getLogger(root)
+    log.setLevel(logging.INFO)
+    return log
+
+log = _setup_log()
 main_log = pyblish.lib.setup_log(level=logging.ERROR)
 
 # Constants
@@ -67,11 +71,6 @@ Available plugin paths:
 Available plugins:
 {plugins}"""
 
-
-def _setup_log(root="pyblish"):
-    log = logging.getLogger(root)
-    log.setLevel(logging.INFO)
-    return log
 
 
 def _format_paths(paths):
@@ -245,10 +244,8 @@ def main(ctx,
     global _ctx
     _ctx = ctx
 
-    _setup_log()
-
     level = LOG_LEVEL[logging_level]
-    logging.getLogger().setLevel(level)
+    log.setLevel(level)
 
     # Process top-level arguments
     if version:
@@ -284,7 +281,6 @@ def main(ctx,
     available_plugins = pyblish.api.discover(paths=plugin_paths)
 
     if plugins:
-        click.echo()  # newline
         click.echo(_format_plugins(available_plugins))
 
     if verbose:
@@ -397,17 +393,22 @@ def publish(ctx,
         context.set_data("current_file", path)
 
     # Begin processing
-    click.echo()  # newline
-
     plugins = pyblish.api.discover(paths=ctx.obj["plugin_paths"])
-    pyblish.util.publish(context=context,
-                         plugins=plugins)
+    context = pyblish.util.publish(context=context, plugins=plugins)
+
+    if any(result["error"] for result in context.data("results")):
+        click.echo("There were errors.")
+
+        for result in context.data("results"):
+            if result["error"] is not None:
+                click.echo(result["error"])
 
     _end = time.time()
 
-    click.echo()
-    click.echo("-" * 80)
-    click.echo(_format_time(_start, _end))
+    if ctx.obj["verbose"]:
+        click.echo()
+        click.echo("-" * 80)
+        click.echo(_format_time(_start, _end))
 
 
 @click.command()

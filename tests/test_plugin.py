@@ -1,10 +1,15 @@
 import os
+import sys
 import shutil
 import tempfile
 import contextlib
 
 import pyblish.plugin
-from pyblish.vendor.nose.tools import *
+from pyblish.vendor.nose.tools import (
+    with_setup,
+    assert_true,
+    assert_equals,
+)
 
 import lib
 
@@ -118,3 +123,88 @@ class MyOtherSelector(pyblish.api.Selector):
 
         assert "MyOtherSelector" in plugins, plugins
         assert "MySelector" not in plugins, plugins
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_unsupported_host():
+    """Publishing from within an unsupported host is ok"""
+
+    class Always(pyblish.api.Plugin):
+        """This plug-in is always discoverable"""
+
+    class OnlyInUnknown(pyblish.api.Plugin):
+        """This plug-in is only discoverable from unknown hosts"""
+        hosts = ["unknown"]
+
+    class OnlyInMaya(pyblish.api.Plugin):
+        """This plug-in is only discoverable from maya"""
+        hosts = ["maya"]
+
+
+    pyblish.api.register_plugin(Always)
+    pyblish.api.register_plugin(OnlyInUnknown)
+    pyblish.api.register_plugin(OnlyInMaya)
+
+    discovered = pyblish.api.discover()
+
+    assert Always in discovered
+    assert OnlyInUnknown not in discovered  # It's known to be python
+    assert OnlyInMaya not in discovered  # Host is not  maya
+
+    def _current_host():
+        return "maya"
+
+    try:
+        old = sys.executable
+        sys.executable = "/root/some_executable"
+        
+        discovered = pyblish.api.discover()
+        assert OnlyInUnknown in discovered
+        assert OnlyInMaya not in discovered
+
+    finally:
+        sys.executable = old
+
+    try:
+        old = sys.executable
+        sys.executable = "/root/maya"
+        
+        discovered = pyblish.api.discover()
+        assert OnlyInUnknown not in discovered
+        assert OnlyInMaya in discovered
+
+    finally:
+        sys.executable = old
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_temporarily_disabled_plugins():
+    """Plug-ins as files starting with an underscore are hidden"""
+
+    discoverable = """
+import pyblish.api
+
+class Discoverable(pyblish.api.Plugin):
+    pass
+"""
+
+    notdiscoverable = """
+import pyblish.api
+
+class NotDiscoverable(pyblish.api.Plugin):
+    pass
+"""
+
+    with tempdir() as d:
+        pyblish.api.register_plugin_path(d)
+
+        with open(os.path.join(d, "discoverable.py"), "w") as f:
+            f.write(discoverable)
+
+        with open(os.path.join(d, "_undiscoverable.py"), "w") as f:
+            f.write(notdiscoverable)
+
+
+        plugins = [p.__name__ for p in pyblish.api.discover()]
+        assert "Discoverable" in plugins
+        assert "NotDiscoverable" not in plugins
