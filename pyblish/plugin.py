@@ -874,7 +874,9 @@ def discover(type=None, regex=None, paths=None):
             if not os.path.isfile(abspath):
                 continue
 
-            mod_name, _ = os.path.splitext(fname)
+            mod_name, mod_ext = os.path.splitext(fname)
+            if not mod_ext == ".py":
+                continue
 
             try:
                 # Discard traces of previously
