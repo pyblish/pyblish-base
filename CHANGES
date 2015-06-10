@@ -3,6 +3,12 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.1.2
+-------------
+
+- Logic: Excluding SimplePlugin and Selectors from Default test (See #198)
+- BACKWARDS INCOMPATIBLE order now supports being decremented (see #199)
+
 Version 1.1.1
 -------------
 
