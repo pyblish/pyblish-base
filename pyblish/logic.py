@@ -37,7 +37,7 @@ def default_test(**vars):
 
     if vars["nextOrder"] >= 2:  # If validation is done
         for order in vars["ordersWithError"]:
-            if order < 2:  # Were there any error before validation?
+            if 1 <= order < 2:  # Did any validators fail?
                 return "failed validation"
     return
 

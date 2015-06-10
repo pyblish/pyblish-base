@@ -42,3 +42,4 @@ def teardown():
 
     os.environ["PYBLISHPLUGINPATH"] = ENVIRONMENT
     pyblish.api.deregister_all_plugins()
+    pyblish.api.deregister_test()
