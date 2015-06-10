@@ -10,6 +10,39 @@ _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
 
 
+
+def inrange(number, base, offset=0):
+    r"""Evaluate whether `number` is within `base` +- `offset`
+
+    Lower bound is *included* whereas upper bound is *excluded*
+    so as to allow for ranges to be stacked up against each other.
+    For example, an offset of 0.5 and a base of 1 evenly stacks
+    up against a base of 2 with identical offset.
+
+    Arguments:
+        number (float): Number to consider
+        base (float): Center of range
+        offset (float, optional): Amount of offset from base
+
+    Usage:
+        >>> inrange(0, base=1, offset=0.5)
+        False
+        >>> inrange(0.4, base=1, offset=0.5)
+        False
+        >>> inrange(1.4, base=1, offset=0.5)
+        True
+        >>> # Lower bound is included
+        >>> inrange(0.5, base=1, offset=0.5)
+        True
+        >>> # Upper bound is excluded
+        >>> inrange(1.5, base=1, offset=0.5)
+        False
+
+    """
+
+    return base - offset <= number < base + offset
+
+
 class MessageHandler(logging.Handler):
     def __init__(self, records, *args, **kwargs):
         # Not using super(), for compatibility with Python 2.6

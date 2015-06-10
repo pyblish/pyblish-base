@@ -5,6 +5,7 @@ import inspect
 import traceback
 
 import pyblish
+import lib
 
 
 class TestFailed(Exception):
@@ -37,9 +38,8 @@ def default_test(**vars):
 
     if vars["nextOrder"] >= 2:  # If validation is done
         for order in vars["ordersWithError"]:
-            if 1 <= order < 2:  # Did any validators fail?
+            if lib.inrange(order, base=1, offset=0.5):
                 return "failed validation"
-    return
 
 
 def process(func, plugins, context, test=None):
