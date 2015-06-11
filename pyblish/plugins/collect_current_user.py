@@ -4,7 +4,7 @@ import pyblish.api
 
 
 @pyblish.api.log
-class SelectCurrentUser(pyblish.api.Selector):
+class CollectCurrentUser(pyblish.api.Collector):
     """Inject the currently logged on user into the Context"""
 
     hosts = ['*']

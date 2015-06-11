@@ -4,7 +4,7 @@ import pyblish.lib
 
 
 @pyblish.api.log
-class SelectCurrentDate(pyblish.api.Selector):
+class CollectCurrentDate(pyblish.api.Collector):
     """Inject the current time into the Context"""
 
     hosts = ['*']
