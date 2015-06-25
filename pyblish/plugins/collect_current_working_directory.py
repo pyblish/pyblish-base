@@ -4,7 +4,7 @@ import pyblish.api
 
 
 @pyblish.api.log
-class SelectCurrentWorkingDirectory(pyblish.api.Selector):
+class CollectCurrentWorkingDirectory(pyblish.api.Collector):
     """Inject the current working directory into Context"""
 
     hosts = ['*']

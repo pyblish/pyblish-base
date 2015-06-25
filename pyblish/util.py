@@ -65,8 +65,16 @@ def publish(context=None, plugins=None, **kwargs):
             context=context):
 
         if isinstance(result, pyblish.logic.TestFailed):
-            log.error("Stopped due to: %s (%s)" % (result, result.vars))
+            log.error("Stopped due to: %s" % result)
             break
+
+        elif isinstance(result, Exception):
+            log.error("An unexpected error happened: %s" % result)
+            break
+
+        error = result["error"]
+        if error is not None:
+            print(error)
 
     return context
 

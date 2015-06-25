@@ -184,8 +184,31 @@ def test_incompatible_context():
     assert_equals(count["#"], 0)
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_custom_test():
     """Registering a custom test works fine"""
+
+    count = {"#": 0}
+
+    def custom_test(**vars):
+        print "I accept anything"
+        return
+
+    class MyValidator(pyblish.api.Validator):
+        def process(self, context):
+            assert False, "I won't stop the extractor"
+
+    class MyExtractor(pyblish.api.Extractor):
+        def process(self, context):
+            print "I came, I saw, I extracted.."
+            count["#"] += 1
+
+    pyblish.api.register_plugin(MyValidator)
+    pyblish.api.register_plugin(MyExtractor)
+    pyblish.api.register_test(custom_test)
+
+    pyblish.util.publish()
+    assert_equals(count["#"], 1)
 
 
 def test_logic_process():
@@ -221,6 +244,7 @@ def test_logic_process():
         assert not isinstance(result, pyblish.logic.TestFailed), result
     
     assert_equals(len(context), 1)
+
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_active():
@@ -261,3 +285,24 @@ def test_active():
         assert not isinstance(result, pyblish.logic.TestFailed), result
 
     assert_equals(count["#"], 201)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_failing_selector():
+    """Failing Selector should not abort publishing"""
+
+    count = {"#": 0}
+
+    class MySelector(pyblish.api.Selector):
+        def process(self, context):
+            assert False, "I shouldn't stop Extraction"
+
+    class MyExtractor(pyblish.api.Extractor):
+        def process(self):
+            count["#"] += 1
+
+    pyblish.api.register_plugin(MySelector)
+    pyblish.api.register_plugin(MyExtractor)
+
+    pyblish.util.publish()
+    assert_equals(count["#"], 1)
