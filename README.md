@@ -4,7 +4,7 @@
 [![Code Health][landscape-image]][landscape-repo]
 [![Gitter][gitter-image]][chat]
 
-### ![][logo]
+[![vlcsnap-2015-07-03-17h02m03s138](https://cloud.githubusercontent.com/assets/2152766/8504730/69ac7ebc-21ce-11e5-8dbd-68571e7b702c.png)](https://www.youtube.com/watch?v=j5uUTW702-U)
 
 An automation micro-framework for content.
 
