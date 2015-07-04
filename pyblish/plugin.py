@@ -133,7 +133,6 @@ class Config(dict):
             "identifier": "publishable"
         })
 
-
     def load(self):
         """Load default configuration from package dir"""
         with open(self.CONFIGPATH, "r") as f:
@@ -191,7 +190,7 @@ class MetaPlugin(type):
         # Forwards-compatibility with asset
         if "asset" in args_:
             cls.__instanceEnabled__ = True
-    
+
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
 
@@ -354,7 +353,6 @@ def process(plugin, context, instance=None):
     context.data("results").append(result)
 
     return result
-
 
 
 def repair(plugin, context, instance=None):
