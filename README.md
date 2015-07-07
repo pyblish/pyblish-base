@@ -11,7 +11,7 @@ Test-driven content creation for collaborative, creative projects.
 - [Wiki][wiki]
 - [Learn by Example][example]
 
-[example]: http://www.pyblish.com/example
+[example]: http://forums.pyblish.com/t/learning-pyblish-by-example/108
 [wiki]: https://github.com/pyblish/pyblish/wiki
 [chat]: https://gitter.im/pyblish/pyblish?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
