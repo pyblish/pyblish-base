@@ -19,6 +19,7 @@ import re
 import sys
 import logging
 import inspect
+import contextlib
 
 # Local library
 import pyblish
@@ -297,6 +298,29 @@ Collector = Selector
 Integrator = Conformer
 
 
+@contextlib.contextmanager
+def logger(handler):
+    """Listen in on the global logger
+
+    Arguments:
+        handler (Handler): Custom handler with which to use
+            to listen for log messages
+
+    """
+
+    l = logging.getLogger()
+    old_level = l.level
+
+    l.addHandler(handler)
+    l.setLevel(logging.DEBUG)
+
+    try:
+        yield
+    finally:
+        l.removeHandler(handler)
+        l.setLevel(old_level)
+
+
 def process(plugin, context, instance=None):
     """Produce a single result from a Plug-in
 
@@ -321,9 +345,6 @@ def process(plugin, context, instance=None):
     records = list()
     handler = pyblish.lib.MessageHandler(records)
 
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-
     provider = pyblish.plugin.Provider()
     provider.inject("context", context)
     provider.inject("instance", instance)
@@ -331,8 +352,9 @@ def process(plugin, context, instance=None):
     __start = time.time()
 
     try:
-        provider.invoke(plugin.process)
-        result["success"] = True
+        with logger(handler):
+            provider.invoke(plugin.process)
+            result["success"] = True
     except Exception as error:
         pyblish.lib.extract_traceback(error)
         result["error"] = error
@@ -341,9 +363,6 @@ def process(plugin, context, instance=None):
 
     for record in records:
         result["records"].append(record)
-
-    # Restore balance to the world
-    root_logger.removeHandler(handler)
 
     result["duration"] = (__end - __start) * 1000  # ms
 
@@ -377,9 +396,6 @@ def repair(plugin, context, instance=None):
     records = list()
     handler = pyblish.lib.MessageHandler(records)
 
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-
     provider = pyblish.plugin.Provider()
     provider.inject("context", context)
     provider.inject("instance", instance)
@@ -387,8 +403,9 @@ def repair(plugin, context, instance=None):
     __start = time.time()
 
     try:
-        provider.invoke(plugin.repair)
-        result["success"] = True
+        with logger(handler):
+            provider.invoke(plugin.repair)
+            result["success"] = True
     except Exception as error:
         pyblish.lib.extract_traceback(error)
         result["error"] = error
@@ -397,9 +414,6 @@ def repair(plugin, context, instance=None):
 
     for record in records:
         result["records"].append(record)
-
-    # Restore balance to the world
-    root_logger.removeHandler(handler)
 
     result["duration"] = (__end - __start) * 1000  # ms
 
