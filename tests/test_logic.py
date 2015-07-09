@@ -213,36 +213,38 @@ def test_custom_test():
 
 def test_logic_process():
     """logic.process works fine"""
-    
+
     context = pyblish.api.Context()
     provider = pyblish.plugin.Provider()
     provider.inject("context", context)
 
     def my_process(plugin, context, instance=None):
-      result = {
-        "success": False,
-        "plugin": plugin,
-        "instance": None,
-        "error": None,
-        "records": list(),
-        "duration": None
-      }
-      plugin = plugin()
-      provider = pyblish.plugin.Provider()
-      provider.inject("context", context)
-      provider.invoke(plugin.process)
-      return result
-    
+        result = {
+            "success": False,
+            "plugin": plugin,
+            "instance": None,
+            "error": None,
+            "records": list(),
+            "duration": None
+        }
+
+        plugin = plugin()
+        provider = pyblish.plugin.Provider()
+        provider.inject("context", context)
+        provider.invoke(plugin.process)
+        return result
+
     class SelectInstance(pyblish.api.Selector):
-      def process(self, context):
-        context.create_instance("MyInstance")
-    
+
+        def process(self, context):
+            context.create_instance("MyInstance")
+
     for result in pyblish.logic.process(
             plugins=[SelectInstance],
             func=my_process,
             context=context):
         assert not isinstance(result, pyblish.logic.TestFailed), result
-    
+
     assert_equals(len(context), 1)
 
 
@@ -306,3 +308,49 @@ def test_failing_selector():
 
     pyblish.util.publish()
     assert_equals(count["#"], 1)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_decrementing_order():
+    """Decrementing order works fine"""
+
+    count = {"#": 0}
+
+    class MySelector(pyblish.api.Selector):
+        def process(self, context):
+            count["#"] += 1
+            assert False, "I shouldn't stop Extraction"
+
+    class MyValidator(pyblish.api.Validator):
+        order = pyblish.api.Validator.order - 0.4
+
+        def process(self):
+            count["#"] += 10
+            assert False, "I will run first, and stop things"
+
+    class MyValidator2(pyblish.api.Validator):
+        order = pyblish.api.Validator.order + 0.4
+
+        def process(self):
+            count["#"] += 100
+            assert False, "I will stop things"
+
+    class MyExtractor(pyblish.api.Extractor):
+        order = pyblish.api.Extractor.order - 0.49
+
+        def process(self):
+            count["#"] += 1000
+            assert False, "I will not run"
+
+    class MyExtractor2(pyblish.api.Extractor):
+        order = pyblish.api.Extractor.order - 0.2
+
+        def process(self):
+            count["#"] += 10000
+            assert False, "I will not run"
+
+    for plugin in (MySelector, MyValidator, MyValidator2, MyExtractor):
+        pyblish.api.register_plugin(plugin)
+
+    pyblish.util.publish()
+    assert_equals(count["#"], 111)

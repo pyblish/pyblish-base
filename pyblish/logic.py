@@ -36,9 +36,15 @@ def default_test(**vars):
 
     """
 
-    if vars["nextOrder"] >= 2:  # If validation is done
+    offset = 0.5
+    validation_order = pyblish.api.Validator.order
+
+    # If validation is done
+    if vars["nextOrder"] >= validation_order + offset:
         for order in vars["ordersWithError"]:
-            if lib.inrange(order, base=1, offset=0.5):
+            if lib.inrange(order,
+                           base=validation_order,
+                           offset=offset):
                 return "failed validation"
 
 
