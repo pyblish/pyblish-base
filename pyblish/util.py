@@ -99,6 +99,10 @@ def conform(*args, **kwargs):
     return _convenience(4, *args, **kwargs)
 
 
+collect = select
+integrate = conform
+
+
 def _convenience(order, *args, **kwargs):
     plugins = [p for p in pyblish.plugin.discover()
                if p.order < order]
