@@ -335,6 +335,7 @@ def process(plugin, context, instance=None):
         "success": False,
         "plugin": plugin,
         "instance": instance,
+        "asset": instance,  # Forwards compatibility
         "error": None,
         "records": list(),
         "duration": None
