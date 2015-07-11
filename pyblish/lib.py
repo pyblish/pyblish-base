@@ -10,7 +10,6 @@ _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
 
 
-
 def inrange(number, base, offset=0):
     r"""Evaluate whether `number` is within `base` +- `offset`
 
