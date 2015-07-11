@@ -501,6 +501,24 @@ class AbstractEntity(list):
 class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
+    @property
+    def id(self):
+        return "Context"
+
+    def __init__(self, *args, **kwargs):
+        super(Context, self).__init__(*args, **kwargs)
+
+        # Cache children for faster lookup
+        self._children = dict()
+
+    def add(self, other):
+        super(Context, self).add(other)
+        self._children[other.id] = other
+
+    def remove(self, other):
+        super(Context, self).remove(other)
+        self._children.pop(other.id)
+
     def create_instance(self, name, **kwargs):
         """Convenience method of the following.
 
@@ -520,6 +538,25 @@ class Context(AbstractEntity):
 
     # Alias
     create_asset = create_instance
+
+    def __getitem__(self, item):
+        """Enable support for dict-like getting of children by id
+
+        Example:
+            >>> context = Context()
+            >>> instance = context.create_instance("MyInstance")
+            >>> assert context["MyInstance"].name == "MyInstance"
+            >>> assert context[0].name == "MyInstance"
+            >>> assert context.get("MyInstance").name == "MyInstance"
+
+        """
+
+        if isinstance(item, int):
+            return super(Context, self).__getitem__(item)
+        return self._children[item]
+
+    def get(self, key, default=None):
+        return self._children.get(key, default)
 
 
 @pyblish.lib.log

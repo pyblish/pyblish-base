@@ -57,5 +57,19 @@ def test_instance_equality():
     assert inst2 == inst3
 
 
+def test_context_itemgetter():
+    """Context.get() works"""
+    context = pyblish.api.Context()
+    context.create_instance("MyInstanceA")
+    context.create_instance("MyInstanceB")
+
+    assert context["MyInstanceA"].name == "MyInstanceA"
+    assert context["MyInstanceB"].name == "MyInstanceB"
+    assert context.get("MyInstanceA").name == "MyInstanceA"
+    assert context.get("MyInstanceB").name == "MyInstanceB"
+    assert context[0].name == "MyInstanceA"
+    assert context[1].name == "MyInstanceB"
+
+
 if __name__ == '__main__':
     test_add_remove_instances()
