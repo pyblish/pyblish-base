@@ -6,7 +6,11 @@ This contains all major version changes between pyblish releases.
 Version 1.1.3
 -------------
 
-- Decrementing order actually works now. (#206)
+- Bugfix: Decrementing order actually works now. (#206)
+- Feature: Dict-like getting of instances from Context (#208)
+- Feature: Host registration (#177)
+- `collect` and `integrate` now available via pyblish.util
+- "asset" available in context.data("result") for forwards compatibility
 
 Version 1.1.2
 -------------

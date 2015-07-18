@@ -81,27 +81,33 @@ def publish(context=None, plugins=None, **kwargs):
 
 def select(*args, **kwargs):
     """Convenience function for selection"""
-    return _convenience(1, *args, **kwargs)
+    return _convenience(0.5, *args, **kwargs)
 
 
 def validate(*args, **kwargs):
     """Convenience function for validation"""
-    return _convenience(2, *args, **kwargs)
+    return _convenience(1.5, *args, **kwargs)
 
 
 def extract(*args, **kwargs):
     """Convenience function for extraction"""
-    return _convenience(3, *args, **kwargs)
+    return _convenience(2.5, *args, **kwargs)
 
 
 def conform(*args, **kwargs):
     """Convenience function for conform"""
-    return _convenience(4, *args, **kwargs)
+    return _convenience(3.5, *args, **kwargs)
+
+
+collect = select
+integrate = conform
 
 
 def _convenience(order, *args, **kwargs):
     plugins = [p for p in pyblish.plugin.discover()
                if p.order < order]
+
+    print [p.id for p in plugins]
 
     args = list(args)
     if len(args) > 1:

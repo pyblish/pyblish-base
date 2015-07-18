@@ -62,7 +62,7 @@ def test_legacy():
 def test_asset():
     """Using asset over instance works fine"""
     context = pyblish.plugin.Context()
-    
+
     asseta = context.create_asset("MyAssetA", family="myFamily")
     assetb = context.create_asset("MyAssetB", family="myFamily")
 
@@ -140,7 +140,6 @@ def test_unsupported_host():
         """This plug-in is only discoverable from maya"""
         hosts = ["maya"]
 
-
     pyblish.api.register_plugin(Always)
     pyblish.api.register_plugin(OnlyInUnknown)
     pyblish.api.register_plugin(OnlyInMaya)
@@ -151,30 +150,21 @@ def test_unsupported_host():
     assert OnlyInUnknown not in discovered  # It's known to be python
     assert OnlyInMaya not in discovered  # Host is not  maya
 
-    def _current_host():
-        return "maya"
+    pyblish.api.deregister_all_hosts()
+    pyblish.api.register_host("unknown")
+    sys.executable = "/root/some_executable"
 
-    try:
-        old = sys.executable
-        sys.executable = "/root/some_executable"
-        
-        discovered = pyblish.api.discover()
-        assert OnlyInUnknown in discovered
-        assert OnlyInMaya not in discovered
+    discovered = pyblish.api.discover()
+    assert OnlyInUnknown in discovered
+    assert OnlyInMaya not in discovered
 
-    finally:
-        sys.executable = old
+    pyblish.api.deregister_host("unknown")
+    pyblish.api.deregister_all_hosts()
+    pyblish.api.register_host("maya")
 
-    try:
-        old = sys.executable
-        sys.executable = "/root/maya"
-        
-        discovered = pyblish.api.discover()
-        assert OnlyInUnknown not in discovered
-        assert OnlyInMaya in discovered
-
-    finally:
-        sys.executable = old
+    discovered = pyblish.api.discover()
+    assert OnlyInUnknown not in discovered
+    assert OnlyInMaya in discovered
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -203,7 +193,6 @@ class NotDiscoverable(pyblish.api.Plugin):
 
         with open(os.path.join(d, "_undiscoverable.py"), "w") as f:
             f.write(notdiscoverable)
-
 
         plugins = [p.__name__ for p in pyblish.api.discover()]
         assert "Discoverable" in plugins

@@ -14,3 +14,4 @@ _registered_paths = list()
 _registered_plugins = dict()
 _registered_services = dict()
 _registered_test = None
+_registered_hosts = set()

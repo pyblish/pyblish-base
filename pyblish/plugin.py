@@ -335,6 +335,7 @@ def process(plugin, context, instance=None):
         "success": False,
         "plugin": plugin,
         "instance": instance,
+        "asset": instance,  # Forwards compatibility
         "error": None,
         "records": list(),
         "duration": None
@@ -501,6 +502,24 @@ class AbstractEntity(list):
 class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
+    @property
+    def id(self):
+        return "Context"
+
+    def __init__(self, *args, **kwargs):
+        super(Context, self).__init__(*args, **kwargs)
+
+        # Cache children for faster lookup
+        self._children = dict()
+
+    def add(self, other):
+        super(Context, self).add(other)
+        self._children[other.id] = other
+
+    def remove(self, other):
+        super(Context, self).remove(other)
+        self._children.pop(other.id)
+
     def create_instance(self, name, **kwargs):
         """Convenience method of the following.
 
@@ -520,6 +539,25 @@ class Context(AbstractEntity):
 
     # Alias
     create_asset = create_instance
+
+    def __getitem__(self, item):
+        """Enable support for dict-like getting of children by id
+
+        Example:
+            >>> context = Context()
+            >>> instance = context.create_instance("MyInstance")
+            >>> assert context["MyInstance"].name == "MyInstance"
+            >>> assert context[0].name == "MyInstance"
+            >>> assert context.get("MyInstance").name == "MyInstance"
+
+        """
+
+        if isinstance(item, int):
+            return super(Context, self).__getitem__(item)
+        return self._children[item]
+
+    def get(self, key, default=None):
+        return self._children.get(key, default)
 
 
 @pyblish.lib.log
@@ -606,7 +644,7 @@ Asset = Instance
 
 
 def current_host():
-    """Return currently active host
+    """Return host last registered thru `register_host()`
 
     When running Pyblish from within a host, this function determines
     which host is running and returns the equivalent keyword.
@@ -624,27 +662,7 @@ def current_host():
 
     """
 
-    executable = os.path.basename(sys.executable).lower()
-
-    if "maya" in executable:
-        return "maya"
-
-    if "nuke" in executable:
-        return "nuke"
-
-    if "modo" in executable:
-        return "modo"
-
-    if "houdini" in executable or "hou" in sys.modules:
-        return 'houdini'
-
-    if "houdini" in executable:
-        return "houdini"
-
-    if "python" in executable:
-        return "python"
-
-    return "unknown"
+    return pyblish._registered_hosts[-1] or "unknown"
 
 
 def register_plugin(plugin):
@@ -781,6 +799,49 @@ def registered_plugins():
     """
 
     return pyblish._registered_plugins.values()
+
+
+def register_host(host):
+    """Register a new host
+
+    Registered hosts are used to filter discovered
+    plug-ins by host.
+
+    Example:
+        >>> register_host("My Host")
+        >>> "My Host" in registered_hosts()
+        True
+
+    """
+
+    pyblish._registered_hosts.add(host)
+
+
+def deregister_host(host, quiet=False):
+    """Remove an already registered host
+
+    Arguments:
+        host (str): Name of host
+        quiet (bool): Whether to raise an exception
+            when attempting to remove a host that is
+            not already registered.
+
+    """
+
+    try:
+        pyblish._registered_hosts.remove(host)
+    except Exception as e:
+        if not quiet:
+            raise e
+
+
+def deregister_all_hosts():
+    pyblish._registered_hosts.clear()
+
+
+def registered_hosts():
+    """Return the currently registered hosts"""
+    return list(pyblish._registered_hosts)
 
 
 def configured_paths():
@@ -1011,14 +1072,17 @@ def version_is_compatible(plugin):
 def host_is_compatible(plugin):
     """Determine whether plug-in `plugin` is compatible with the current host
 
-    The current host is determined by :func:`current_host`.
+    Available hosts are determined by :func:`registered_hosts`.
 
     Arguments:
         plugin (Plugin): Plug-in to assess.
 
     """
 
-    return any(["*" in plugin.hosts, current_host() in plugin.hosts])
+    if "*" in plugin.hosts:
+        return True
+
+    return any(host in plugin.hosts for host in registered_hosts())
 
 
 def sort(plugins):

@@ -33,6 +33,11 @@ from .plugin import (
     Config as __Config,
     discover,
 
+    register_host,
+    registered_hosts,
+    deregister_host,
+    deregister_all_hosts,
+
     register_plugin,
     deregister_plugin,
     deregister_all_plugins,
@@ -93,12 +98,22 @@ config = __Config()
 
 
 def __init__():
+    """Initialise Pyblish
+
+    This function registered default services,
+    hosts and tests. It is idempotent and thread-safe.
+
+    """
+
     # Register default services
     register_service("time", __time)
     register_service("user", getpass.getuser())
     register_service("config", config)
     register_service("context", None)
     register_service("instance", None)
+
+    # Register default host
+    register_host("python")
 
     # Register default test
     register_test(__default_test)
@@ -129,6 +144,11 @@ __all__ = [
     "registered_paths",
     "configured_paths",
     "environment_paths",
+
+    "register_host",
+    "registered_hosts",
+    "deregister_host",
+    "deregister_all_hosts",
 
     "register_plugin",
     "deregister_plugin",
