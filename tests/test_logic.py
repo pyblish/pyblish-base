@@ -316,6 +316,12 @@ def test_decrementing_order():
 
     count = {"#": 0}
 
+    class MyDecrementingSelector(pyblish.api.Selector):
+        order = pyblish.api.Selector.order - 0.3
+
+        def process(self):
+            count["#"] += 0.1
+
     class MySelector(pyblish.api.Selector):
         def process(self, context):
             count["#"] += 1
@@ -349,8 +355,13 @@ def test_decrementing_order():
             count["#"] += 10000
             assert False, "I will not run"
 
-    for plugin in (MySelector, MyValidator, MyValidator2, MyExtractor):
+    for plugin in (
+            MyDecrementingSelector,
+            MySelector,
+            MyValidator,
+            MyValidator2,
+            MyExtractor):
         pyblish.api.register_plugin(plugin)
 
     pyblish.util.publish()
-    assert_equals(count["#"], 111)
+    assert_equals(count["#"], 111.1)
