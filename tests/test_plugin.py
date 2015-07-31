@@ -197,3 +197,27 @@ class NotDiscoverable(pyblish.api.Plugin):
         plugins = [p.__name__ for p in pyblish.api.discover()]
         assert "Discoverable" in plugins
         assert "NotDiscoverable" not in plugins
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_unique_logger():
+    """A unique logger is applied to every plug-in"""
+
+    count = {"#": 0}
+
+    class MyPlugin(pyblish.api.Plugin):
+        def process(self, context):
+            self.log.debug("Hello world")
+            count["#"] += 1
+
+    pyblish.api.register_plugin(MyPlugin)
+
+    context = pyblish.util.publish()
+
+    assert_equals(count["#"], 1)
+    print context.data("results")
+
+    results = context.data("results")[0]
+    records = results["records"]
+    hello_world = records[0]
+    assert_equals(hello_world.msg, "Hello world")

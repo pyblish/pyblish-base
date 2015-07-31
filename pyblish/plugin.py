@@ -34,7 +34,15 @@ log = logging.getLogger("pyblish.plugin")
 
 
 class Provider(object):
-    """Dependency provider"""
+    """Dependency provider
+
+    This object is given a series of "services" that it then distributes
+    to a passed function based on the function's argument signature.
+
+    For example, the function func:`myfunc(a, b)` is given the services
+    called "a" and "b", given they have previously been added to the provider.
+
+    """
 
     def __init__(self):
         self._services = dict()
@@ -145,6 +153,71 @@ class Config(dict):
         return True
 
 
+def evaluate_pre11(plugin):
+    """Determine whether the plug-in is pre-1.1"""
+    plugin.__pre11__ = False
+
+    if hasattr(plugin, "process_context"):
+        plugin.__pre11__ = True
+        plugin.process = plugin.process_context
+        del(plugin.process_context)
+
+    if hasattr(plugin, "process_instance"):
+        plugin.__pre11__ = True
+        plugin.process = plugin.process_instance
+        del(plugin.process_instance)
+
+    # Repair is deprecated
+    if hasattr(plugin, "repair_context"):
+        plugin.__pre11__ = True
+        plugin.repair = plugin.repair_context
+        del(plugin.repair_context)
+
+    if hasattr(plugin, "repair_instance"):
+        plugin.__pre11__ = True
+        plugin.repair = plugin.repair_instance
+        del(plugin.repair_instance)
+
+
+def evaluate_enabledness(plugin):
+    """Deterimine whether the plug-in supports Context/Instance"""
+    plugin.__contextEnabled__ = False
+    plugin.__instanceEnabled__ = False
+
+    args_ = inspect.getargspec(plugin.process).args
+
+    if "instance" in args_:
+        plugin.__instanceEnabled__ = True
+
+    if "context" in args_:
+        plugin.__contextEnabled__ = True
+
+    # Forwards-compatibility with asset
+    if "asset" in args_:
+        plugin.__instanceEnabled__ = True
+
+
+def append_logger(plugin):
+    """Append logger to plugin
+
+    The logger will include a plug-in's final name, as defined
+    by the subclasser. For example, if a plug-in is defined, subclassing
+    :class:`Plugin`, it's given name will be present in log records.
+
+    """
+
+    module = plugin.__module__
+    name = plugin.__name__
+
+    # Package name appended, for filtering of LogRecord instances
+    logname = "pyblish.%s.%s" % (module, name)
+    plugin.log = logging.getLogger(logname)
+    plugin.log.setLevel(logging.DEBUG)
+
+    # All messages are handled by root-logger
+    plugin.log.propagate = True
+
+
 class MetaPlugin(type):
     """Rewrite plug-ins written prior to 1.1
 
@@ -155,43 +228,9 @@ class MetaPlugin(type):
     """
 
     def __init__(cls, *args, **kwargs):
-        cls.__pre11__ = False
-        cls.__contextEnabled__ = False
-        cls.__instanceEnabled__ = False
-
-        if hasattr(cls, "process_context"):
-            cls.__pre11__ = True
-            cls.process = cls.process_context
-            del(cls.process_context)
-
-        if hasattr(cls, "process_instance"):
-            cls.__pre11__ = True
-            cls.process = cls.process_instance
-            del(cls.process_instance)
-
-        # Repair is deprecated
-        if hasattr(cls, "repair_context"):
-            cls.__pre11__ = True
-            cls.repair = cls.repair_context
-            del(cls.repair_context)
-
-        if hasattr(cls, "repair_instance"):
-            cls.__pre11__ = True
-            cls.repair = cls.repair_instance
-            del(cls.repair_instance)
-
-        args_ = inspect.getargspec(cls.process).args
-
-        if "instance" in args_:
-            cls.__instanceEnabled__ = True
-
-        if "context" in args_:
-            cls.__contextEnabled__ = True
-
-        # Forwards-compatibility with asset
-        if "asset" in args_:
-            cls.__instanceEnabled__ = True
-
+        append_logger(cls)
+        evaluate_pre11(cls)
+        evaluate_enabledness(cls)
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
 
