@@ -875,7 +875,8 @@ def register_host(host):
 
     """
 
-    pyblish._registered_hosts.add(host)
+    if not host in pyblish._registered_hosts:
+        pyblish._registered_hosts.append(host)
 
 
 def deregister_host(host, quiet=False):
@@ -897,7 +898,7 @@ def deregister_host(host, quiet=False):
 
 
 def deregister_all_hosts():
-    pyblish._registered_hosts.clear()
+    pyblish._registered_hosts[:] = []
 
 
 def registered_hosts():

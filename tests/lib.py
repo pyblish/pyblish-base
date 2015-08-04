@@ -28,6 +28,7 @@ def setup_empty():
     """Disable all plug-ins"""
     setup()
     pyblish.plugin.deregister_all_paths()
+    pyblish.plugin.deregister_all_hosts()
 
 
 def teardown():
@@ -42,4 +43,6 @@ def teardown():
 
     os.environ["PYBLISHPLUGINPATH"] = ENVIRONMENT
     pyblish.api.deregister_all_plugins()
+    pyblish.api.deregister_all_hosts()
     pyblish.api.deregister_test()
+    pyblish.api.__init__()
