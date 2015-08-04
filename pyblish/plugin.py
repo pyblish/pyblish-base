@@ -475,8 +475,7 @@ class AbstractEntity(list):
 
         """
 
-        if other not in self:
-            return self.append(other)
+        return self.append(other)
 
     def remove(self, other):
         """Remove member from self
@@ -544,6 +543,28 @@ class Context(AbstractEntity):
     @property
     def id(self):
         return "Context"
+
+    def __contains__(self, key):
+        """Support both Instance objects and `id` strings
+
+        Example:
+            >>> context = Context()
+            >>> instance = context.create_instance("MyInstance")
+            >>> "MyInstance" in context
+            True
+            >>> instance in context
+            True
+            >>> "NotExists" in context
+            False
+
+        """
+
+        try:
+            key = key.id
+        except:
+            pass
+
+        return key in self._children
 
     def __init__(self, *args, **kwargs):
         super(Context, self).__init__(*args, **kwargs)
@@ -613,16 +634,17 @@ class Instance(AbstractEntity):
             :class:`Context.create_instance()`.
 
     Attributes:
-        name (str): Name of instance, used in plugins
+        id (str): Unique identifier of instance
+        name (str): Name of instance
         parent (AbstractEntity): Optional parent of instance
 
     """
 
     def __eq__(self, other):
-        return self.name == getattr(other, "name", None)
+        return self.id == getattr(other, "id", None)
 
     def __ne__(self, other):
-        return self.name != getattr(other, "name", None)
+        return self.id != getattr(other, "id", None)
 
     def __repr__(self):
         return u"%s.%s(\"%s\")" % (__name__, type(self).__name__, self)

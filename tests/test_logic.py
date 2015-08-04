@@ -22,23 +22,21 @@ def test_process_callables():
 
     class ValidateInstance(pyblish.api.Validator):
         def process(self, instance):
-            count["#"] += 1
+            count["#"] += 10
             assert False, "I was programmed to fail"
 
     class ExtractInstance(pyblish.api.Extractor):
         def process(self, instance):
-            count["#"] += 1
+            count["#"] += 100
 
     pyblish.api.register_plugin(SelectInstance)
     pyblish.api.register_plugin(ValidateInstance)
     pyblish.api.register_plugin(ExtractInstance)
 
-    _context = pyblish.plugin.Context()
-
     for result in pyblish.logic.process(
             func=pyblish.plugin.process,
             plugins=pyblish.plugin.discover(),
-            context=_context):
+            context=pyblish.plugin.Context()):
 
         if isinstance(result, pyblish.logic.TestFailed):
             break
@@ -46,17 +44,19 @@ def test_process_callables():
         if isinstance(result, Exception):
             assert False  # This would be a bug
 
-    assert_equals(count["#"], 2)
+    assert_equals(count["#"], 11)
 
-    def context():
-        return _context
+    context = pyblish.plugin.Context()
+
+    def _context():
+        return context
 
     count["#"] = 0
 
     for result in pyblish.logic.process(
             func=pyblish.plugin.process,
             plugins=pyblish.plugin.discover,  # <- Callable
-            context=context):  # <- Callable
+            context=_context):  # <- Callable
 
         if isinstance(result, pyblish.logic.TestFailed):
             break
@@ -64,7 +64,7 @@ def test_process_callables():
         if isinstance(result, Exception):
             assert False  # This would be a bug
 
-    assert_equals(count["#"], 2)
+    assert_equals(count["#"], 11)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
