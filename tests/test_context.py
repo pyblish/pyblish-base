@@ -71,5 +71,14 @@ def test_context_itemgetter():
     assert context[1].name == "MyInstanceB"
 
 
+def test_in():
+    """Querying whether an Instance is in a Context works"""
+
+    context = pyblish.api.Context()
+    context.create_instance("MyInstance")
+    assert "MyInstance" in context
+    assert "NotExist" not in context
+
+
 if __name__ == '__main__':
     test_add_remove_instances()

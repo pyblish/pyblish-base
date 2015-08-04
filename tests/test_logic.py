@@ -22,23 +22,21 @@ def test_process_callables():
 
     class ValidateInstance(pyblish.api.Validator):
         def process(self, instance):
-            count["#"] += 1
+            count["#"] += 10
             assert False, "I was programmed to fail"
 
     class ExtractInstance(pyblish.api.Extractor):
         def process(self, instance):
-            count["#"] += 1
+            count["#"] += 100
 
     pyblish.api.register_plugin(SelectInstance)
     pyblish.api.register_plugin(ValidateInstance)
     pyblish.api.register_plugin(ExtractInstance)
 
-    _context = pyblish.plugin.Context()
-
     for result in pyblish.logic.process(
             func=pyblish.plugin.process,
             plugins=pyblish.plugin.discover(),
-            context=_context):
+            context=pyblish.plugin.Context()):
 
         if isinstance(result, pyblish.logic.TestFailed):
             break
@@ -46,17 +44,19 @@ def test_process_callables():
         if isinstance(result, Exception):
             assert False  # This would be a bug
 
-    assert_equals(count["#"], 2)
+    assert_equals(count["#"], 11)
 
-    def context():
-        return _context
+    context = pyblish.plugin.Context()
+
+    def _context():
+        return context
 
     count["#"] = 0
 
     for result in pyblish.logic.process(
             func=pyblish.plugin.process,
             plugins=pyblish.plugin.discover,  # <- Callable
-            context=context):  # <- Callable
+            context=_context):  # <- Callable
 
         if isinstance(result, pyblish.logic.TestFailed):
             break
@@ -64,7 +64,7 @@ def test_process_callables():
         if isinstance(result, Exception):
             assert False  # This would be a bug
 
-    assert_equals(count["#"], 2)
+    assert_equals(count["#"], 11)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -316,6 +316,12 @@ def test_decrementing_order():
 
     count = {"#": 0}
 
+    class MyDecrementingSelector(pyblish.api.Selector):
+        order = pyblish.api.Selector.order - 0.3
+
+        def process(self):
+            count["#"] += 0.1
+
     class MySelector(pyblish.api.Selector):
         def process(self, context):
             count["#"] += 1
@@ -349,8 +355,13 @@ def test_decrementing_order():
             count["#"] += 10000
             assert False, "I will not run"
 
-    for plugin in (MySelector, MyValidator, MyValidator2, MyExtractor):
+    for plugin in (
+            MyDecrementingSelector,
+            MySelector,
+            MyValidator,
+            MyValidator2,
+            MyExtractor):
         pyblish.api.register_plugin(plugin)
 
     pyblish.util.publish()
-    assert_equals(count["#"], 111)
+    assert_equals(count["#"], 111.1)

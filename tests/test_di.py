@@ -313,7 +313,6 @@ def test_asset():
                 context.create_asset(name, family="myFamily")
             count["#"] += 1
 
-
     class ValidateColor(pyblish.api.Validator):
         """Called twice"""
         families = ["myFamily"]

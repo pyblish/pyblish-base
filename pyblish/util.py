@@ -26,7 +26,7 @@ import pyblish.lib
 import pyblish.logic
 import pyblish.plugin
 
-log = logging.getLogger("pyblish")
+log = pyblish.lib.setup_log(level=logging.ERROR)
 
 
 def publish(context=None, plugins=None, **kwargs):
@@ -101,6 +101,7 @@ def conform(*args, **kwargs):
 
 collect = select
 integrate = conform
+run = publish  # Alias
 
 
 def _convenience(order, *args, **kwargs):

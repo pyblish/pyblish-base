@@ -10,7 +10,7 @@ _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
 
 
-def inrange(number, base, offset=0):
+def inrange(number, base, offset=0.5):
     r"""Evaluate whether `number` is within `base` +- `offset`
 
     Lower bound is *included* whereas upper bound is *excluded*
@@ -39,7 +39,7 @@ def inrange(number, base, offset=0):
 
     """
 
-    return base - offset <= number < base + offset
+    return (base - offset) <= number < (base + offset)
 
 
 class MessageHandler(logging.Handler):
