@@ -3,6 +3,11 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.1.5
+-------------
+
+- Bugfix: Deprecated function pyblish.api.current_host fixed (#215)
+
 Version 1.1.4
 -------------
 
