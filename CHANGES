@@ -3,6 +3,13 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.1.4
+-------------
+
+- Feature: Added support for `"MyInstance" in context`
+- Enhancement: Removing the need for @pyblish.api.log (#213)
+- Bugfix: Negative collectors (#210)
+
 Version 1.1.3
 -------------
 
