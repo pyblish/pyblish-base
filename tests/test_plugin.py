@@ -221,3 +221,19 @@ def test_unique_logger():
     records = results["records"]
     hello_world = records[0]
     assert_equals(hello_world.msg, "Hello world")
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_current_host():
+    """pyblish.api.current_host works"""
+    pyblish.plugin.register_host("myhost")
+    assert_equals(pyblish.plugin.current_host(), "myhost")
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_register_host():
+    """Registering and deregistering hosts works fine"""
+    pyblish.plugin.register_host("myhost")
+    assert "myhost" in pyblish.plugin.registered_hosts()
+    pyblish.plugin.deregister_host("myhost")
+    assert "myhost" not in pyblish.plugin.registered_hosts()
