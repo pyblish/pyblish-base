@@ -3,6 +3,12 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.1.6
+-------------
+
+- Bugfix: Duplicate instances was allowed (#219)
+- Added pyblish.plugin.plugins_from_module
+
 Version 1.1.5
 -------------
 

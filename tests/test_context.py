@@ -42,7 +42,6 @@ def test_add_remove_instances():
     """Adding instances to context works"""
     ctx = pyblish.plugin.Context()
     inst = pyblish.plugin.Instance(name='Test', parent=ctx)
-    ctx.add(inst)
     ctx.remove(inst)
 
 
@@ -78,6 +77,20 @@ def test_in():
     context.create_instance("MyInstance")
     assert "MyInstance" in context
     assert "NotExist" not in context
+
+
+def test_add_to_context():
+    context = pyblish.api.Context()
+    instance = pyblish.api.Instance("MyInstance")
+    context.add(instance)
+    context.remove(instance)
+
+
+@raises(ValueError)
+def test_duplicate_instance():
+    context = pyblish.api.Context()
+    instance = pyblish.api.Instance("MyInstance", parent=context)
+    context.add(instance)
 
 
 if __name__ == '__main__':
