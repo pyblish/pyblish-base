@@ -875,7 +875,7 @@ def register_host(host):
 
     """
 
-    if not host in pyblish._registered_hosts:
+    if host not in pyblish._registered_hosts:
         pyblish._registered_hosts.append(host)
 
 
