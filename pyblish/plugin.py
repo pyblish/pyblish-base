@@ -978,9 +978,9 @@ def discover(type=None, regex=None, paths=None):
     "$validator_*^" for plug-ins of type Validator.
 
     Arguments:
-        type (str, optional): Only return plugins of specified type
-            E.g. validators, extractors. In None is specified, return
-            all plugins. Available options are "selectors", validators",
+        type (str, optional): !DEPRECATED! Only return plugins of
+            specified type. E.g. validators, extractors. In None is specified,
+            return all plugins. Available options are "selectors", validators",
             "extractors", "conformers", "collectors" and "integrators".
         regex (str, optional): Limit results to those matching `regex`.
             Matching is done on classes, as opposed to
@@ -991,8 +991,7 @@ def discover(type=None, regex=None, paths=None):
 
     """
 
-    # Include plug-ins from registration
-    discovered_plugins = pyblish._registered_plugins.copy()
+    plugins = dict()
 
     # Include plug-ins from registered paths
     for path in paths or plugin_paths():
@@ -1037,6 +1036,7 @@ def discover(type=None, regex=None, paths=None):
                 if name.startswith("_"):
                     continue
 
+                # It could be anything at this point
                 obj = getattr(module, name)
 
                 if not inspect.isclass(obj):
@@ -1045,31 +1045,79 @@ def discover(type=None, regex=None, paths=None):
                 if not issubclass(obj, Plugin):
                     continue
 
-                discovered_plugins[obj.__name__] = obj
+                plugins[obj.id] = obj
 
-    # Filter discovered
-    plugins = list()
-    for name, plugin in discovered_plugins.items():
+    # Include plug-ins from registration.
+    # Directly registered plug-ins take precedence.
+    plugins.update(pyblish._registered_plugins)
+
+    filtered = list()
+    for name, plugin in plugins.iteritems():
+        if plugin in filtered:
+            log.debug("Duplicate plug-in found: %s", plugin)
+            continue
+
         if not plugin_is_valid(plugin):
+            log.debug("Plug-in invalid: %s", plugin)
             continue
 
         if not version_is_compatible(plugin):
-            log.warning("Plug-in %s not compatible with "
-                        "this version (%s) of Pyblish." % (
-                            plugin, pyblish.__version__))
+            log.debug("Plug-in %s not compatible with "
+                      "this version (%s) of Pyblish." % (
+                          plugin, pyblish.__version__))
             continue
 
         if not host_is_compatible(plugin):
             continue
 
-        if plugin in plugins:
-            log.debug("Duplicate plugin found: %s", plugin)
+        if regex is None or re.match(regex, name):
+            filtered.append(plugin)
+
+    sort(filtered)  # In-place
+    return filtered
+
+
+def plugins_from_module(module):
+    """Return plug-ins from module
+
+    Arguments:
+        module (module): Imported module from which to
+            parse valid Pyblish plug-ins.
+
+    Returns:
+        List of plug-ins, or empty list if none is found.
+
+    """
+
+    plugins = list()
+
+    for name in dir(module):
+        if name.startswith("_"):
             continue
 
-        if regex is None or re.match(regex, name):
-            plugins.append(plugin)
+        # It could be anything at this point
+        obj = getattr(module, name)
 
-    sort(plugins)  # In-place
+        if not inspect.isclass(obj):
+            continue
+
+        if not issubclass(obj, Plugin):
+            continue
+
+        if obj in plugins:
+            continue
+
+        if not plugin_is_valid(obj):
+            continue
+
+        if not version_is_compatible(obj):
+            continue
+
+        if not host_is_compatible(obj):
+            continue
+
+        plugins.append(obj)
+
     return plugins
 
 
