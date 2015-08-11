@@ -573,6 +573,15 @@ class Context(AbstractEntity):
         self._children = dict()
 
     def add(self, other):
+        """Add `other` to self
+
+        Duplicate IDs are not allowed.
+
+        Raises:
+            ValueError is duplicate IDs are found.
+
+        """
+
         if other in self:
             raise ValueError("\"%s\" already in Context" % other)
 
@@ -580,6 +589,7 @@ class Context(AbstractEntity):
         super(Context, self).add(other)
 
     def remove(self, other):
+        """Remove `other` from self"""
         self._children.pop(other.id)
         super(Context, self).remove(other)
 
@@ -1100,17 +1110,10 @@ def plugins_from_module(module):
         # It could be anything at this point
         obj = getattr(module, name)
 
-        if not inspect.isclass(obj):
-            continue
-
-        if not issubclass(obj, Plugin):
-            continue
-
-        if obj in plugins:
-            continue
-
         if not plugin_is_valid(obj):
             continue
+
+        print "%s is valid" % obj
 
         if not version_is_compatible(obj):
             continue
@@ -1141,28 +1144,23 @@ def plugin_is_valid(plugin):
         log.debug("Plug-in requires must be of type string: %s", plugin)
         return False
 
-    try:
-        if (issubclass(plugin, Selector)
-                and not getattr(plugin, "hosts")):
-            raise Exception(0)
-        if (issubclass(plugin, (Validator, Extractor))
-                and not getattr(plugin, "families")
-                and not getattr(plugin, "hosts")):
-            raise Exception(1)
-
-        if (issubclass(plugin, Conformer)
-                and not getattr(plugin, "families")):
-            raise Exception(2)
-
-    except Exception as e:
-        if e.message == 0:
-            log.error("%s: Plug-in not valid, missing hosts.", plugin)
-        if e.message == 1:
-            log.error("%s: Plug-in not valid, missing hosts and families.",
-                      plugin)
-        if e.message == 2:
-            log.error("%s: Plug-in not valid, missing families.", plugin)
+    if not isinstance(plugin.families, list):
+        log.debug(".families must be list of stirngs")
         return False
+
+    if not isinstance(plugin.hosts, list):
+        log.debug(".hosts must be list of strings")
+        return False
+
+    for family in plugin.families:
+        if not isinstance(family, basestring):
+            log.debug("Families must be string")
+            return False
+
+    for host in plugin.hosts:
+        if not isinstance(host, basestring):
+            log.debug("Hosts must be string")
+            return False
 
     return True
 

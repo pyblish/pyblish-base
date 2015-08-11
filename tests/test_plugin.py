@@ -237,3 +237,60 @@ def test_register_host():
     assert "myhost" in pyblish.plugin.registered_hosts()
     pyblish.plugin.deregister_host("myhost")
     assert "myhost" not in pyblish.plugin.registered_hosts()
+
+
+def test_plugins_from_module():
+    """Getting plug-ins from a module works well"""
+    import types
+
+    module = types.ModuleType("myplugin")
+    code = """
+import pyblish.api
+
+class MyPlugin(pyblish.api.Plugin):
+    def process(self, context):
+        pass
+
+class NotSubclassed(object):
+    def process(self, context):
+        pass
+
+def not_a_plugin():
+    pass
+
+
+class InvalidPlugin(pyblish.api.Plugin):
+    families = False
+
+
+class NotCompatible(pyblish.api.Plugin):
+    hosts = ["not_compatible"]
+
+
+class BadRequires(pyblish.api.Plugin):
+    requires = None
+
+
+class BadHosts(pyblish.api.Plugin):
+    hosts = None
+
+
+class BadFamilies(pyblish.api.Plugin):
+    families = None
+
+
+class BadHosts2(pyblish.api.Plugin):
+    hosts = [None]
+
+
+class BadFamilies2(pyblish.api.Plugin):
+    families = [None]
+
+
+"""
+
+    exec code in module.__dict__
+
+    plugins = pyblish.plugin.plugins_from_module(module)
+
+    assert [p.id for p in plugins] == ["MyPlugin"], plugins
