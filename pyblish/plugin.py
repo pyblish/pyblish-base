@@ -573,12 +573,15 @@ class Context(AbstractEntity):
         self._children = dict()
 
     def add(self, other):
-        super(Context, self).add(other)
+        if other in self:
+            raise ValueError("\"%s\" already in Context" % other)
+
         self._children[other.id] = other
+        super(Context, self).add(other)
 
     def remove(self, other):
-        super(Context, self).remove(other)
         self._children.pop(other.id)
+        super(Context, self).remove(other)
 
     def create_instance(self, name, **kwargs):
         """Convenience method of the following.
