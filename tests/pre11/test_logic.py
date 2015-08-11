@@ -263,6 +263,7 @@ def test_process_context_error():
     assert_equals(result["plugin"], selector)
     assert_true(isinstance(result["error"], Exception))
 
+
 @with_setup(setup_failing, teardown)
 def test_extraction_failure():
     """Extraction fails ok
@@ -279,8 +280,6 @@ def test_extraction_failure():
     instance.add('test_PLY')
     instance.set_data(lib.config['identifier'], value=True)
     instance.set_data('family', value=FAMILY)
-
-    context.add(instance)
 
     # Assuming validations pass
     extractor = [p for p in pyblish.plugin.discover(regex='.*Fail$')
@@ -506,8 +505,6 @@ def test_instances_by_plugin():
         inst.set_data(lib.config['identifier'], value=True)
         inst.set_data('family', value=family)
         inst.set_data('host', value='python')
-
-        ctx.add(inst)
 
     plugins = pyblish.plugin.discover('validators')
     plugins_dict = dict()

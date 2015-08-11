@@ -42,7 +42,6 @@ def test_add_remove_instances():
     """Adding instances to context works"""
     ctx = pyblish.plugin.Context()
     inst = pyblish.plugin.Instance(name='Test', parent=ctx)
-    ctx.add(inst)
     ctx.remove(inst)
 
 

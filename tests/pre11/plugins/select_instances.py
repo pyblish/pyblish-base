@@ -23,7 +23,3 @@ class SelectInstances(pyblish.api.Selector):
                 }.iteritems():
 
             instance.set_data(key, value)
-
-        context.add(instance)
-
-        return

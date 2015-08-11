@@ -588,7 +588,6 @@ class Context(AbstractEntity):
 
         >>> ctx = Context()
         >>> inst = Instance("name", parent=ctx)
-        >>> ctx.add(inst)
 
         Example:
             >>> ctx = Context()
