@@ -1101,6 +1101,12 @@ def plugins_from_module(module):
         # It could be anything at this point
         obj = getattr(module, name)
 
+        if not inspect.isclass(obj):
+            continue
+
+        if not issubclass(obj, Plugin):
+            continue
+
         if not plugin_is_valid(obj):
             log.debug("Plug-in invalid: %s", obj)
             continue
@@ -1126,12 +1132,6 @@ def plugin_is_valid(plugin):
         plugin (Plugin): Plug-in to assess
 
     """
-
-    if not inspect.isclass(plugin):
-        return False
-
-    if not issubclass(plugin, Plugin):
-        return False
 
     if not isinstance(plugin.requires, basestring):
         log.debug("Plug-in requires must be of type string: %s", plugin)
