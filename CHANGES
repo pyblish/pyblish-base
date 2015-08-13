@@ -6,6 +6,7 @@ This contains all major version changes between pyblish releases.
 Version 1.2.0
 -------------
 
+- BACKWARD INCOMPATIBLE: Directly registered plug-ins are now also checked for duplicates; before, they overwrite those discovered on disk.
 - BACKWARD INCOMPATIBLE: `register_plugin` now checks the proposed registered plug-in for correctness, and throws an exception otherwise.
 - BACKWARD INCOMPATIBLE: `regex` has been deprecated from `discover()` and does nothing. 
 - BACKWARD INCOMPATIBLE: `type` has been deprecated from `discover()` and does nothing.

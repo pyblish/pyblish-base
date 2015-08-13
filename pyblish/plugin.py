@@ -1049,7 +1049,6 @@ def discover(type=None, regex=None, paths=None):
             module = types.ModuleType(mod_name)
 
             try:
-                sys.path.insert(0, path)
                 execfile(abspath, module.__dict__)
             except Exception as err:
                 log.debug("Skipped: \"%s\" (%s)", mod_name, err)
@@ -1060,11 +1059,20 @@ def discover(type=None, regex=None, paths=None):
                     log.debug("Duplicate plug-in found: %s", plugin)
                     continue
 
+                # Store reference to original module, to avoid
+                # garbage collection from collecting it's global
+                # imports, such as `import os`.
+                plugin.__parent__ = module
+
                 plugins[plugin.id] = plugin
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
-    plugins.update(pyblish._registered_plugins)
+    for name, plugin in pyblish._registered_plugins.iteritems():
+        if name in plugins:
+            log.debug("Duplicate plug-in found: %s", plugin)
+            continue
+        plugins[name] = plugin
 
     plugins = plugins.values()
     sort(plugins)  # In-place
