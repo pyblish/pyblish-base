@@ -1,5 +1,4 @@
 import os
-import sys
 import shutil
 import tempfile
 import contextlib
@@ -9,6 +8,7 @@ from pyblish.vendor.nose.tools import (
     with_setup,
     assert_true,
     assert_equals,
+    raises,
 )
 
 import lib
@@ -125,46 +125,38 @@ class MyOtherSelector(pyblish.api.Selector):
         assert "MySelector" not in plugins, plugins
 
 
+@raises(TypeError)
 @with_setup(lib.setup_empty, lib.teardown)
-def test_unsupported_host():
-    """Publishing from within an unsupported host is ok"""
+def test_register_unsupported_hosts():
+    """Cannot register a unsupported plug-in in an unsupported host"""
 
-    class Always(pyblish.api.Plugin):
-        """This plug-in is always discoverable"""
+    class Unsupported(pyblish.api.Plugin):
+        hosts = ["unsupported"]
 
-    class OnlyInUnknown(pyblish.api.Plugin):
-        """This plug-in is only discoverable from unknown hosts"""
-        hosts = ["unknown"]
+    pyblish.api.register_plugin(Unsupported)
 
-    class OnlyInMaya(pyblish.api.Plugin):
-        """This plug-in is only discoverable from maya"""
-        hosts = ["maya"]
 
-    pyblish.api.register_plugin(Always)
-    pyblish.api.register_plugin(OnlyInUnknown)
-    pyblish.api.register_plugin(OnlyInMaya)
+@raises(TypeError)
+@with_setup(lib.setup_empty, lib.teardown)
+def test_register_unsupported_version():
+    """Cannot register a plug-in of an unsupported version"""
 
-    discovered = pyblish.api.discover()
+    class Unsupported(pyblish.api.Plugin):
+        requires = (999, 999, 999)
 
-    assert Always in discovered
-    assert OnlyInUnknown not in discovered  # It's known to be python
-    assert OnlyInMaya not in discovered  # Host is not  maya
+    pyblish.api.register_plugin(Unsupported)
 
-    pyblish.api.deregister_all_hosts()
-    pyblish.api.register_host("unknown")
-    sys.executable = "/root/some_executable"
 
-    discovered = pyblish.api.discover()
-    assert OnlyInUnknown in discovered
-    assert OnlyInMaya not in discovered
+@raises(TypeError)
+@with_setup(lib.setup_empty, lib.teardown)
+def test_register_malformed():
+    """Cannot register a malformed plug-in"""
 
-    pyblish.api.deregister_host("unknown")
-    pyblish.api.deregister_all_hosts()
-    pyblish.api.register_host("maya")
+    class Unsupported(pyblish.api.Plugin):
+        families = True
+        hosts = None
 
-    discovered = pyblish.api.discover()
-    assert OnlyInUnknown not in discovered
-    assert OnlyInMaya in discovered
+    pyblish.api.register_plugin(Unsupported)
 
 
 @with_setup(lib.setup_empty, lib.teardown)

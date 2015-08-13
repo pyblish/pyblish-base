@@ -15,10 +15,11 @@ Attributes:
 
 # Standard library
 import os
-import re
 import sys
+import types
 import logging
 import inspect
+import warnings
 import contextlib
 
 # Local library
@@ -753,6 +754,19 @@ def register_plugin(plugin):
         raise TypeError("Plug-in must be callable "
                         "returning an instance of a class")
 
+    if not plugin_is_valid(plugin):
+        raise TypeError("Plug-in invalid: %s", plugin)
+
+    if not version_is_compatible(plugin):
+        raise TypeError(
+            "Plug-in %s not compatible with "
+            "this version (%s) of Pyblish." % (
+                plugin, pyblish.__version__))
+
+    if not host_is_compatible(plugin):
+        raise TypeError("Plug-in %s is not compatible "
+                        "with this host" % plugin)
+
     pyblish._registered_plugins[plugin.__name__] = plugin
 
 
@@ -1003,6 +1017,13 @@ def discover(type=None, regex=None, paths=None):
 
     """
 
+    if type is not None:
+        warnings.warn("type argument has been deprecated and does nothing")
+
+    if regex is not None:
+        warnings.warn("pyblish.plugin.discover(): regex argument "
+                      "has been deprecated and does nothing")
+
     plugins = dict()
 
     # Include plug-ins from registered paths
@@ -1021,79 +1042,41 @@ def discover(type=None, regex=None, paths=None):
                 continue
 
             mod_name, mod_ext = os.path.splitext(fname)
+
             if not mod_ext == ".py":
                 continue
 
-            try:
-                # Discard traces of previously
-                # imported modules of this name.
-                sys.modules.pop(mod_name)
-            except:
-                pass
+            module = types.ModuleType(mod_name)
 
             try:
                 sys.path.insert(0, path)
-                module = pyblish.lib.import_module(mod_name)
-                reload(module)
+                execfile(abspath, module.__dict__)
             except Exception as err:
                 log.debug("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
 
-            finally:
-                # Restore sys.path
-                # sys.modules.pop(mod_name)
-                sys.path.remove(path)
-
-            for name in dir(module):
-                if name.startswith("_"):
+            for plugin in plugins_from_module(module):
+                if plugin.id in plugins:
+                    log.debug("Duplicate plug-in found: %s", plugin)
                     continue
 
-                # It could be anything at this point
-                obj = getattr(module, name)
-
-                if not inspect.isclass(obj):
-                    continue
-
-                if not issubclass(obj, Plugin):
-                    continue
-
-                plugins[obj.id] = obj
+                plugins[plugin.id] = plugin
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
     plugins.update(pyblish._registered_plugins)
 
-    filtered = list()
-    for name, plugin in plugins.iteritems():
-        if plugin in filtered:
-            log.debug("Duplicate plug-in found: %s", plugin)
-            continue
+    plugins = plugins.values()
+    sort(plugins)  # In-place
 
-        if not plugin_is_valid(plugin):
-            log.debug("Plug-in invalid: %s", plugin)
-            continue
-
-        if not version_is_compatible(plugin):
-            log.debug("Plug-in %s not compatible with "
-                      "this version (%s) of Pyblish." % (
-                          plugin, pyblish.__version__))
-            continue
-
-        if not host_is_compatible(plugin):
-            continue
-
-        if regex is None or re.match(regex, name):
-            filtered.append(plugin)
-
-    sort(filtered)  # In-place
-    return filtered
+    return plugins
 
 
 def plugins_from_module(module):
     """Return plug-ins from module
 
     Arguments:
-        module (module): Imported module from which to
+        module (types.ModuleType): Imported module from which to
             parse valid Pyblish plug-ins.
 
     Returns:
@@ -1111,11 +1094,13 @@ def plugins_from_module(module):
         obj = getattr(module, name)
 
         if not plugin_is_valid(obj):
+            log.debug("Plug-in invalid: %s", obj)
             continue
 
-        print "%s is valid" % obj
-
         if not version_is_compatible(obj):
+            log.debug("Plug-in %s not compatible with "
+                      "this version (%s) of Pyblish." % (
+                          obj, pyblish.__version__))
             continue
 
         if not host_is_compatible(obj):

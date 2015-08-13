@@ -8,8 +8,11 @@ from . import lib
 import pyblish.plugin
 
 from .lib import (
-    setup, teardown, setup_duplicate, setup_invalid,
-    setup_empty, FAMILY)
+    setup,
+    teardown,
+    setup_duplicate,
+    setup_empty
+)
 from pyblish.vendor.nose.tools import *
 
 
@@ -189,30 +192,3 @@ def test_plugin_families_defaults():
 
     assert_equals(pyblish.api.instances_by_plugin(
         [instance], ValidateInstances)[0], instance)
-
-
-@with_setup(setup_empty, teardown)
-def test_inmemory_discover_filtering():
-    """Filtering using discover() works with in-memory plug-ins"""
-
-    class SelectInstances(pyblish.api.Selector):
-        pass
-
-    class ValidateInstances(pyblish.api.Validator):
-        pass
-
-    class ExtractInstances(pyblish.api.Extractor):
-        pass
-
-    class ConformInstances(pyblish.api.Conformer):
-        pass
-
-    for plugin in (SelectInstances,
-                   ValidateInstances,
-                   ExtractInstances,
-                   ConformInstances):
-        pyblish.api.register_plugin(plugin)
-
-    assert_equals(
-        pyblish.plugin.discover(regex="^Extract"),
-        [ExtractInstances])

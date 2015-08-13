@@ -3,6 +3,13 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.2.0
+-------------
+
+- BACKWARD INCOMPATIBLE: `regex` has been deprecated from `discover()` and does nothing. 
+- BACKWARD INCOMPATIBLE: `type` has been deprecated from `discover()` and does nothing.
+- Enhancement: Implementation of discover() has been greatly simplified, made more robust and reusable.
+
 Version 1.1.6
 -------------
 
