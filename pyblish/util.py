@@ -26,7 +26,7 @@ import pyblish.lib
 import pyblish.logic
 import pyblish.plugin
 
-log = pyblish.lib.setup_log(level=logging.ERROR)
+log = logging.getLogger("pyblish.util")
 
 
 def publish(context=None, plugins=None, **kwargs):
