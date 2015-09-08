@@ -36,7 +36,7 @@ def test_all_commands_run():
         print "Args: %s" % args
         print "Exit code: %s" % result.exit_code
         print "Output: %s" % result.output
-        assert result.exit_code >= 0
+        assert result.exit_code == 0
 
 
 def test_paths():
