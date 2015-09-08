@@ -15,7 +15,6 @@ Attributes:
 
 # Standard library
 import os
-import sys
 import types
 import logging
 import inspect
