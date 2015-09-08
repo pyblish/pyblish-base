@@ -35,6 +35,10 @@ from pyblish.vendor import click
 # Current Click context
 _ctx = None
 
+with open(os.path.join(os.path.dirname(__file__), "_help.yaml")) as f:
+    _help = yaml.load(f)
+
+
 def _setup_log(root="pyblish"):
     log = logging.getLogger(root)
     log.setLevel(logging.INFO)
@@ -70,7 +74,6 @@ Available plugin paths:
 
 Available plugins:
 {plugins}"""
-
 
 
 def _format_paths(paths):
@@ -130,89 +133,41 @@ def _load_config():
     return False
 
 
-_help = yaml.load("""
-config: >
-    Absolute path to custom configuration file.
-
-add-config: >
-    Absolute path to configuration file to use in
-    augmenting the existing configuration.
-
-plugin-path: >
-    Replace all normally discovered paths with this
-    This may be called multiple times.
-
-add-plugin-path: >
-    Append to normally discovered paths.
-
-logging-level: >
-    Specify with which level to produce logging messages.
-    A value lower than the default "warning" will produce more
-    messages. This can be useful for debugging.
-
-data: >
-    Initialise context with data. This takes two arguments,
-    key and value.
-
-verbose: >
-    Display detailed information. Useful for debugging purposes.
-
-version: >
-    Print the current version of Pyblish
-
-paths: >
-    List all available paths
-
-plugins: >
-    List all available plugins
-
-registered-paths: >
-    Print only registered-paths
-
-environment-paths: >
-    Print only paths added via environment
-
-configured-paths: >
-    Print only paths added via configuration
-
-""")
-
-
 @click.group(invoke_without_command=True)
-@click.option("--verbose", is_flag=True, help=_help["verbose"])
-@click.option("--version", is_flag=True, help=_help["version"])
-@click.option("--paths", is_flag=True, help=_help["paths"])
-@click.option("--plugins", is_flag=True, help=_help["plugins"])
+@click.option("--verbose", is_flag=True, help=_help["main"]["verbose"])
+@click.option("--version", is_flag=True, help=_help["main"]["version"])
+@click.option("--paths", is_flag=True, help=_help["main"]["paths"])
+@click.option("--plugins", is_flag=True, help=_help["main"]["plugins"])
 @click.option("--registered-paths", is_flag=True,
-              help=_help["registered-paths"])
+              help=_help["main"]["registered-paths"])
 @click.option("--environment-paths", is_flag=True,
-              help=_help["environment-paths"])
+              help=_help["main"]["environment-paths"])
 @click.option("--configured-paths", is_flag=True,
-              help=_help["configured-paths"])
+              help=_help["main"]["configured-paths"])
 @click.option("-pp",
               "--plugin-path",
               "plugin_paths",
               multiple=True,
-              help=_help["plugin-path"])
+              help=_help["main"]["plugin-path"])
 @click.option("-ap",
               "--add-plugin-path",
               "add_plugin_paths",
               multiple=True,
-              help=_help["add-plugin-path"])
+              help=_help["main"]["add-plugin-path"])
 @click.option("-c",
               "--config",
               default=None,
-              help=_help["config"])
+              help=_help["main"]["config"])
 @click.option("-d",
               "--data",
               nargs=2,
               multiple=True,
-              help=_help["data"])
+              help=_help["main"]["data"])
 @click.option("-ll",
               "--logging-level",
               type=click.Choice(LOG_LEVEL.keys()),
               default="error",
-              help=_help["logging-level"])
+              help=_help["main"]["logging-level"])
 @click.pass_context
 def main(ctx,
          verbose,
@@ -334,34 +289,18 @@ def main(ctx,
     ctx.obj["plugin_paths"] = plugin_paths
 
 
-_help = yaml.load("""
-path: >
-    Input path for publishing operation
-
-instance: >
-    Only publish specified instance. The default behaviour
-    is to publish all instances. This may be called multiple
-    times.
-
-delay: >
-    Add an artificial delay to each plugin. Typically used
-    in debugging.
-
-""")
-
-
 @click.command()
 @click.argument("path", default=".")
 @click.option("-i",
               "--instance",
               "instances",
               multiple=True,
-              help=_help["instance"])
+              help=_help["publish"]["instance"])
 @click.option("-de",
               "--delay",
               default=None,
               type=float,
-              help=_help["delay"])
+              help=_help["publish"]["delay"])
 @click.pass_context
 def publish(ctx,
             path,
@@ -388,9 +327,11 @@ def publish(ctx,
     context = ctx.obj["context"]
 
     if os.path.isdir(path):
-        context.set_data("current_dir", path)
+        context.set_data("current_dir", path)  # backwards compatibility
+        context.set_data("currentDir", path)
     else:
-        context.set_data("current_file", path)
+        context.set_data("current_file", path)  # backwards compatibility
+        context.set_data("currentFile", path)
 
     # Begin processing
     plugins = pyblish.api.discover(paths=ctx.obj["plugin_paths"])

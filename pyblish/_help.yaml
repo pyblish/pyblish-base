@@ -1,0 +1,62 @@
+# Pyblish Help for command-line interface
+
+main:
+    config: >
+        Absolute path to custom configuration file.
+
+    add-config: >
+        Absolute path to configuration file to use in
+        augmenting the existing configuration.
+
+    plugin-path: >
+        Replace all normally discovered paths with this
+        This may be called multiple times.
+
+    add-plugin-path: >
+        Append to normally discovered paths.
+
+    logging-level: >
+        Specify with which level to produce logging messages.
+        A value lower than the default "warning" will produce more
+        messages. This can be useful for debugging.
+
+    data: >
+        Initialise context with data. This takes two arguments,
+        key and value.
+
+    verbose: >
+        Display detailed information. Useful for debugging purposes.
+
+    version: >
+        Print the current version of Pyblish
+
+    paths: >
+        List all available paths
+
+    plugins: >
+        List all available plugins
+
+    registered-paths: >
+        Print only registered-paths
+
+    environment-paths: >
+        Print only paths added via environment
+
+    configured-paths: >
+        Print only paths added via configuration
+
+publish:
+    path: >
+        Input path for publishing operation
+
+    instance: >
+        Only publish specified instance. The default behaviour
+        is to publish all instances. This may be called multiple
+        times.
+
+    delay: >
+        Add an artificial delay to each plugin. Typically used
+        in debugging.
+
+    file: >
+        Load file in host registered to it's suffix

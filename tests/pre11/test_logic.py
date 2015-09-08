@@ -282,8 +282,8 @@ def test_extraction_failure():
     instance.set_data('family', value=FAMILY)
 
     # Assuming validations pass
-    extractor = [p for p in pyblish.plugin.discover(regex='.*Fail$')
-                 if issubclass(p, pyblish.api.Extractor)][0]
+    plugins = dict((p.id, p) for p in pyblish.plugin.discover())
+    extractor = plugins["ExtractInstancesFail"]
 
     print extractor
     assert extractor.__name__ == "ExtractInstancesFail"

@@ -85,7 +85,7 @@ def test_visualise_environment_paths():
         runner = CliRunner()
         result = runner.invoke(pyblish.cli.main, ["--environment-paths"])
 
-        assert result.output.startswith("/custom/path")
+        assert result.output.startswith("/custom/path"), result.output
 
     finally:
         if current_path is not None:
