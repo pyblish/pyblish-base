@@ -305,7 +305,6 @@ def main(ctx,
 def publish(ctx,
             path,
             instances,
-            file,
             delay):
     """Publish instances of path.
 
