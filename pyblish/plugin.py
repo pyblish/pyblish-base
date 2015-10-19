@@ -19,6 +19,7 @@ import types
 import logging
 import inspect
 import warnings
+import functools
 import contextlib
 
 # Local library
@@ -477,12 +478,31 @@ class _Dict(dict):
         return self.get(key, default)
 
 
+def deprecated(func):
+    """Deprecation decorator
+
+    Attach this to deprecated functions or methods.
+
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        warnings.warn_explicit(
+            "Call to deprecated function {}.".format(func.__name__),
+            category=DeprecationWarning,
+            filename=func.func_code.co_filename,
+            lineno=func.func_code.co_firstlineno + 1)
+        return func(*args, **kwargs)
+    return wrapper
+
+
 class AbstractEntity(list):
     """Superclass for Context and Instance"""
 
     def __init__(self):
         self.data = _Dict(self)
 
+    @deprecated
     def add(self, other):
         """DEPRECATED - USE .append
 
@@ -492,11 +512,9 @@ class AbstractEntity(list):
 
         """
 
-        # caller = inspect.currentframe().f_back
-        # warnings.warn("Deprecated: Called from %s" % caller)
-
         return self.append(other)
 
+    @deprecated
     def remove(self, other):
         """DEPRECATED - USE .pop
 
@@ -535,34 +553,7 @@ class Context(AbstractEntity):
         except:
             pass
 
-        return key in self._children
-
-    def __init__(self, *args, **kwargs):
-        super(Context, self).__init__(*args, **kwargs)
-
-        # Cache children for faster lookup
-        self._children = dict()
-
-    def add(self, other):
-        """Add `other` to self
-
-        Duplicate IDs are not allowed.
-
-        Raises:
-            ValueError is duplicate IDs are found.
-
-        """
-
-        if other in self:
-            raise ValueError("\"%s\" already in Context" % other)
-
-        self._children[other.id] = other
-        super(Context, self).add(other)
-
-    def remove(self, other):
-        """Remove `other` from self"""
-        self._children.pop(other.id)
-        super(Context, self).remove(other)
+        return key in [c.id for c in self]
 
     def create_instance(self, name, **kwargs):
         """Convenience method of the following.
@@ -580,9 +571,6 @@ class Context(AbstractEntity):
         instance.data.update(kwargs)
         return instance
 
-    # Alias
-    create_asset = create_instance
-
     def __getitem__(self, item):
         """Enable support for dict-like getting of children by id
 
@@ -597,10 +585,24 @@ class Context(AbstractEntity):
 
         if isinstance(item, int):
             return super(Context, self).__getitem__(item)
-        return self._children[item]
+        try:
+            return next(c for c in self if c.id == item)
+        except StopIteration:
+            raise KeyError("%s not in list" % item)
 
     def get(self, key, default=None):
-        return self._children.get(key, default)
+        try:
+            return next(c for c in self if c.id == key)
+        except StopIteration:
+            return default
+
+    @deprecated
+    def create_asset(self, *args, **kwargs):
+        return self.create_instance(*args, **kwargs)
+
+    @deprecated
+    def add(self, other):
+        return super(Context, self).append(other)
 
 
 @pyblish.lib.log
@@ -623,6 +625,8 @@ class Instance(AbstractEntity):
 
     """
 
+    id = property(lambda self: self.name)
+
     def __eq__(self, other):
         return self.id == getattr(other, "id", None)
 
@@ -635,10 +639,6 @@ class Instance(AbstractEntity):
     def __str__(self):
         return self.name
 
-    @property
-    def id(self):
-        return self.name
-
     def __init__(self, name, parent=None):
         super(Instance, self).__init__()
         assert isinstance(name, basestring)
@@ -647,7 +647,7 @@ class Instance(AbstractEntity):
         self.parent = parent
 
         if parent is not None:
-            parent.add(self)
+            parent.append(self)
 
     @property
     def context(self):
@@ -660,27 +660,6 @@ class Instance(AbstractEntity):
                 break
         assert isinstance(parent, Context)
         return parent
-
-    # def data(self, key=None, default=None):
-    #     """Treat `name` data-member as an override to native property
-
-    #     If name is a data-member, it will be used wherever a name is requested.
-    #     That way, names may be overridden via data.
-
-    #     Example:
-    #         >>> inst = Instance(name="test")
-    #         >>> assert inst.data("name") == "test"
-    #         >>> inst.set_data("name", "newname")
-    #         >>> assert inst.data("name") == "newname"
-
-    #     """
-
-    #     value = super(Instance, self).data(key, default)
-
-    #     if key == "name" and value is None:
-    #         return self.name
-
-    #     return value
 
 
 # Forwards-compatibility alias
