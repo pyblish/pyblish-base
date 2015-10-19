@@ -15,6 +15,7 @@ Attributes:
 
 # Standard library
 import os
+import sys
 import types
 import logging
 import inspect
@@ -487,11 +488,12 @@ def deprecated(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        warnings.warn_explicit(
-            "Call to deprecated function {}.".format(func.__name__),
-            category=DeprecationWarning,
-            filename=func.func_code.co_filename,
-            lineno=func.func_code.co_firstlineno + 1)
+        if sys.version_info >= (2, 7):
+            warnings.warn_explicit(
+                "Call to deprecated function {}.".format(func.__name__),
+                category=DeprecationWarning,
+                filename=func.func_code.co_filename,
+                lineno=func.func_code.co_firstlineno + 1)
         return func(*args, **kwargs)
     return wrapper
 
