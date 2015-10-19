@@ -462,23 +462,45 @@ def repair(plugin, context, instance=None):
     return result
 
 
+class _Dict(dict):
+    """Temporary object during transition from set_data to data dictionary"""
+    def __init__(self, parent):
+        self._parent = parent
+
+    def __call__(self, key=None, default=None):
+        if key is None:
+            return self.copy()
+
+        if key == "name":
+            default = self._parent.name
+
+        return self.get(key, default)
+
+
 class AbstractEntity(list):
     """Superclass for Context and Instance"""
 
     def __init__(self):
-        self._data = dict()
+        self.data = _Dict(self)
 
     def add(self, other):
-        """Add member to self
+        """DEPRECATED - USE .append
+
+        Add member to self
 
         This is to mimic the interface of set()
 
         """
 
+        # caller = inspect.currentframe().f_back
+        # warnings.warn("Deprecated: Called from %s" % caller)
+
         return self.append(other)
 
     def remove(self, other):
-        """Remove member from self
+        """DEPRECATED - USE .pop
+
+        Remove member from self
 
         This is to mimic the interface of set()
 
@@ -487,62 +509,11 @@ class AbstractEntity(list):
         index = self.index(other)
         return self.pop(index)
 
-    def data(self, key=None, default=None):
-        """Return data from `key`
-
-        Arguments:
-            key (str): Name of data to return
-            default (object): Optional, value returned if `name`
-                does not exist
-
-        """
-
-        if key is None:
-            return self._data.copy()
-
-        return self._data.get(key, default)
-
-    def set_data(self, key, value):
-        """Modify/insert data into entity
-
-        Arguments:
-            key (str): Name of data to add
-            value (object): Value of data to add
-
-        """
-
-        self._data[key] = value
-
-    def remove_data(self, key):
-        """Remove data from entity
-
-        Arguments;
-            key (str): Name of data to remove
-
-        """
-
-        self._data.pop(key)
-
-    def has_data(self, key):
-        """Check if entity has key
-
-        Arguments:
-            key (str): Key to check
-
-        Return:
-            True if it exists, False otherwise
-
-        """
-
-        return key in self._data
-
 
 class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
-    @property
-    def id(self):
-        return "Context"
+    id = property(lambda self: "Context")
 
     def __contains__(self, key):
         """Support both Instance objects and `id` strings
@@ -606,7 +577,7 @@ class Context(AbstractEntity):
         """
 
         instance = Instance(name, parent=self)
-        instance._data.update(kwargs)
+        instance.data.update(kwargs)
         return instance
 
     # Alias
@@ -690,26 +661,26 @@ class Instance(AbstractEntity):
         assert isinstance(parent, Context)
         return parent
 
-    def data(self, key=None, default=None):
-        """Treat `name` data-member as an override to native property
+    # def data(self, key=None, default=None):
+    #     """Treat `name` data-member as an override to native property
 
-        If name is a data-member, it will be used wherever a name is requested.
-        That way, names may be overridden via data.
+    #     If name is a data-member, it will be used wherever a name is requested.
+    #     That way, names may be overridden via data.
 
-        Example:
-            >>> inst = Instance(name="test")
-            >>> assert inst.data("name") == "test"
-            >>> inst.set_data("name", "newname")
-            >>> assert inst.data("name") == "newname"
+    #     Example:
+    #         >>> inst = Instance(name="test")
+    #         >>> assert inst.data("name") == "test"
+    #         >>> inst.set_data("name", "newname")
+    #         >>> assert inst.data("name") == "newname"
 
-        """
+    #     """
 
-        value = super(Instance, self).data(key, default)
+    #     value = super(Instance, self).data(key, default)
 
-        if key == "name" and value is None:
-            return self.name
+    #     if key == "name" and value is None:
+    #         return self.name
 
-        return value
+    #     return value
 
 
 # Forwards-compatibility alias
@@ -1207,3 +1178,58 @@ def sort(plugins):
 
     plugins.sort(key=lambda p: p.order)
     return plugins
+
+
+# Compatibility
+#
+# The below members represent backwards compatibility
+# features, kept separate for maintainability as they
+# will no longer be updated and eventually discarded.
+
+
+def set_data(self, key, value):
+    """DEPRECATED - USE .data DICTIONARY DIRECTLY
+
+    Modify/insert data into entity
+
+    Arguments:
+        key (str): Name of data to add
+        value (object): Value of data to add
+
+    """
+
+    self.data[key] = value
+
+
+def remove_data(self, key):
+    """DEPRECATED - USE .data DICTIONARY DIRECTLY
+
+    Remove data from entity
+
+    Arguments;
+        key (str): Name of data to remove
+
+    """
+
+    self.data.pop(key)
+
+
+def has_data(self, key):
+    """DEPRECATED - USE .data DICTIONARY DIRECTLY
+
+    Check if entity has key
+
+    Arguments:
+        key (str): Key to check
+
+    Return:
+        True if it exists, False otherwise
+
+    """
+
+    return key in self.data
+
+
+AbstractEntity.set_data = set_data
+AbstractEntity.remove_data = remove_data
+AbstractEntity.has_data = has_data

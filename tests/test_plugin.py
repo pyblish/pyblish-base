@@ -341,3 +341,29 @@ class MyPlugin(pyblish.api.Plugin):
     assert_true(MyPlugin().process(True))
     assert_true(MyPlugin().module_is_present())
     assert_true(MyPlugin().local_variable_is_present())
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_data_dict():
+    """.data is a pure dictionary"""
+
+    context = pyblish.api.Context()
+    instance = context.create_instance("MyInstance")
+    assert isinstance(context.data, dict)
+    assert isinstance(instance.data, dict)
+
+    context.data["key"] = "value"
+    assert context.data["key"] == "value"
+
+    # The actual dict doesn't have this convenience feature.
+    assert instance.data.get("name") == None
+
+    instance.data["key"] = "value"
+    assert instance.data["key"] == "value"
+
+    # Backwards compatibility
+    assert context.data("key") == "value"
+    assert instance.data("key") == "value"
+    assert instance.data("name") == "MyInstance"
+    # This returns (a copy of) the full dictionary
+    assert context.data() == context.data
