@@ -116,9 +116,6 @@ def process(func, plugins, context, test=None):
         self.next_plugin = plugin
         vars["nextOrder"] = plugin.order
 
-        if not plugin.active:
-            continue
-
         if not test(**vars):
             if hasattr(__context, "__call__"):
                 context = __context()

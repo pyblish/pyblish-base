@@ -277,15 +277,10 @@ def test_active():
         def process(self, instance):
             count["#"] += 100
 
-    context = pyblish.api.Context()
-    for result in pyblish.logic.process(
-            plugins=[SelectInstances4321,
-                     ValidateNotActive,
-                     ValidateActive],
-            func=pyblish.plugin.process,
-            context=context):
-        assert not isinstance(result, pyblish.logic.TestFailed), result
+    for plugin in (SelectInstances4321, ValidateNotActive, ValidateActive):
+        pyblish.api.register_plugin(plugin)
 
+    pyblish.util.publish()
     assert_equals(count["#"], 201)
 
 

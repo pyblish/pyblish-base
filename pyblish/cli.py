@@ -334,7 +334,8 @@ def publish(ctx,
         context.set_data("currentFile", path)
 
     # Begin processing
-    plugins = pyblish.api.discover(paths=ctx.obj["plugin_paths"])
+    plugins = list(p for p in pyblish.api.discover(
+        paths=ctx.obj["plugin_paths"]) if p.active)
     context = pyblish.util.publish(context=context, plugins=plugins)
 
     if any(result["error"] for result in context.data("results")):
