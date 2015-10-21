@@ -367,3 +367,14 @@ def test_data_dict():
     assert instance.data("name") == "MyInstance"
     # This returns (a copy of) the full dictionary
     assert context.data() == context.data
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_actions():
+    class MyAction(pyblish.plugin.Action):
+        def process(self, context):
+            context.data["key"] = "value"
+
+    context = pyblish.api.Context()
+    pyblish.plugin.process(MyAction, context)
+    assert "key" in context.data

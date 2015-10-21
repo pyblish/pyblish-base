@@ -261,6 +261,8 @@ class Plugin(object):
             Plug-ins requiring a version newer than the current version
             will not be loaded. 1.0.8 was when :attr:`Plugin.requires`
             was first introduced.
+        actions: Actions associated to this plug-in
+
     """
 
     __metaclass__ = MetaPlugin
@@ -273,6 +275,7 @@ class Plugin(object):
     order = -1
     optional = False
     requires = "pyblish>=1"
+    actions = []
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -310,7 +313,7 @@ class Plugin(object):
         pass
 
 
-class Selector(Plugin):
+class Collector(Plugin):
     """Parse a given working scene for available Instances"""
 
     order = 0
@@ -328,15 +331,57 @@ class Extractor(Plugin):
     order = 2
 
 
-class Conformer(Plugin):
+class Integrator(Plugin):
     """Integrates publishes into a pipeline"""
 
     order = 3
 
 
-# Forwards-compatibility aliases
-Collector = Selector
-Integrator = Conformer
+# Backwards-compatibility aliases
+Selector = Collector
+Conformer = Integrator
+
+
+@pyblish.lib.log
+class Action(object):
+    """User-supplied interactive action
+
+    Subclass this class and append to Plugin.actions in order
+    to provide your users with optional, context sensitive
+    functionality.
+
+    Attributes:
+        label: Optional label to display in place of class name.
+        active: Whether or not to allow execution of action.
+        on: When to enable this action; available options are:
+            - "all" (default)
+            - "success"
+            - "failure"
+        icon: Name, relative path or absolute path to image for
+            use as an icon of this action. For relative paths,
+            the current working directory of the host is used and
+            names represent icons available via Awesome Icons.
+            fortawesome.github.io/Font-Awesome/icons/
+
+    """
+
+    @pyblish.lib.classproperty
+    def id(cls):
+        return cls.__name__
+
+    label = None
+    active = True
+    on = "all"
+    icon = None
+
+    def __str__(self):
+        return self.label or type(self).__name__
+
+    def __repr__(self):
+        return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
+
+    def process(self):
+        pass
 
 
 @contextlib.contextmanager
@@ -362,11 +407,17 @@ def logger(handler):
         l.setLevel(old_level)
 
 
-def process(plugin, context, instance=None):
+def process(plugin, context, instance=None, action=None):
     """Produce a single result from a Plug-in
 
+    Arguments:
+        plugin(Plugin): Uninstantiated plug-in class
+        context(Context): The current Context
+        instance(Instance, optional): Instance to process
+        action(str): Id of action to process, in place of plug-in.
+
     Returns:
-        Result dictionary
+        Dictionary of result
 
     """
 
@@ -376,18 +427,24 @@ def process(plugin, context, instance=None):
         "success": False,
         "plugin": plugin,
         "instance": instance,
-        "asset": instance,  # Forwards compatibility
+        "action": action,
         "error": None,
         "records": list(),
-        "duration": None
+        "duration": None,
     }
 
-    plugin = plugin()
+    if not action:
+        runner = plugin().process
+    else:
+        actions = dict((a.id, a) for a in plugin.actions)
+        action = actions[action] if action else None
+        runner = action().process
 
     records = list()
     handler = pyblish.lib.MessageHandler(records)
 
     provider = pyblish.plugin.Provider()
+    provider.inject("plugin", plugin)
     provider.inject("context", context)
     provider.inject("instance", instance)
 
@@ -395,7 +452,7 @@ def process(plugin, context, instance=None):
 
     try:
         with logger(handler):
-            provider.invoke(plugin.process)
+            provider.invoke(runner)
             result["success"] = True
     except Exception as error:
         pyblish.lib.extract_traceback(error)
@@ -412,6 +469,9 @@ def process(plugin, context, instance=None):
         context.set_data("results", list())
 
     context.data("results").append(result)
+
+    # Backwards compatibility
+    result["asset"] = instance  # Deprecated key
 
     return result
 
