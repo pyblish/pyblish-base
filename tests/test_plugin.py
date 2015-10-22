@@ -367,6 +367,30 @@ def test_data_dict():
 
 
 @with_setup(lib.setup_empty, lib.teardown)
+def test_action():
+    """Running an action is like running a plugin"""
+    count = {"#": 0}
+
+    class MyAction(pyblish.plugin.Action):
+        def process(self, context):
+            count["#"] += 1
+
+    class MyPlugin(pyblish.plugin.Plugin):
+        actions = [MyAction]
+
+        def process(self, context):
+            pass
+
+    context = pyblish.api.Context()
+    pyblish.plugin.process(
+        plugin=MyPlugin,
+        context=context,
+        action="MyAction")
+
+    assert count["#"] == 1
+
+
+@with_setup(lib.setup_empty, lib.teardown)
 def test_actions():
     class MyAction(pyblish.plugin.Action):
         def process(self, context):
@@ -375,3 +399,35 @@ def test_actions():
     context = pyblish.api.Context()
     pyblish.plugin.process(MyAction, context)
     assert "key" in context.data
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_action_error_checking():
+    class MyActionValid(pyblish.plugin.Action):
+        on = "all"
+
+    class MyActionInvalid(pyblish.plugin.Action):
+        on = "invalid"
+
+    assert MyActionValid.__error__ is None
+    assert MyActionInvalid.__error__
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_action_printing():
+    class MyAction(pyblish.plugin.Action):
+        pass
+
+    print(MyAction())
+    print repr(MyAction())
+
+    assert str(MyAction()) == "MyAction"
+    assert repr(MyAction()) == "pyblish.plugin.MyAction('MyAction')"
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_category_separator():
+    assert issubclass(pyblish.plugin.Category("Test"),
+                      pyblish.plugin.Action)
+    assert issubclass(pyblish.plugin.Separator,
+                      pyblish.plugin.Action)
