@@ -277,15 +277,13 @@ class Plugin(object):
     requires = "pyblish>=1"
     actions = []
 
+    id = pyblish.lib.classproperty(lambda cls: cls.__name__)
+
     def __str__(self):
         return self.label or type(self).__name__
 
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
-
-    @pyblish.lib.classproperty
-    def id(cls):
-        return cls.__name__
 
     def process(self):
         """Primary processing method
@@ -342,6 +340,23 @@ Selector = Collector
 Conformer = Integrator
 
 
+class MetaAction(type):
+    """Inject additional metadata into Action"""
+
+    def __init__(cls, *args, **kwargs):
+        cls.__error__ = None
+        if cls.on not in ("all",
+                          "processed",
+                          "failed",
+                          "succeeded"):
+            cls.__error__ = (
+                "Action had an unrecognised value "
+                "for `on`: \"%s\"" % cls.on
+            )
+
+        return super(MetaAction, cls).__init__(*args, **kwargs)
+
+
 @pyblish.lib.log
 class Action(object):
     """User-supplied interactive action
@@ -354,9 +369,10 @@ class Action(object):
         label: Optional label to display in place of class name.
         active: Whether or not to allow execution of action.
         on: When to enable this action; available options are:
-            - "all" (default)
-            - "success"
-            - "failure"
+            - "all": Always available (default).
+            - "processed": The plug-in has been processed
+            - "succeeded": The plug-in has been processed, and succeeded
+            - "failed": The plug-in has been processed, and failed
         icon: Name, relative path or absolute path to image for
             use as an icon of this action. For relative paths,
             the current working directory of the host is used and
@@ -365,14 +381,14 @@ class Action(object):
 
     """
 
-    @pyblish.lib.classproperty
-    def id(cls):
-        return cls.__name__
+    __metaclass__ = MetaAction
 
     label = None
     active = True
     on = "all"
     icon = None
+
+    id = pyblish.lib.classproperty(lambda cls: cls.__name__)
 
     def __str__(self):
         return self.label or type(self).__name__
