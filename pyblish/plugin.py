@@ -490,10 +490,10 @@ def process(plugin, context, instance=None, action=None):
 
     result["duration"] = (__end - __start) * 1000  # ms
 
-    if "results" not in context.data():
-        context.set_data("results", list())
+    if "results" not in context.data:
+        context.data["results"] = list()
 
-    context.data("results").append(result)
+    context.data["results"].append(result)
 
     # Backwards compatibility
     result["asset"] = instance  # Deprecated key
@@ -506,8 +506,8 @@ def repair(plugin, context, instance=None):
 
     import time
 
-    if "results" not in context.data():
-        context.set_data("results", list())
+    if "results" not in context.data:
+        context.data["results"] = list()
 
     result = {
         "success": False,
@@ -544,7 +544,7 @@ def repair(plugin, context, instance=None):
 
     result["duration"] = (__end - __start) * 1000  # ms
 
-    context.data("results").append(result)
+    context.data["results"].append(result)
 
     return result
 
@@ -732,6 +732,9 @@ class Instance(AbstractEntity):
         assert parent is None or isinstance(parent, AbstractEntity)
         self.name = name
         self.parent = parent
+
+        self.data["name"] = name
+        self.data["family"] = "default"
 
         if parent is not None:
             parent.append(self)

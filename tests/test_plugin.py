@@ -355,9 +355,6 @@ def test_data_dict():
     context.data["key"] = "value"
     assert context.data["key"] == "value"
 
-    # The actual dict doesn't have this convenience feature.
-    assert instance.data.get("name") == None
-
     instance.data["key"] = "value"
     assert instance.data["key"] == "value"
 

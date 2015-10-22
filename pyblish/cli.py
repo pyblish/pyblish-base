@@ -103,7 +103,7 @@ def _load_data(context):
         with open(DATA_PATH) as f:
             data = yaml.load(f)
             for key, value in data.iteritems():
-                context.set_data(key, value)
+                context.data[key] = value
 
             return True
 
@@ -222,7 +222,7 @@ def main(ctx,
                       "--data %s %s" % (key, value))
             ctx.obj["error"] = err
         else:
-            context.set_data(str(key), yaml_loaded)
+            context.data[str(key)] = yaml_loaded
 
     # Load user data
     data_loaded = _load_data(context)
@@ -327,21 +327,21 @@ def publish(ctx,
     context = ctx.obj["context"]
 
     if os.path.isdir(path):
-        context.set_data("current_dir", path)  # backwards compatibility
-        context.set_data("currentDir", path)
+        context.data["current_dir"] = path  # backwards compatibility
+        context.data["currentDir"] = path
     else:
-        context.set_data("current_file", path)  # backwards compatibility
-        context.set_data("currentFile", path)
+        context.data["current_file"] = path  # backwards compatibility
+        context.data["currentFile"] = path
 
     # Begin processing
     plugins = list(p for p in pyblish.api.discover(
         paths=ctx.obj["plugin_paths"]) if p.active)
     context = pyblish.util.publish(context=context, plugins=plugins)
 
-    if any(result["error"] for result in context.data("results")):
+    if any(result["error"] for result in context.data["results"]):
         click.echo("There were errors.")
 
-        for result in context.data("results"):
+        for result in context.data["results"]:
             if result["error"] is not None:
                 click.echo(result["error"])
 

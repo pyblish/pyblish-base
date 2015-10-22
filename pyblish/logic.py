@@ -122,7 +122,7 @@ def process(func, plugins, context, test=None):
 
             args = inspect.getargspec(plugin.process).args
 
-            # Forwards compatibility with `asset`
+            # Backwards compatibility with `asset`
             if "asset" in args:
                 args.append("instance")
 
@@ -242,7 +242,7 @@ def plugins_by_instance(plugins, instance):
 
     """
 
-    return plugins_by_family(plugins, instance.data("family"))
+    return plugins_by_family(plugins, instance.data["family"])
 
 
 def plugins_by_host(plugins, host):
@@ -288,7 +288,7 @@ def instances_by_plugin(instances, plugin):
     compatible = list()
 
     for instance in instances:
-        family = instance.data("family")
+        family = instance.data["family"]
         if any(x in plugin.families for x in (family, "*")):
             compatible.append(instance)
 
