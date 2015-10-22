@@ -22,7 +22,11 @@ import pyblish
 from .plugin import (
     Context,
     Instance,
+
     Action,
+    Category,
+    Separator,
+
     Asset,
     Plugin,
     Selector,
@@ -130,6 +134,8 @@ __all__ = [
 
     "Plugin",
     "Action",
+    "Category",
+    "Separator",
 
     # SVEC plug-ins
     "Collector",

@@ -387,6 +387,7 @@ class Action(object):
     active = True
     on = "all"
     icon = None
+    type = "action"
 
     id = pyblish.lib.classproperty(lambda cls: cls.__name__)
 
@@ -398,6 +399,14 @@ class Action(object):
 
     def process(self):
         pass
+
+
+class Separator(Action):
+    type = "separator"
+
+
+def Category(label):
+    return type("Category", (Action,), {"label": label, "type": "category"})
 
 
 @contextlib.contextmanager
