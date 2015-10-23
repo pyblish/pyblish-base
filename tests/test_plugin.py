@@ -192,6 +192,18 @@ class NotDiscoverable(pyblish.api.Plugin):
 
 
 @with_setup(lib.setup_empty, lib.teardown)
+def test_repair_context_backwardscompat():
+    """Plug-ins with repair-context are reprogrammed appropriately"""
+
+    class ValidateInstances(pyblish.api.Validator):
+        def repair_context(self, context):
+            pass
+
+    assert hasattr(ValidateInstances, "repair")
+    assert not hasattr(ValidateInstances, "repair_context")
+
+
+@with_setup(lib.setup_empty, lib.teardown)
 def test_unique_logger():
     """A unique logger is applied to every plug-in"""
 
@@ -431,3 +443,12 @@ def test_category_separator():
                       pyblish.plugin.Action)
     assert issubclass(pyblish.plugin.Separator,
                       pyblish.plugin.Action)
+
+
+def test_superclass_process_is_empty():
+    """Superclass process() is empty"""
+    def e():
+        """Doc"""
+
+    assert pyblish.api.Plugin.process.__code__.co_code == e.__code__.co_code
+    assert pyblish.api.Plugin.repair.__code__.co_code == e.__code__.co_code

@@ -308,6 +308,7 @@ class Plugin(object):
         pass
 
     def repair(self):
+        """DEPRECATED"""
         pass
 
 
@@ -382,12 +383,12 @@ class Action(object):
     """
 
     __metaclass__ = MetaAction
+    __type__ = "action"
 
     label = None
     active = True
     on = "all"
     icon = None
-    type = "action"
 
     id = pyblish.lib.classproperty(lambda cls: cls.__name__)
 
@@ -402,11 +403,12 @@ class Action(object):
 
 
 class Separator(Action):
-    type = "separator"
+    __type__ = "separator"
 
 
 def Category(label):
-    return type("Category", (Action,), {"label": label, "type": "category"})
+    return type("Category", (Action,), {"label": label,
+                                        "__type__": "category"})
 
 
 @contextlib.contextmanager
