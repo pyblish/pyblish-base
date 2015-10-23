@@ -86,12 +86,5 @@ def test_add_to_context():
     context.remove(instance)
 
 
-@raises(ValueError)
-def test_duplicate_instance():
-    context = pyblish.api.Context()
-    instance = pyblish.api.Instance("MyInstance", parent=context)
-    context.add(instance)
-
-
 if __name__ == '__main__':
     test_add_remove_instances()

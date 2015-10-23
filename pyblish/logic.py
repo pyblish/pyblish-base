@@ -116,16 +116,13 @@ def process(func, plugins, context, test=None):
         self.next_plugin = plugin
         vars["nextOrder"] = plugin.order
 
-        if not plugin.active:
-            continue
-
         if not test(**vars):
             if hasattr(__context, "__call__"):
                 context = __context()
 
             args = inspect.getargspec(plugin.process).args
 
-            # Forwards compatibility with `asset`
+            # Backwards compatibility with `asset`
             if "asset" in args:
                 args.append("instance")
 
@@ -224,10 +221,7 @@ def plugins_by_family(plugins, family):
     compatible = list()
 
     for plugin in plugins:
-        if not hasattr(plugin, "families"):
-            continue
-
-        if any(x in plugin.families for x in (family, "*")):
+        if any(x in getattr(plugin, "families", None) for x in (family, "*")):
             compatible.append(plugin)
 
     return compatible
@@ -245,7 +239,7 @@ def plugins_by_instance(plugins, instance):
 
     """
 
-    return plugins_by_family(plugins, instance.data("family"))
+    return plugins_by_family(plugins, instance.data["family"])
 
 
 def plugins_by_host(plugins, host):
@@ -263,11 +257,8 @@ def plugins_by_host(plugins, host):
     compatible = list()
 
     for plugin in plugins:
-        if not hasattr(plugin, "hosts"):
-            continue
-
         # TODO(marcus): Expand to take partial wildcards e.g. "*Mesh"
-        if any(x in plugin.hosts for x in (host, "*")):
+        if any(x in getattr(plugin, "hosts", None) for x in (host, "*")):
             compatible.append(plugin)
 
     return compatible
@@ -291,7 +282,7 @@ def instances_by_plugin(instances, plugin):
     compatible = list()
 
     for instance in instances:
-        family = instance.data("family")
+        family = instance.data["family"]
         if any(x in plugin.families for x in (family, "*")):
             compatible.append(instance)
 
@@ -299,6 +290,19 @@ def instances_by_plugin(instances, plugin):
 
 
 def _extract_traceback(exception):
+    """Append traceback to `exception`
+
+    This function safely extracts a traceback while being
+    careful not to leak memory.
+
+    Arguments:
+        exception (Exception): Append traceback to here
+            as "traceback" attribute.
+
+    """
+
+    exc_type = exc_value = exc_traceback = None
+
     try:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         exception.traceback = traceback.extract_tb(exc_traceback)[-1]
@@ -308,8 +312,3 @@ def _extract_traceback(exception):
 
     finally:
         del(exc_type, exc_value, exc_traceback)
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()

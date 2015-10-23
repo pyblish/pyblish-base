@@ -9,4 +9,4 @@ class CollectCurrentDate(pyblish.api.Collector):
     def process(self, context):
         """Formatting is coming from configuration"""
         date = pyblish.lib.time()
-        context.set_data('date', value=date)
+        context.data['date'] = date

@@ -59,6 +59,9 @@ def publish(context=None, plugins=None, **kwargs):
     if plugins is None:
         plugins = pyblish.plugin.discover()
 
+    # Do not consider inactive plug-ins
+    plugins = list(p for p in plugins if p.active)
+
     for result in pyblish.logic.process(
             func=pyblish.plugin.process,
             plugins=plugins,

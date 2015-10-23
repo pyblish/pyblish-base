@@ -15,10 +15,12 @@ Attributes:
 
 # Standard library
 import os
+import sys
 import types
 import logging
 import inspect
 import warnings
+import functools
 import contextlib
 
 # Local library
@@ -259,6 +261,8 @@ class Plugin(object):
             Plug-ins requiring a version newer than the current version
             will not be loaded. 1.0.8 was when :attr:`Plugin.requires`
             was first introduced.
+        actions: Actions associated to this plug-in
+
     """
 
     __metaclass__ = MetaPlugin
@@ -271,16 +275,15 @@ class Plugin(object):
     order = -1
     optional = False
     requires = "pyblish>=1"
+    actions = []
+
+    id = pyblish.lib.classproperty(lambda cls: cls.__name__)
 
     def __str__(self):
         return self.label or type(self).__name__
 
     def __repr__(self):
         return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
-
-    @pyblish.lib.classproperty
-    def id(cls):
-        return cls.__name__
 
     def process(self):
         """Primary processing method
@@ -305,10 +308,11 @@ class Plugin(object):
         pass
 
     def repair(self):
+        """DEPRECATED"""
         pass
 
 
-class Selector(Plugin):
+class Collector(Plugin):
     """Parse a given working scene for available Instances"""
 
     order = 0
@@ -326,15 +330,85 @@ class Extractor(Plugin):
     order = 2
 
 
-class Conformer(Plugin):
+class Integrator(Plugin):
     """Integrates publishes into a pipeline"""
 
     order = 3
 
 
-# Forwards-compatibility aliases
-Collector = Selector
-Integrator = Conformer
+# Backwards-compatibility aliases
+Selector = Collector
+Conformer = Integrator
+
+
+class MetaAction(type):
+    """Inject additional metadata into Action"""
+
+    def __init__(cls, *args, **kwargs):
+        cls.__error__ = None
+        if cls.on not in ("all",
+                          "processed",
+                          "failed",
+                          "succeeded"):
+            cls.__error__ = (
+                "Action had an unrecognised value "
+                "for `on`: \"%s\"" % cls.on
+            )
+
+        return super(MetaAction, cls).__init__(*args, **kwargs)
+
+
+@pyblish.lib.log
+class Action(object):
+    """User-supplied interactive action
+
+    Subclass this class and append to Plugin.actions in order
+    to provide your users with optional, context sensitive
+    functionality.
+
+    Attributes:
+        label: Optional label to display in place of class name.
+        active: Whether or not to allow execution of action.
+        on: When to enable this action; available options are:
+            - "all": Always available (default).
+            - "processed": The plug-in has been processed
+            - "succeeded": The plug-in has been processed, and succeeded
+            - "failed": The plug-in has been processed, and failed
+        icon: Name, relative path or absolute path to image for
+            use as an icon of this action. For relative paths,
+            the current working directory of the host is used and
+            names represent icons available via Awesome Icons.
+            fortawesome.github.io/Font-Awesome/icons/
+
+    """
+
+    __metaclass__ = MetaAction
+    __type__ = "action"
+
+    label = None
+    active = True
+    on = "all"
+    icon = None
+
+    id = pyblish.lib.classproperty(lambda cls: cls.__name__)
+
+    def __str__(self):
+        return self.label or type(self).__name__
+
+    def __repr__(self):
+        return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
+
+    def process(self):
+        pass
+
+
+class Separator(Action):
+    __type__ = "separator"
+
+
+def Category(label):
+    return type("Category", (Action,), {"label": label,
+                                        "__type__": "category"})
 
 
 @contextlib.contextmanager
@@ -360,11 +434,17 @@ def logger(handler):
         l.setLevel(old_level)
 
 
-def process(plugin, context, instance=None):
+def process(plugin, context, instance=None, action=None):
     """Produce a single result from a Plug-in
 
+    Arguments:
+        plugin(Plugin): Uninstantiated plug-in class
+        context(Context): The current Context
+        instance(Instance, optional): Instance to process
+        action(str): Id of action to process, in place of plug-in.
+
     Returns:
-        Result dictionary
+        Dictionary of result
 
     """
 
@@ -374,18 +454,24 @@ def process(plugin, context, instance=None):
         "success": False,
         "plugin": plugin,
         "instance": instance,
-        "asset": instance,  # Forwards compatibility
+        "action": action,
         "error": None,
         "records": list(),
-        "duration": None
+        "duration": None,
     }
 
-    plugin = plugin()
+    if not action:
+        runner = plugin().process
+    else:
+        actions = dict((a.id, a) for a in plugin.actions)
+        action = actions[action] if action else None
+        runner = action().process
 
     records = list()
     handler = pyblish.lib.MessageHandler(records)
 
     provider = pyblish.plugin.Provider()
+    provider.inject("plugin", plugin)
     provider.inject("context", context)
     provider.inject("instance", instance)
 
@@ -393,7 +479,7 @@ def process(plugin, context, instance=None):
 
     try:
         with logger(handler):
-            provider.invoke(plugin.process)
+            provider.invoke(runner)
             result["success"] = True
     except Exception as error:
         pyblish.lib.extract_traceback(error)
@@ -406,10 +492,13 @@ def process(plugin, context, instance=None):
 
     result["duration"] = (__end - __start) * 1000  # ms
 
-    if "results" not in context.data():
-        context.set_data("results", list())
+    if "results" not in context.data:
+        context.data["results"] = list()
 
-    context.data("results").append(result)
+    context.data["results"].append(result)
+
+    # Backwards compatibility
+    result["asset"] = instance  # Deprecated key
 
     return result
 
@@ -419,8 +508,8 @@ def repair(plugin, context, instance=None):
 
     import time
 
-    if "results" not in context.data():
-        context.set_data("results", list())
+    if "results" not in context.data:
+        context.data["results"] = list()
 
     result = {
         "success": False,
@@ -457,19 +546,56 @@ def repair(plugin, context, instance=None):
 
     result["duration"] = (__end - __start) * 1000  # ms
 
-    context.data("results").append(result)
+    context.data["results"].append(result)
 
     return result
+
+
+class _Dict(dict):
+    """Temporary object during transition from set_data to data dictionary"""
+    def __init__(self, parent):
+        self._parent = parent
+
+    def __call__(self, key=None, default=None):
+        if key is None:
+            return self.copy()
+
+        if key == "name":
+            default = self._parent.name
+
+        return self.get(key, default)
+
+
+def deprecated(func):
+    """Deprecation decorator
+
+    Attach this to deprecated functions or methods.
+
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if sys.version_info >= (2, 7):
+            warnings.warn_explicit(
+                "Call to deprecated function {}.".format(func.__name__),
+                category=DeprecationWarning,
+                filename=func.func_code.co_filename,
+                lineno=func.func_code.co_firstlineno + 1)
+        return func(*args, **kwargs)
+    return wrapper
 
 
 class AbstractEntity(list):
     """Superclass for Context and Instance"""
 
     def __init__(self):
-        self._data = dict()
+        self.data = _Dict(self)
 
+    @deprecated
     def add(self, other):
-        """Add member to self
+        """DEPRECATED - USE .append
+
+        Add member to self
 
         This is to mimic the interface of set()
 
@@ -477,8 +603,11 @@ class AbstractEntity(list):
 
         return self.append(other)
 
+    @deprecated
     def remove(self, other):
-        """Remove member from self
+        """DEPRECATED - USE .pop
+
+        Remove member from self
 
         This is to mimic the interface of set()
 
@@ -487,62 +616,11 @@ class AbstractEntity(list):
         index = self.index(other)
         return self.pop(index)
 
-    def data(self, key=None, default=None):
-        """Return data from `key`
-
-        Arguments:
-            key (str): Name of data to return
-            default (object): Optional, value returned if `name`
-                does not exist
-
-        """
-
-        if key is None:
-            return self._data.copy()
-
-        return self._data.get(key, default)
-
-    def set_data(self, key, value):
-        """Modify/insert data into entity
-
-        Arguments:
-            key (str): Name of data to add
-            value (object): Value of data to add
-
-        """
-
-        self._data[key] = value
-
-    def remove_data(self, key):
-        """Remove data from entity
-
-        Arguments;
-            key (str): Name of data to remove
-
-        """
-
-        self._data.pop(key)
-
-    def has_data(self, key):
-        """Check if entity has key
-
-        Arguments:
-            key (str): Key to check
-
-        Return:
-            True if it exists, False otherwise
-
-        """
-
-        return key in self._data
-
 
 class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
-    @property
-    def id(self):
-        return "Context"
+    id = property(lambda self: "Context")
 
     def __contains__(self, key):
         """Support both Instance objects and `id` strings
@@ -564,34 +642,7 @@ class Context(AbstractEntity):
         except:
             pass
 
-        return key in self._children
-
-    def __init__(self, *args, **kwargs):
-        super(Context, self).__init__(*args, **kwargs)
-
-        # Cache children for faster lookup
-        self._children = dict()
-
-    def add(self, other):
-        """Add `other` to self
-
-        Duplicate IDs are not allowed.
-
-        Raises:
-            ValueError is duplicate IDs are found.
-
-        """
-
-        if other in self:
-            raise ValueError("\"%s\" already in Context" % other)
-
-        self._children[other.id] = other
-        super(Context, self).add(other)
-
-    def remove(self, other):
-        """Remove `other` from self"""
-        self._children.pop(other.id)
-        super(Context, self).remove(other)
+        return key in [c.id for c in self]
 
     def create_instance(self, name, **kwargs):
         """Convenience method of the following.
@@ -606,11 +657,8 @@ class Context(AbstractEntity):
         """
 
         instance = Instance(name, parent=self)
-        instance._data.update(kwargs)
+        instance.data.update(kwargs)
         return instance
-
-    # Alias
-    create_asset = create_instance
 
     def __getitem__(self, item):
         """Enable support for dict-like getting of children by id
@@ -626,10 +674,24 @@ class Context(AbstractEntity):
 
         if isinstance(item, int):
             return super(Context, self).__getitem__(item)
-        return self._children[item]
+        try:
+            return next(c for c in self if c.id == item)
+        except StopIteration:
+            raise KeyError("%s not in list" % item)
 
     def get(self, key, default=None):
-        return self._children.get(key, default)
+        try:
+            return next(c for c in self if c.id == key)
+        except StopIteration:
+            return default
+
+    @deprecated
+    def create_asset(self, *args, **kwargs):
+        return self.create_instance(*args, **kwargs)
+
+    @deprecated
+    def add(self, other):
+        return super(Context, self).append(other)
 
 
 @pyblish.lib.log
@@ -652,6 +714,8 @@ class Instance(AbstractEntity):
 
     """
 
+    id = property(lambda self: self.name)
+
     def __eq__(self, other):
         return self.id == getattr(other, "id", None)
 
@@ -664,10 +728,6 @@ class Instance(AbstractEntity):
     def __str__(self):
         return self.name
 
-    @property
-    def id(self):
-        return self.name
-
     def __init__(self, name, parent=None):
         super(Instance, self).__init__()
         assert isinstance(name, basestring)
@@ -675,8 +735,11 @@ class Instance(AbstractEntity):
         self.name = name
         self.parent = parent
 
+        self.data["name"] = name
+        self.data["family"] = "default"
+
         if parent is not None:
-            parent.add(self)
+            parent.append(self)
 
     @property
     def context(self):
@@ -689,27 +752,6 @@ class Instance(AbstractEntity):
                 break
         assert isinstance(parent, Context)
         return parent
-
-    def data(self, key=None, default=None):
-        """Treat `name` data-member as an override to native property
-
-        If name is a data-member, it will be used wherever a name is requested.
-        That way, names may be overridden via data.
-
-        Example:
-            >>> inst = Instance(name="test")
-            >>> assert inst.data("name") == "test"
-            >>> inst.set_data("name", "newname")
-            >>> assert inst.data("name") == "newname"
-
-        """
-
-        value = super(Instance, self).data(key, default)
-
-        if key == "name" and value is None:
-            return self.name
-
-        return value
 
 
 # Forwards-compatibility alias
@@ -1207,3 +1249,58 @@ def sort(plugins):
 
     plugins.sort(key=lambda p: p.order)
     return plugins
+
+
+# Compatibility
+#
+# The below members represent backwards compatibility
+# features, kept separate for maintainability as they
+# will no longer be updated and eventually discarded.
+
+
+def set_data(self, key, value):
+    """DEPRECATED - USE .data DICTIONARY DIRECTLY
+
+    Modify/insert data into entity
+
+    Arguments:
+        key (str): Name of data to add
+        value (object): Value of data to add
+
+    """
+
+    self.data[key] = value
+
+
+def remove_data(self, key):
+    """DEPRECATED - USE .data DICTIONARY DIRECTLY
+
+    Remove data from entity
+
+    Arguments;
+        key (str): Name of data to remove
+
+    """
+
+    self.data.pop(key)
+
+
+def has_data(self, key):
+    """DEPRECATED - USE .data DICTIONARY DIRECTLY
+
+    Check if entity has key
+
+    Arguments:
+        key (str): Key to check
+
+    Return:
+        True if it exists, False otherwise
+
+    """
+
+    return key in self.data
+
+
+AbstractEntity.set_data = set_data
+AbstractEntity.remove_data = remove_data
+AbstractEntity.has_data = has_data

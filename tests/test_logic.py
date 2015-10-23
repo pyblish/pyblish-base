@@ -129,6 +129,7 @@ def test_context_once():
 
     class ValidateContext(pyblish.api.Validator):
         families = ["myFamily"]
+
         def process(self, context):
             count["#"] += 1
 
@@ -172,6 +173,7 @@ def test_incompatible_context():
     # When families are wildcard, it does process
     class ValidateContext(pyblish.api.Validator):
         families = ["NOT_EXIST"]
+
         def process(self, context):
             count["#"] += 1
 
@@ -277,15 +279,10 @@ def test_active():
         def process(self, instance):
             count["#"] += 100
 
-    context = pyblish.api.Context()
-    for result in pyblish.logic.process(
-            plugins=[SelectInstances4321,
-                     ValidateNotActive,
-                     ValidateActive],
-            func=pyblish.plugin.process,
-            context=context):
-        assert not isinstance(result, pyblish.logic.TestFailed), result
+    for plugin in (SelectInstances4321, ValidateNotActive, ValidateActive):
+        pyblish.api.register_plugin(plugin)
 
+    pyblish.util.publish()
     assert_equals(count["#"], 201)
 
 
@@ -365,3 +362,15 @@ def test_decrementing_order():
 
     pyblish.util.publish()
     assert_equals(count["#"], 111.1)
+
+
+def test_extract_traceback():
+    e = None
+
+    try:
+        1 / 0
+    except Exception as e:
+        assert not hasattr(e, "traceback")
+        pyblish.logic._extract_traceback(e)
+
+    assert hasattr(e, "traceback")

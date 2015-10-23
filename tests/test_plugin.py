@@ -192,6 +192,18 @@ class NotDiscoverable(pyblish.api.Plugin):
 
 
 @with_setup(lib.setup_empty, lib.teardown)
+def test_repair_context_backwardscompat():
+    """Plug-ins with repair-context are reprogrammed appropriately"""
+
+    class ValidateInstances(pyblish.api.Validator):
+        def repair_context(self, context):
+            pass
+
+    assert hasattr(ValidateInstances, "repair")
+    assert not hasattr(ValidateInstances, "repair_context")
+
+
+@with_setup(lib.setup_empty, lib.teardown)
 def test_unique_logger():
     """A unique logger is applied to every plug-in"""
 
@@ -341,3 +353,102 @@ class MyPlugin(pyblish.api.Plugin):
     assert_true(MyPlugin().process(True))
     assert_true(MyPlugin().module_is_present())
     assert_true(MyPlugin().local_variable_is_present())
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_data_dict():
+    """.data is a pure dictionary"""
+
+    context = pyblish.api.Context()
+    instance = context.create_instance("MyInstance")
+    assert isinstance(context.data, dict)
+    assert isinstance(instance.data, dict)
+
+    context.data["key"] = "value"
+    assert context.data["key"] == "value"
+
+    instance.data["key"] = "value"
+    assert instance.data["key"] == "value"
+
+    # Backwards compatibility
+    assert context.data("key") == "value"
+    assert instance.data("key") == "value"
+    assert instance.data("name") == "MyInstance"
+    # This returns (a copy of) the full dictionary
+    assert context.data() == context.data
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_action():
+    """Running an action is like running a plugin"""
+    count = {"#": 0}
+
+    class MyAction(pyblish.plugin.Action):
+        def process(self, context):
+            count["#"] += 1
+
+    class MyPlugin(pyblish.plugin.Plugin):
+        actions = [MyAction]
+
+        def process(self, context):
+            pass
+
+    context = pyblish.api.Context()
+    pyblish.plugin.process(
+        plugin=MyPlugin,
+        context=context,
+        action="MyAction")
+
+    assert count["#"] == 1
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_actions():
+    class MyAction(pyblish.plugin.Action):
+        def process(self, context):
+            context.data["key"] = "value"
+
+    context = pyblish.api.Context()
+    pyblish.plugin.process(MyAction, context)
+    assert "key" in context.data
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_action_error_checking():
+    class MyActionValid(pyblish.plugin.Action):
+        on = "all"
+
+    class MyActionInvalid(pyblish.plugin.Action):
+        on = "invalid"
+
+    assert MyActionValid.__error__ is None
+    assert MyActionInvalid.__error__
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_action_printing():
+    class MyAction(pyblish.plugin.Action):
+        pass
+
+    print(MyAction())
+    print repr(MyAction())
+
+    assert str(MyAction()) == "MyAction"
+    assert repr(MyAction()) == "pyblish.plugin.MyAction('MyAction')"
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_category_separator():
+    assert issubclass(pyblish.plugin.Category("Test"),
+                      pyblish.plugin.Action)
+    assert issubclass(pyblish.plugin.Separator,
+                      pyblish.plugin.Action)
+
+
+def test_superclass_process_is_empty():
+    """Superclass process() is empty"""
+    def e():
+        """Doc"""
+
+    assert pyblish.api.Plugin.process.__code__.co_code == e.__code__.co_code
+    assert pyblish.api.Plugin.repair.__code__.co_code == e.__code__.co_code
