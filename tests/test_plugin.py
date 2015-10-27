@@ -452,3 +452,16 @@ def test_superclass_process_is_empty():
 
     assert pyblish.api.Plugin.process.__code__.co_code == e.__code__.co_code
     assert pyblish.api.Plugin.repair.__code__.co_code == e.__code__.co_code
+
+
+def test_plugin_source_path():
+    """Plugins discovered carry a source path"""
+
+    import sys
+    plugin = pyblish.plugin.discover()[0]
+    module = sys.modules[plugin.__module__]
+    assert hasattr(module, "__file__")
+
+    # Also works with inspect.getfile
+    import inspect
+    assert inspect.getfile(plugin) == module.__file__
