@@ -1088,9 +1088,16 @@ def discover(type=None, regex=None, paths=None):
                 continue
 
             module = types.ModuleType(mod_name)
+            module.__file__ = abspath
 
             try:
                 execfile(abspath, module.__dict__)
+
+                # Store reference to original module, to avoid
+                # garbage collection from collecting it's global
+                # imports, such as `import os`.
+                sys.modules[mod_name] = module
+
             except Exception as err:
                 log.debug("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
@@ -1099,11 +1106,6 @@ def discover(type=None, regex=None, paths=None):
                 if plugin.id in plugins:
                     log.debug("Duplicate plug-in found: %s", plugin)
                     continue
-
-                # Store reference to original module, to avoid
-                # garbage collection from collecting it's global
-                # imports, such as `import os`.
-                plugin.__parent__ = module
 
                 plugins[plugin.id] = plugin
 
