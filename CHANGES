@@ -3,10 +3,16 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.2.2
+-------------
+
+- Added support for instances with multiple families (#231)
+
 Version 1.2.1
 -------------
 
 - Feature: Actions (see #142)
+- Enhancement: All instances are now given a default family, where none is provided, called "default".
 - Enhancement: Added deprecation warnings; quiet by default, run Python with -Wdefault to see them.
 - Enhancement: In favour of maintainability, the dict-like property of Context was simplified; no behavioural difference.
 - Enhancement: Multiple instances of the same name now officially supported.
