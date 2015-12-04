@@ -65,7 +65,8 @@ def extract_traceback(exception):
 
 
 def time():
-    return datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    """Return ISO formatted string representation of current UTC time."""
+    return '%sZ' % datetime.datetime.utcnow().isoformat()
 
 
 class ItemList(list):
