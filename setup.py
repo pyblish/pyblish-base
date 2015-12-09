@@ -38,7 +38,10 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     package_data={
-        "pyblish": ["plugins/*.py", "*.yaml", "vendor/nose/*.txt"],
+        "pyblish": ["plugins/*.py",
+                    "*.yaml",
+                    "vendor/nose/*.txt",
+                    "icons/*.svg"],
     },
     entry_points={
         "console_scripts": ["pyblish = pyblish.cli:main"]
