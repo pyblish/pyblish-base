@@ -465,3 +465,36 @@ def test_plugin_source_path():
     # Also works with inspect.getfile
     import inspect
     assert inspect.getfile(plugin) == module.__file__
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_multi_families():
+    """Instances with multiple families works well"""
+
+    count = {"#": 0}
+
+    class CollectInstance(pyblish.api.Collector):
+        def process(self, context):
+            instance = context.create_instance("MyInstance")
+            instance.data["families"] = ["geometry", "human"]
+
+    class ValidateHumans(pyblish.api.Validator):
+        families = ["human"]
+
+        def process(self, instance):
+            assert "human" in instance.data["families"]
+            count["#"] += 10
+
+    class ValidateGeometry(pyblish.api.Validator):
+        families = ["geometry"]
+
+        def process(self, instance):
+            assert "geometry" in instance.data["families"]
+            count["#"] += 100
+
+    for plugin in (CollectInstance, ValidateHumans, ValidateGeometry):
+        pyblish.api.register_plugin(plugin)
+
+    pyblish.util.publish()
+
+    assert count["#"] == 110, count["#"]

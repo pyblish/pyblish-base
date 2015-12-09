@@ -285,6 +285,8 @@ def instances_by_plugin(instances, plugin):
         family = instance.data["family"]
         if any(x in plugin.families for x in (family, "*")):
             compatible.append(instance)
+        elif set(plugin.families) & set(instance.data.get("families", [])):
+            compatible.append(instance)
 
     return compatible
 
