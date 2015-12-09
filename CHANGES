@@ -6,6 +6,7 @@ This contains all major version changes between pyblish releases.
 Version 1.2.2
 -------------
 
+- Added icons for integrations under /icons
 - Added support for instances with multiple families (#231)
 
 Version 1.2.1
