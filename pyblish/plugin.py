@@ -482,6 +482,8 @@ def process(plugin, context, instance=None, action=None):
             provider.invoke(runner)
             result["success"] = True
     except Exception as error:
+        emit("pluginFailed", plugin=plugin, context=context, instance=instance,
+             error=error)
         pyblish.lib.extract_traceback(error)
         result["error"] = error
 
@@ -778,6 +780,46 @@ def current_host():
     """
 
     return pyblish._registered_hosts[-1] or "unknown"
+
+
+def register_callback(signal, callback):
+
+    if signal in pyblish._registered_callbacks:
+        pyblish._registered_callbacks[signal].append(callback)
+    else:
+        pyblish._registered_callbacks[signal] = [callback]
+
+
+def deregister_callback(callback):
+
+    for signal in pyblish._registered_callbacks:
+        if callback in pyblish._registered_callbacks[signal]:
+            pyblish._registered_callbacks[signal].remove(callback)
+
+
+def deregister_callbacks(signal):
+
+    pyblish._registered_callbacks.pop(signal, None)
+
+
+def deregister_all_callbacks():
+
+    pyblish._registered_callbacks = dict()
+
+
+def registered_callbacks():
+
+    return pyblish._registered_callbacks
+
+
+def emit(signal, **kwargs):
+
+    if signal in pyblish._registered_callbacks:
+        for callback in pyblish._registered_callbacks[signal]:
+            try:
+                callback(**kwargs)
+            except Exception as e:
+                log.error(e)
 
 
 def register_plugin(plugin):

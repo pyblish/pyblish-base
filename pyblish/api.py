@@ -58,6 +58,13 @@ from .plugin import (
     deregister_all_services,
     registered_services,
 
+    register_callback,
+    deregister_callback,
+    deregister_callbacks,
+    deregister_all_callbacks,
+    registered_callbacks,
+    emit,
+
     sort as sort_plugins,
 
     registered_paths,
@@ -167,6 +174,13 @@ __all__ = [
     "deregister_service",
     "deregister_all_services",
     "registered_services",
+
+    "register_callback",
+    "deregister_callback",
+    "deregister_callbacks",
+    "deregister_all_callbacks",
+    "registered_callbacks",
+    "emit",
 
     "register_plugin_path",
     "deregister_plugin_path",
