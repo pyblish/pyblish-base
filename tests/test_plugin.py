@@ -498,3 +498,45 @@ def test_multi_families():
     pyblish.util.publish()
 
     assert count["#"] == 110, count["#"]
+
+
+def test_register_callback():
+    """Callback registration/deregistration works well"""
+
+    def myCallback():
+        print "Ping from 'myCallback'"
+
+    def otherCallback(data=None):
+        print "Ping from 'otherCallback' with %s" % data
+
+    pyblish.plugin.register_callback("someSignal", myCallback)
+
+    pyblish.lib.emit("someSignal")
+
+    msg = "Registering a callback failed"
+    data = {"someSignal": [myCallback]}
+    assert pyblish.plugin.registered_callbacks() == data, msg
+
+    pyblish.plugin.deregister_callback("someSignal", myCallback)
+
+    msg = "Deregistering a callback failed"
+    data = {"someSignal": []}
+    assert pyblish.plugin.registered_callbacks() == data, msg
+
+    pyblish.plugin.register_callback("someSignal", myCallback)
+    pyblish.plugin.register_callback("otherSignal", otherCallback)
+    pyblish.plugin.deregister_all_callbacks()
+
+    msg = "Deregistering all callbacks failed"
+    assert pyblish.plugin.registered_callbacks() == {}, msg
+
+
+@raises(Exception)
+def test_emit_signal_wrongly():
+    """Cannot emit a signal with wrong keyword arguments"""
+
+    def otherCallback(data=None):
+        print "Ping from 'otherCallback' with %s" % data
+
+    pyblish.plugin.register_callback("otherSignal", otherCallback)
+    pyblish.lib.emit("otherSignal", akeyword="")

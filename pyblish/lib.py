@@ -5,6 +5,8 @@ import logging
 import datetime
 import traceback
 
+import pyblish
+
 _filename_ascii_strip_re = re.compile(r'[^-\w.]')
 _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
@@ -349,3 +351,27 @@ def import_module(name, package=None):
     __import__(name)
 
     return sys.modules[name]
+
+
+def emit(signal, **kwargs):
+    """Searches through the registered callbacks and executes any callback that
+    matches the signal.
+    The keyword arguments (kwargs) are passed directly through from the emitter
+    to the callbacks.
+
+        Arguments:
+            signal (string): Name of signal emitted
+
+        Example:
+            def myCallback(data=None):
+                print data
+
+            pyblish.api.register_callback("someSignal", myCallback)
+            emit("someSignal", data={"something": "cool"})
+    """
+    for callback in pyblish._registered_callbacks.get(signal, []):
+        try:
+            callback(**kwargs)
+        except Exception as e:
+            traceback.print_exc(e)
+            raise Exception(e)

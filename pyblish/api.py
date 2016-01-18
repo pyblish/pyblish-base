@@ -60,10 +60,8 @@ from .plugin import (
 
     register_callback,
     deregister_callback,
-    deregister_callbacks,
     deregister_all_callbacks,
     registered_callbacks,
-    emit,
 
     sort as sort_plugins,
 
@@ -77,6 +75,7 @@ from .lib import (
     log,
     time as __time,
     format_filename,
+    emit
 )
 
 from .logic import (
@@ -177,10 +176,8 @@ __all__ = [
 
     "register_callback",
     "deregister_callback",
-    "deregister_callbacks",
     "deregister_all_callbacks",
     "registered_callbacks",
-    "emit",
 
     "register_plugin_path",
     "deregister_plugin_path",
@@ -206,6 +203,7 @@ __all__ = [
 
     # Utilities
     "log",
+    "emit",    
 
     # Exceptions
     "PyblishError",

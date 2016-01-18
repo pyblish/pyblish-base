@@ -482,8 +482,8 @@ def process(plugin, context, instance=None, action=None):
             provider.invoke(runner)
             result["success"] = True
     except Exception as error:
-        emit("pluginFailed", plugin=plugin, context=context, instance=instance,
-             error=error)
+        pyblish.lib.emit("pluginFailed", plugin=plugin, context=context,
+                         instance=instance, error=error)
         pyblish.lib.extract_traceback(error)
         result["error"] = error
 
@@ -783,6 +783,12 @@ def current_host():
 
 
 def register_callback(signal, callback):
+    """Register a new callback
+
+    Arguments:
+        signal (string): Name of signal to register the callback with.
+        callback (func): Function to execute when a signal is emitted.
+    """
 
     if signal in pyblish._registered_callbacks:
         pyblish._registered_callbacks[signal].append(callback)
@@ -790,36 +796,28 @@ def register_callback(signal, callback):
         pyblish._registered_callbacks[signal] = [callback]
 
 
-def deregister_callback(callback):
+def deregister_callback(signal, callback):
+    """Deregister a callback
 
-    for signal in pyblish._registered_callbacks:
-        if callback in pyblish._registered_callbacks[signal]:
-            pyblish._registered_callbacks[signal].remove(callback)
+    Arguments:
+        signal (string): Name of signal to deregister the callback with.
+        callback (func): Function to execute when a signal is emitted.
+    """
 
-
-def deregister_callbacks(signal):
-
-    pyblish._registered_callbacks.pop(signal, None)
+    if callback in pyblish._registered_callbacks[signal]:
+        pyblish._registered_callbacks[signal].remove(callback)
 
 
 def deregister_all_callbacks():
+    """Deregisters all callback"""
 
     pyblish._registered_callbacks = dict()
 
 
 def registered_callbacks():
+    """Returns registered callbacks"""
 
     return pyblish._registered_callbacks
-
-
-def emit(signal, **kwargs):
-
-    if signal in pyblish._registered_callbacks:
-        for callback in pyblish._registered_callbacks[signal]:
-            try:
-                callback(**kwargs)
-            except Exception as e:
-                log.error(e)
 
 
 def register_plugin(plugin):
