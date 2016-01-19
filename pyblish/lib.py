@@ -363,15 +363,14 @@ def emit(signal, **kwargs):
             signal (string): Name of signal emitted
 
         Example:
-            def myCallback(data=None):
-                print data
-
-            pyblish.api.register_callback("someSignal", myCallback)
-            emit("someSignal", data={"something": "cool"})
+            >>> import sys
+            >>> from .plugin import register_callback
+            >>> register_callback("mysignal", lambda data: sys.stdout.write(data))
+            >>> emit("mysignal", data={"something": "cool"})
+            {'something': 'cool'}
     """
     for callback in pyblish._registered_callbacks.get(signal, []):
         try:
             callback(**kwargs)
         except Exception as e:
             traceback.print_exc(e)
-            raise Exception(e)

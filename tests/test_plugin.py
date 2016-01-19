@@ -500,6 +500,7 @@ def test_multi_families():
     assert count["#"] == 110, count["#"]
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_register_callback():
     """Callback registration/deregistration works well"""
 
@@ -510,8 +511,6 @@ def test_register_callback():
         print "Ping from 'otherCallback' with %s" % data
 
     pyblish.plugin.register_callback("someSignal", myCallback)
-
-    pyblish.lib.emit("someSignal")
 
     msg = "Registering a callback failed"
     data = {"someSignal": [myCallback]}
@@ -531,9 +530,10 @@ def test_register_callback():
     assert pyblish.plugin.registered_callbacks() == {}, msg
 
 
-@raises(Exception)
 def test_emit_signal_wrongly():
-    """Cannot emit a signal with wrong keyword arguments"""
+    """Cannot emit a signal with wrong keyword arguments
+    This is supposed to print a traceback exception.
+    """
 
     def otherCallback(data=None):
         print "Ping from 'otherCallback' with %s" % data

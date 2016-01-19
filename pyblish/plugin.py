@@ -811,7 +811,7 @@ def deregister_callback(signal, callback):
 def deregister_all_callbacks():
     """Deregisters all callback"""
 
-    pyblish._registered_callbacks = dict()
+    pyblish._registered_callbacks.clear()
 
 
 def registered_callbacks():
