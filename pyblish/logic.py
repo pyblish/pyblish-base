@@ -4,8 +4,8 @@ import sys
 import inspect
 import traceback
 
-import pyblish
-import lib
+from . import _registered_test, lib
+from .plugin import Validator
 
 
 class TestFailed(Exception):
@@ -37,7 +37,7 @@ def default_test(**vars):
     """
 
     offset = 0.5
-    validation_order = pyblish.api.Validator.order
+    validation_order = Validator.order
 
     # If validation is done
     if vars["nextOrder"] >= validation_order + offset:
@@ -193,12 +193,12 @@ def register_test(test):
 
     """
 
-    pyblish._registered_test = test
+    _registered_test["default"] = test
 
 
 def registered_test():
     """Return the currently registered test"""
-    return pyblish._registered_test
+    return _registered_test["default"]
 
 
 def deregister_test():
