@@ -5,6 +5,8 @@ import logging
 import datetime
 import traceback
 
+from . import _registered_callbacks
+
 _filename_ascii_strip_re = re.compile(r'[^-\w.]')
 _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
                          'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
@@ -349,3 +351,27 @@ def import_module(name, package=None):
     __import__(name)
 
     return sys.modules[name]
+
+
+def emit(signal, **kwargs):
+    """Trigger registered callbacks
+
+    Keyword arguments are passed from caller to callee.
+
+    Arguments:
+        signal (string): Name of signal emitted
+
+    Example:
+        >>> import sys
+        >>> from .plugin import register_callback
+        >>> register_callback("mysignal", lambda data: sys.stdout.write(data))
+        >>> emit("mysignal", data={"something": "cool"})
+        {'something': 'cool'}
+
+    """
+
+    for callback in _registered_callbacks.get(signal, []):
+        try:
+            callback(**kwargs)
+        except Exception as e:
+            traceback.print_exc(e)

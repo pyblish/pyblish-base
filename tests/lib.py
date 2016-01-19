@@ -1,4 +1,9 @@
 import os
+import sys
+import shutil
+import tempfile
+import contextlib
+from StringIO import StringIO
 
 import pyblish
 import pyblish.cli
@@ -29,6 +34,7 @@ def setup_empty():
     setup()
     pyblish.plugin.deregister_all_paths()
     pyblish.plugin.deregister_all_hosts()
+    pyblish.plugin.deregister_all_callbacks()
 
 
 def teardown():
@@ -46,3 +52,33 @@ def teardown():
     pyblish.api.deregister_all_hosts()
     pyblish.api.deregister_test()
     pyblish.api.__init__()
+
+
+@contextlib.contextmanager
+def captured_stdout():
+    """Temporarily reassign stdout to a local variable"""
+    try:
+        sys.stdout = StringIO()
+        yield sys.stdout
+    finally:
+        sys.stdout = sys.__stdout__
+
+
+@contextlib.contextmanager
+def captured_stderr():
+    """Temporarily reassign stderr to a local variable"""
+    try:
+        sys.stderr = StringIO()
+        yield sys.stderr
+    finally:
+        sys.stderr = sys.__stderr__
+
+
+@contextlib.contextmanager
+def tempdir():
+    """Provide path to temporary directory"""
+    try:
+        tempdir = tempfile.mkdtemp()
+        yield tempdir
+    finally:
+        shutil.rmtree(tempdir)

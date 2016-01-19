@@ -8,9 +8,6 @@ options, such as ".exe" or ".bat".
 In this system, the predicate is whether or not a fname starts
 with "validate" and ends with ".py"
 
-Attributes:
-    patterns: Regular expressions used for lookup of plugins.
-
 """
 
 # Standard library
@@ -24,10 +21,17 @@ import functools
 import contextlib
 
 # Local library
-import pyblish
-import pyblish.lib
-import pyblish.error
+from . import (
+    __version__,
+    version_info,
+    _registered_callbacks,
+    _registered_services,
+    _registered_plugins,
+    _registered_hosts,
+    _registered_paths,
+)
 
+from . import lib
 from .vendor import yaml
 from .vendor import iscompatible
 
@@ -54,7 +58,7 @@ class Provider(object):
 
     @property
     def services(self):
-        services = pyblish._registered_services.copy()
+        services = _registered_services.copy()
         services.update(self._services)
 
         # Forwards-compatibility alias
@@ -236,7 +240,7 @@ class MetaPlugin(type):
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
 
-@pyblish.lib.log
+@lib.log
 class Plugin(object):
     """Base-class for plugins
 
@@ -277,7 +281,7 @@ class Plugin(object):
     requires = "pyblish>=1"
     actions = []
 
-    id = pyblish.lib.classproperty(lambda cls: cls.__name__)
+    id = lib.classproperty(lambda cls: cls.__name__)
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -358,7 +362,7 @@ class MetaAction(type):
         return super(MetaAction, cls).__init__(*args, **kwargs)
 
 
-@pyblish.lib.log
+@lib.log
 class Action(object):
     """User-supplied interactive action
 
@@ -390,7 +394,7 @@ class Action(object):
     on = "all"
     icon = None
 
-    id = pyblish.lib.classproperty(lambda cls: cls.__name__)
+    id = lib.classproperty(lambda cls: cls.__name__)
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -468,9 +472,9 @@ def process(plugin, context, instance=None, action=None):
         runner = action().process
 
     records = list()
-    handler = pyblish.lib.MessageHandler(records)
+    handler = lib.MessageHandler(records)
 
-    provider = pyblish.plugin.Provider()
+    provider = Provider()
     provider.inject("plugin", plugin)
     provider.inject("context", context)
     provider.inject("instance", instance)
@@ -482,7 +486,9 @@ def process(plugin, context, instance=None, action=None):
             provider.invoke(runner)
             result["success"] = True
     except Exception as error:
-        pyblish.lib.extract_traceback(error)
+        lib.emit("pluginFailed", plugin=plugin, context=context,
+                 instance=instance, error=error)
+        lib.extract_traceback(error)
         result["error"] = error
 
     __end = time.time()
@@ -523,9 +529,9 @@ def repair(plugin, context, instance=None):
     plugin = plugin()
 
     records = list()
-    handler = pyblish.lib.MessageHandler(records)
+    handler = lib.MessageHandler(records)
 
-    provider = pyblish.plugin.Provider()
+    provider = Provider()
     provider.inject("context", context)
     provider.inject("instance", instance)
 
@@ -536,7 +542,7 @@ def repair(plugin, context, instance=None):
             provider.invoke(plugin.repair)
             result["success"] = True
     except Exception as error:
-        pyblish.lib.extract_traceback(error)
+        lib.extract_traceback(error)
         result["error"] = error
 
     __end = time.time()
@@ -694,7 +700,7 @@ class Context(AbstractEntity):
         return super(Context, self).append(other)
 
 
-@pyblish.lib.log
+@lib.log
 class Instance(AbstractEntity):
     """An in-memory representation of one or more files
 
@@ -777,7 +783,52 @@ def current_host():
 
     """
 
-    return pyblish._registered_hosts[-1] or "unknown"
+    return _registered_hosts[-1] or "unknown"
+
+
+def register_callback(signal, callback):
+    """Register a new callback
+
+    Arguments:
+        signal (string): Name of signal to register the callback with.
+        callback (func): Function to execute when a signal is emitted.
+
+    Raises:
+        ValueError if `callback` is not callable.
+
+    """
+
+    if not hasattr(callback, "__call__"):
+        raise ValueError("%s is not callable" % callback)
+
+    if signal in _registered_callbacks:
+        _registered_callbacks[signal].append(callback)
+    else:
+        _registered_callbacks[signal] = [callback]
+
+
+def deregister_callback(signal, callback):
+    """Deregister a callback
+
+    Arguments:
+        signal (string): Name of signal to deregister the callback with.
+        callback (func): Function to execute when a signal is emitted.
+    """
+
+    if callback in _registered_callbacks[signal]:
+        _registered_callbacks[signal].remove(callback)
+
+
+def deregister_all_callbacks():
+    """Deregisters all callback"""
+
+    _registered_callbacks.clear()
+
+
+def registered_callbacks():
+    """Returns registered callbacks"""
+
+    return _registered_callbacks
 
 
 def register_plugin(plugin):
@@ -802,13 +853,13 @@ def register_plugin(plugin):
         raise TypeError(
             "Plug-in %s not compatible with "
             "this version (%s) of Pyblish." % (
-                plugin, pyblish.__version__))
+                plugin, __version__))
 
     if not host_is_compatible(plugin):
         raise TypeError("Plug-in %s is not compatible "
                         "with this host" % plugin)
 
-    pyblish._registered_plugins[plugin.__name__] = plugin
+    _registered_plugins[plugin.__name__] = plugin
 
 
 def deregister_plugin(plugin):
@@ -819,12 +870,12 @@ def deregister_plugin(plugin):
 
     """
 
-    pyblish._registered_plugins.pop(plugin.__name__)
+    _registered_plugins.pop(plugin.__name__)
 
 
 def deregister_all_plugins():
     """De-register all plug-ins"""
-    pyblish._registered_plugins.clear()
+    _registered_plugins.clear()
 
 
 def register_service(name, obj):
@@ -836,7 +887,7 @@ def register_service(name, obj):
 
     """
 
-    pyblish._registered_services[name] = obj
+    _registered_services[name] = obj
 
 
 def deregister_service(name):
@@ -847,12 +898,12 @@ def deregister_service(name):
 
     """
 
-    pyblish._registered_services.pop(name)
+    _registered_services.pop(name)
 
 
 def deregister_all_services():
     """De-register all existing services"""
-    pyblish._registered_services.clear()
+    _registered_services.clear()
 
 
 def registered_services():
@@ -863,7 +914,7 @@ def registered_services():
 
     """
 
-    return pyblish._registered_services.copy()
+    return _registered_services.copy()
 
 
 def register_plugin_path(path):
@@ -883,10 +934,10 @@ def register_plugin_path(path):
 
     """
 
-    if path in pyblish._registered_paths:
+    if path in _registered_paths:
         return log.warning("Path already registered: {0}".format(path))
 
-    pyblish._registered_paths.append(path)
+    _registered_paths.append(path)
 
     return path
 
@@ -899,12 +950,12 @@ def deregister_plugin_path(path):
 
     """
 
-    pyblish._registered_paths.remove(path)
+    _registered_paths.remove(path)
 
 
 def deregister_all_paths():
     """Mainly used in tests"""
-    pyblish._registered_paths[:] = []
+    _registered_paths[:] = []
 
 
 def registered_paths():
@@ -915,7 +966,7 @@ def registered_paths():
 
     """
 
-    return list(pyblish._registered_paths)
+    return list(_registered_paths)
 
 
 def registered_plugins():
@@ -926,7 +977,7 @@ def registered_plugins():
 
     """
 
-    return pyblish._registered_plugins.values()
+    return _registered_plugins.values()
 
 
 def register_host(host):
@@ -942,8 +993,8 @@ def register_host(host):
 
     """
 
-    if host not in pyblish._registered_hosts:
-        pyblish._registered_hosts.append(host)
+    if host not in _registered_hosts:
+        _registered_hosts.append(host)
 
 
 def deregister_host(host, quiet=False):
@@ -958,19 +1009,19 @@ def deregister_host(host, quiet=False):
     """
 
     try:
-        pyblish._registered_hosts.remove(host)
+        _registered_hosts.remove(host)
     except Exception as e:
         if not quiet:
             raise e
 
 
 def deregister_all_hosts():
-    pyblish._registered_hosts[:] = []
+    _registered_hosts[:] = []
 
 
 def registered_hosts():
     """Return the currently registered hosts"""
-    return list(pyblish._registered_hosts)
+    return list(_registered_hosts)
 
 
 def configured_paths():
@@ -979,7 +1030,7 @@ def configured_paths():
     config = Config()
 
     for path_template in config["paths"]:
-        variables = {"pyblish": pyblish.lib.main_package_path()}
+        variables = {"pyblish": lib.main_package_path()}
 
         plugin_path = path_template.format(**variables)
 
@@ -1062,7 +1113,7 @@ def discover(type=None, regex=None, paths=None):
         warnings.warn("type argument has been deprecated and does nothing")
 
     if regex is not None:
-        warnings.warn("pyblish.plugin.discover(): regex argument "
+        warnings.warn("discover(): regex argument "
                       "has been deprecated and does nothing")
 
     plugins = dict()
@@ -1111,7 +1162,7 @@ def discover(type=None, regex=None, paths=None):
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
-    for name, plugin in pyblish._registered_plugins.iteritems():
+    for name, plugin in _registered_plugins.iteritems():
         if name in plugins:
             log.debug("Duplicate plug-in found: %s", plugin)
             continue
@@ -1157,7 +1208,7 @@ def plugins_from_module(module):
         if not version_is_compatible(obj):
             log.debug("Plug-in %s not compatible with "
                       "this version (%s) of Pyblish." % (
-                          obj, pyblish.__version__))
+                          obj, __version__))
             continue
 
         if not host_is_compatible(obj):
@@ -1210,7 +1261,7 @@ def version_is_compatible(plugin):
     """
 
     if not iscompatible.iscompatible(requirements=plugin.requires,
-                                     version=pyblish.version_info):
+                                     version=version_info):
         return False
     return True
 

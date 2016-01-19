@@ -16,8 +16,8 @@ without breaking any of your tools.
 
 from __future__ import absolute_import
 
+from . import version
 import getpass
-import pyblish
 
 from .plugin import (
     Context,
@@ -58,6 +58,11 @@ from .plugin import (
     deregister_all_services,
     registered_services,
 
+    register_callback,
+    deregister_callback,
+    deregister_all_callbacks,
+    registered_callbacks,
+
     sort as sort_plugins,
 
     registered_paths,
@@ -70,6 +75,7 @@ from .lib import (
     log,
     time as __time,
     format_filename,
+    emit
 )
 
 from .logic import (
@@ -98,7 +104,6 @@ from .compat import (
 )
 
 
-version = pyblish.version
 config = __Config()
 
 
@@ -168,6 +173,11 @@ __all__ = [
     "deregister_all_services",
     "registered_services",
 
+    "register_callback",
+    "deregister_callback",
+    "deregister_all_callbacks",
+    "registered_callbacks",
+
     "register_plugin_path",
     "deregister_plugin_path",
     "deregister_all_paths",
@@ -192,6 +202,7 @@ __all__ = [
 
     # Utilities
     "log",
+    "emit",
 
     # Exceptions
     "PyblishError",
