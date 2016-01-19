@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-import contextlib
 
 import pyblish.plugin
 from pyblish.vendor.nose.tools import (
@@ -11,16 +10,7 @@ from pyblish.vendor.nose.tools import (
     raises,
 )
 
-import lib
-
-
-@contextlib.contextmanager
-def tempdir():
-    try:
-        tempdir = tempfile.mkdtemp()
-        yield tempdir
-    finally:
-        shutil.rmtree(tempdir)
+from . import lib
 
 
 def test_unique_id():
@@ -79,7 +69,7 @@ def test_import_mechanism_duplication():
 
     """
 
-    with tempdir() as temp:
+    with lib.tempdir() as temp:
         print("Writing temporarily to: %s" % temp)
         module = os.path.join(temp, "selector.py")
         pyblish.api.register_plugin_path(temp)
@@ -177,7 +167,7 @@ class NotDiscoverable(pyblish.api.Plugin):
     pass
 """
 
-    with tempdir() as d:
+    with lib.tempdir() as d:
         pyblish.api.register_plugin_path(d)
 
         with open(os.path.join(d, "discoverable.py"), "w") as f:
@@ -504,39 +494,55 @@ def test_multi_families():
 def test_register_callback():
     """Callback registration/deregistration works well"""
 
-    def myCallback():
-        print "Ping from 'myCallback'"
+    def my_callback():
+        pass
 
-    def otherCallback(data=None):
-        print "Ping from 'otherCallback' with %s" % data
+    def other_callback(data=None):
+        pass
 
-    pyblish.plugin.register_callback("someSignal", myCallback)
+    pyblish.plugin.register_callback("mySignal", my_callback)
 
     msg = "Registering a callback failed"
-    data = {"someSignal": [myCallback]}
-    assert pyblish.plugin.registered_callbacks() == data, msg
+    data = {"mySignal": [my_callback]}
+    assert "mySignal" in pyblish.plugin.registered_callbacks() == data, msg
 
-    pyblish.plugin.deregister_callback("someSignal", myCallback)
+    pyblish.plugin.deregister_callback("mySignal", my_callback)
 
     msg = "Deregistering a callback failed"
-    data = {"someSignal": []}
+    data = {"mySignal": []}
     assert pyblish.plugin.registered_callbacks() == data, msg
 
-    pyblish.plugin.register_callback("someSignal", myCallback)
-    pyblish.plugin.register_callback("otherSignal", otherCallback)
+    pyblish.plugin.register_callback("mySignal", my_callback)
+    pyblish.plugin.register_callback("otherSignal", other_callback)
     pyblish.plugin.deregister_all_callbacks()
 
     msg = "Deregistering all callbacks failed"
     assert pyblish.plugin.registered_callbacks() == {}, msg
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_emit_signal_wrongly():
-    """Cannot emit a signal with wrong keyword arguments
-    This is supposed to print a traceback exception.
-    """
+    """Exception from callback prints traceback"""
 
-    def otherCallback(data=None):
-        print "Ping from 'otherCallback' with %s" % data
+    def other_callback(data=None):
+        print "Ping from 'other_callback' with %s" % data
 
-    pyblish.plugin.register_callback("otherSignal", otherCallback)
-    pyblish.lib.emit("otherSignal", akeyword="")
+    pyblish.plugin.register_callback("otherSignal", other_callback)
+
+    with lib.captured_stderr() as stderr:
+        pyblish.lib.emit("otherSignal", akeyword="")
+        output = stderr.getvalue().strip()
+        assert output.startswith("Traceback")
+
+
+@raises(ValueError)
+@with_setup(lib.setup_empty, lib.teardown)
+def test_registering_invalid_callback():
+    """Can't register non-callables"""
+    pyblish.plugin.register_callback("invalid", None)
+
+
+@raises(KeyError)
+def test_deregistering_nonexisting_callback():
+    """Can't deregister a callback that doesn't exist"""
+    pyblish.plugin.deregister_callback("invalid", lambda: "")

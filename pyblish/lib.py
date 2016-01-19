@@ -5,7 +5,7 @@ import logging
 import datetime
 import traceback
 
-import pyblish
+from . import _registered_callbacks
 
 _filename_ascii_strip_re = re.compile(r'[^-\w.]')
 _windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
@@ -354,22 +354,23 @@ def import_module(name, package=None):
 
 
 def emit(signal, **kwargs):
-    """Searches through the registered callbacks and executes any callback that
-    matches the signal.
-    The keyword arguments (kwargs) are passed directly through from the emitter
-    to the callbacks.
+    """Trigger registered callbacks
 
-        Arguments:
-            signal (string): Name of signal emitted
+    Keyword arguments are passed from caller to callee.
 
-        Example:
-            >>> import sys
-            >>> from .plugin import register_callback
-            >>> register_callback("mysignal", lambda data: sys.stdout.write(data))
-            >>> emit("mysignal", data={"something": "cool"})
-            {'something': 'cool'}
+    Arguments:
+        signal (string): Name of signal emitted
+
+    Example:
+        >>> import sys
+        >>> from .plugin import register_callback
+        >>> register_callback("mysignal", lambda data: sys.stdout.write(data))
+        >>> emit("mysignal", data={"something": "cool"})
+        {'something': 'cool'}
+
     """
-    for callback in pyblish._registered_callbacks.get(signal, []):
+
+    for callback in _registered_callbacks.get(signal, []):
         try:
             callback(**kwargs)
         except Exception as e:

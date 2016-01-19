@@ -21,10 +21,7 @@ import logging
 import warnings
 
 # Local library
-import pyblish
-import pyblish.lib
-import pyblish.logic
-import pyblish.plugin
+from . import logic, plugin
 
 log = logging.getLogger("pyblish.util")
 
@@ -37,37 +34,37 @@ def publish(context=None, plugins=None, **kwargs):
     during selection.
 
     Arguments:
-        context (pyblish.plugin.Context): Optional Context,
+        context (plugin.Context): Optional Context,
             defaults to creating a new context
         plugins (list): (Optional) Plug-ins to include,
             defaults to discover()
 
     Usage:
-        >> context = pyblish.plugin.Context()
+        >> context = plugin.Context()
         >> publish(context)  # Pass..
         >> context = publish()  # ..or receive a new
 
     """
 
-    assert context is None or isinstance(context, pyblish.plugin.Context)
+    assert context is None or isinstance(context, plugin.Context)
 
     # Must check against None, as the
     # Context may come in empty.
     if context is None:
-        context = pyblish.plugin.Context()
+        context = plugin.Context()
 
     if plugins is None:
-        plugins = pyblish.plugin.discover()
+        plugins = plugin.discover()
 
     # Do not consider inactive plug-ins
     plugins = list(p for p in plugins if p.active)
 
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
+    for result in logic.process(
+            func=plugin.process,
             plugins=plugins,
             context=context):
 
-        if isinstance(result, pyblish.logic.TestFailed):
+        if isinstance(result, logic.TestFailed):
             log.error("Stopped due to: %s" % result)
             break
 
@@ -108,7 +105,7 @@ run = publish  # Alias
 
 
 def _convenience(order, *args, **kwargs):
-    plugins = [p for p in pyblish.plugin.discover()
+    plugins = [p for p in plugin.discover()
                if p.order < order]
 
     print [p.id for p in plugins]

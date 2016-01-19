@@ -16,8 +16,8 @@ without breaking any of your tools.
 
 from __future__ import absolute_import
 
+from . import version
 import getpass
-import pyblish
 
 from .plugin import (
     Context,
@@ -104,7 +104,6 @@ from .compat import (
 )
 
 
-version = pyblish.version
 config = __Config()
 
 
@@ -203,7 +202,7 @@ __all__ = [
 
     # Utilities
     "log",
-    "emit",    
+    "emit",
 
     # Exceptions
     "PyblishError",
