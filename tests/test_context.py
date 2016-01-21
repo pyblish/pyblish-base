@@ -80,10 +80,38 @@ def test_in():
 
 
 def test_add_to_context():
+    """Adding to Context is deprecated, but still works"""
     context = pyblish.api.Context()
     instance = pyblish.api.Instance("MyInstance")
     context.add(instance)
     context.remove(instance)
+
+
+@raises(KeyError)
+def test_context_getitem_nonexisting():
+    """Getting a nonexisting item from Context throws a KeyError"""
+
+    context = pyblish.api.Context()
+    context.create_instance("MyInstance")
+    assert context.get("NotExist") is None
+    context["NotExist"]
+
+
+@raises(IndexError)
+def test_context_getitem_outofrange():
+    """Getting a item out of range throws an IndexError"""
+
+    context = pyblish.api.Context()
+    context.create_instance("MyInstance")
+    context[10000]
+
+
+def test_context_getitem_validrange():
+    """Getting an existing item works well"""
+
+    context = pyblish.api.Context()
+    context.create_instance("MyInstance")
+    assert context[0].data["name"] == "MyInstance"
 
 
 if __name__ == '__main__':
