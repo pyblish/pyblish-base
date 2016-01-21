@@ -46,8 +46,6 @@ def publish(context=None, plugins=None, **kwargs):
 
     """
 
-    assert context is None or isinstance(context, plugin.Context)
-
     # Must check against None, as the
     # Context may come in empty.
     if context is None:
@@ -59,16 +57,34 @@ def publish(context=None, plugins=None, **kwargs):
     # Do not consider inactive plug-ins
     plugins = list(p for p in plugins if p.active)
 
-    for result in logic.process(
-            func=plugin.process,
-            plugins=plugins,
-            context=context):
+    test = logic.registered_test()
+    state = {
+        "nextOrder": None,
+        "ordersWithError": set()
+    }
 
-        if isinstance(result, logic.TestFailed):
-            log.error("Stopped due to: %s" % result)
+    for plug, instance in logic.Iterator(plugins, context):
+        state["nextOrder"] = plug.order
+
+        if test(**state):
+            log.error("Stopped due to: %s" % test(**state))
             break
 
-        elif isinstance(result, Exception):
+        try:
+            result = plugin.process(plug, context, instance)
+
+        except:
+            # This exception is unexpected
+            log.error("An exception occurred.\n")
+            raise
+
+        else:
+            # Make note of the order at which the
+            # potential error error occured.
+            if result["error"]:
+                state["ordersWithError"].add(plug.order)
+
+        if isinstance(result, Exception):
             log.error("An unexpected error happened: %s" % result)
             break
 

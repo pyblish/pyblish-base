@@ -89,11 +89,14 @@ def test_instances_by_plugin_invariant():
             # Every other instance is of another family
             inst.set_data("family", "B")
 
-    plugin = type("MyPlugin%d" % i, (pyblish.plugin.Validator,), {})
-    plugin.hosts = ["python"]
-    plugin.families = ["A"]
+    class MyPlugin(pyblish.plugin.Validator):
+        hosts = ["python"]
+        families = ["A"]
 
-    compatible = pyblish.logic.instances_by_plugin(ctx, plugin)
+        def process(self, instance):
+            pass
+
+    compatible = pyblish.logic.instances_by_plugin(ctx, MyPlugin)
 
     # Test invariant
     #
@@ -179,7 +182,8 @@ def test_plugin_families_defaults():
     """Plug-ins without specific families default to wildcard"""
 
     class SelectInstances(pyblish.api.Selector):
-        pass
+        def process(self, instance):
+            pass
 
     instance = pyblish.api.Instance("MyInstance")
     instance.set_data("family", "SomeFamily")
@@ -188,7 +192,8 @@ def test_plugin_families_defaults():
         [instance], SelectInstances)[0], instance)
 
     class ValidateInstances(pyblish.api.Validator):
-        pass
+        def process(self, instance):
+            pass
 
     assert_equals(pyblish.api.instances_by_plugin(
         [instance], ValidateInstances)[0], instance)

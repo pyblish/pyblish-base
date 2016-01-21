@@ -3,6 +3,12 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.2.3
+-------------
+
+- Callbacks (#238)
+- Iterator (#239)
+
 Version 1.2.2
 -------------
 

@@ -221,7 +221,28 @@ def plugins_by_family(plugins, family):
     compatible = list()
 
     for plugin in plugins:
-        if any(x in getattr(plugin, "families", None) for x in (family, "*")):
+        if any(x in plugin.families for x in (family, "*")):
+            compatible.append(plugin)
+
+    return compatible
+
+
+def plugins_by_families(plugins, families):
+    """Same as :func:`plugins_by_family` except it takes multiple families
+
+    Arguments:
+        plugins (list): List of plugins
+        families (list): Families with which to compare against
+
+    Returns:
+        List of compatible plugins.
+
+    """
+
+    compatible = list()
+
+    for plugin in plugins:
+        if any(x in plugin.families for x in families + ["*"]):
             compatible.append(plugin)
 
     return compatible
@@ -281,10 +302,17 @@ def instances_by_plugin(instances, plugin):
 
     compatible = list()
 
+    if not plugin.__instanceEnabled__:
+        # A plug-in not capable of handling instances should
+        # not be given the opportunity to handle them.
+        return compatible
+
     for instance in instances:
         family = instance.data["family"]
+
         if any(x in plugin.families for x in (family, "*")):
             compatible.append(instance)
+
         elif set(plugin.families) & set(instance.data.get("families", [])):
             compatible.append(instance)
 
@@ -314,3 +342,33 @@ def _extract_traceback(exception):
 
     finally:
         del(exc_type, exc_value, exc_traceback)
+
+
+def Iterator(plugins, context):
+    """Primary iterator
+
+    This is the brains of publishing. It handles logic related
+    to which plug-in to process with which Instance or Context,
+    in addition to stopping when necessary.
+
+    Arguments:
+        plugins (list): Plug-ins to consider
+        context (list): Instances to consider
+
+    """
+
+    for plugin in plugins:
+        args = inspect.getargspec(plugin.process).args
+
+        # Backwards compatibility with `asset`
+        if "asset" in args:
+            args.append("instance")
+
+        instances = instances_by_plugin(context, plugin)
+
+        # Run once for every instance, plus once for context
+        for instance in instances + [None]:
+            if instance is None and "instance" in args:
+                continue
+
+            yield plugin, instance

@@ -5,7 +5,12 @@ from . import lib
 import pyblish.plugin
 import pyblish.logic
 
-from pyblish.vendor.nose.tools import *
+from pyblish.vendor.nose.tools import (
+    assert_equals,
+    assert_true,
+    assert_false,
+    with_setup
+)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -128,18 +133,12 @@ def test_context_once():
                 instance.set_data("family", "myFamily")
 
     class ValidateContext(pyblish.api.Validator):
-        families = ["myFamily"]
+        families = ["*", "myFamily"]
 
         def process(self, context):
             count["#"] += 1
 
-    context = pyblish.api.Context()
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
-            plugins=[SelectMany, ValidateContext],
-            context=context):
-        pass
-
+    pyblish.util.publish(plugins=[SelectMany, ValidateContext])
     assert_equals(count["#"], 1)
 
 
@@ -159,30 +158,33 @@ def test_incompatible_context():
         def process(self, context):
             count["#"] += 1
 
-    context = pyblish.api.Context()
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
-            plugins=[SelectMany, ValidateContext],
-            context=context):
-        pass
-
+    pyblish.util.publish(plugins=[SelectMany, ValidateContext])
     assert_equals(count["#"], 1)
 
     count["#"] = 0
 
-    # When families are wildcard, it does process
+    # Even with a family, if an instance is not requested
+    # it still processes.
     class ValidateContext(pyblish.api.Validator):
         families = ["NOT_EXIST"]
 
         def process(self, context):
             count["#"] += 1
 
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
-            plugins=[SelectMany, ValidateContext],
-            context=context):
-        pass
+    pyblish.util.publish(plugins=[SelectMany, ValidateContext])
+    assert_equals(count["#"], 1)
 
+    count["#"] = 0
+
+    # However, when an instance is requested,
+    # do nothing.
+    class ValidateContext(pyblish.api.Validator):
+        families = ["NOT_EXIST"]
+
+        def process(self, instance):
+            count["#"] += 1
+
+    pyblish.util.publish(plugins=[SelectMany, ValidateContext])
     assert_equals(count["#"], 0)
 
 
@@ -205,11 +207,8 @@ def test_custom_test():
             print "I came, I saw, I extracted.."
             count["#"] += 1
 
-    pyblish.api.register_plugin(MyValidator)
-    pyblish.api.register_plugin(MyExtractor)
     pyblish.api.register_test(custom_test)
-
-    pyblish.util.publish()
+    pyblish.util.publish(plugins=[MyValidator, MyExtractor])
     assert_equals(count["#"], 1)
 
 
@@ -241,12 +240,9 @@ def test_logic_process():
         def process(self, context):
             context.create_instance("MyInstance")
 
-    for result in pyblish.logic.process(
-            plugins=[SelectInstance],
-            func=my_process,
-            context=context):
-        assert not isinstance(result, pyblish.logic.TestFailed), result
-
+    context = pyblish.util.publish(plugins=[SelectInstance])
+    assert not isinstance(context.data["results"][0]["error"],
+                          pyblish.logic.TestFailed)
     assert_equals(len(context), 1)
 
 
@@ -352,16 +348,39 @@ def test_decrementing_order():
             count["#"] += 10000
             assert False, "I will not run"
 
-    for plugin in (
-            MyDecrementingSelector,
-            MySelector,
-            MyValidator,
-            MyValidator2,
-            MyExtractor):
-        pyblish.api.register_plugin(plugin)
+    plugins = [
+        MyDecrementingSelector,
+        MySelector,
+        MyValidator,
+        MyValidator2,
+        MyExtractor
+    ]
 
-    pyblish.util.publish()
+    pyblish.util.publish(plugins=plugins)
     assert_equals(count["#"], 111.1)
+
+
+def test_test():
+    """The test halts an invalid publish"""
+
+    count = {"#": 0}
+
+    class Collector(pyblish.api.Collector):
+        def process(self):
+            count["#"] += 1
+
+    class Validator(pyblish.api.Validator):
+        def process(self):
+            count["#"] += 10
+            assert False, "I will run first, and stop things"
+
+    class Extractor(pyblish.api.Extractor):
+        def process(self):
+            count["#"] += 1000
+            assert False, "I will not run"
+
+    pyblish.util.publish(plugins=[Collector, Validator, Extractor])
+    assert count["#"] == 11
 
 
 def test_extract_traceback():
@@ -374,3 +393,19 @@ def test_extract_traceback():
         pyblish.logic._extract_traceback(e)
 
     assert hasattr(e, "traceback")
+
+
+def test_plugins_by_families():
+    """The right plug-ins are returned from plugins_by_families"""
+
+    class ClassA(pyblish.api.Collector):
+        families = ["a"]
+
+    class ClassB(pyblish.api.Collector):
+        families = ["b"]
+
+    class ClassC(pyblish.api.Collector):
+        families = ["c"]
+
+    assert pyblish.logic.plugins_by_families(
+        [ClassA, ClassB, ClassC], ["a"]) == [ClassA]
