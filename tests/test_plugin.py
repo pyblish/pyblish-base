@@ -546,3 +546,18 @@ def test_registering_invalid_callback():
 def test_deregistering_nonexisting_callback():
     """Can't deregister a callback that doesn't exist"""
     pyblish.plugin.deregister_callback("invalid", lambda: "")
+
+
+@raises(TypeError)
+def test_register_noncallable_plugin():
+    """Registered plug-ins must be callable"""
+    pyblish.plugin.register_plugin("NotValid")
+
+
+@raises(TypeError)
+def test_register_old_plugin():
+    """Can't register plug-ins incompatible with the version of Pyblish"""
+    class MyPlugin(pyblish.plugin.Collector):
+        requires = "pyblish==0"
+
+    pyblish.plugin.register_plugin(MyPlugin)
