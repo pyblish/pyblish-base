@@ -36,6 +36,14 @@ from .plugin import (
     Config as __Config,
     discover,
 
+    ContextPlugin,
+    InstancePlugin,
+
+    CollectorOrder,
+    ValidatorOrder,
+    ExtractorOrder,
+    IntegratorOrder,
+
     register_host,
     registered_hosts,
     deregister_host,
@@ -149,6 +157,14 @@ __all__ = [
     "Extractor",
     "Conformer",
     "Integrator",
+
+    "ContextPlugin",
+    "InstancePlugin",
+
+    "CollectorOrder",
+    "ValidatorOrder",
+    "ExtractorOrder",
+    "IntegratorOrder",
 
     # Plug-in utilities
     "discover",
