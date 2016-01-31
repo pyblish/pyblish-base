@@ -18,7 +18,6 @@ import types
 import logging
 import inspect
 import warnings
-import functools
 import contextlib
 
 # Local library
@@ -349,12 +348,22 @@ IntegratorOrder = 3
 
 class ContextPlugin(Plugin):
     def process(self, context):
-        pass
+        """Primary processing method
+
+        Arguments:
+            context (Context): Context with which to process
+
+        """
 
 
 class InstancePlugin(Plugin):
     def process(self, instance):
-        pass
+        """Primary processing method
+
+        Arguments:
+            instance (Instance): Instance with which to process
+
+        """
 
 
 class MetaAction(type):
@@ -464,7 +473,7 @@ def process(plugin, context, instance=None, action=None):
 
     """
 
-    if isinstance(plugin, (ContextPlugin, InstancePlugin)):
+    if issubclass(plugin, (ContextPlugin, InstancePlugin)):
         return __explicit_process(plugin, context, instance, action)
     else:
         return __implicit_process(plugin, context, instance, action)
@@ -480,9 +489,8 @@ def __explicit_process(plugin, context, instance=None, action=None):
 
     """
 
-    if isinstance(plugin, InstancePlugin) and instance is None:
-        log.error("Cannot process an InstancePlugin without an instance.")
-        raise TypeError("This is a bug")
+    assert not (issubclass(plugin, InstancePlugin) and instance is None), (
+        "Cannot process an InstancePlugin without an instance. This is a bug")
 
     result = {
         "success": False,
@@ -508,7 +516,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
 
     try:
         with logger(handler):
-            runner(context if isinstance(plugin, ContextPlugin) else instance)
+            runner(context if issubclass(plugin, ContextPlugin) else instance)
             result["success"] = True
     except Exception as error:
         lib.emit("pluginFailed", plugin=plugin, context=context,
@@ -914,6 +922,7 @@ def deregister_all_plugins():
     _registered_plugins.clear()
 
 
+@lib.deprecated
 def register_service(name, obj):
     """Register a new service
 
@@ -926,6 +935,7 @@ def register_service(name, obj):
     _registered_services[name] = obj
 
 
+@lib.deprecated
 def deregister_service(name):
     """De-register an existing service by name
 
@@ -937,11 +947,13 @@ def deregister_service(name):
     _registered_services.pop(name)
 
 
+@lib.deprecated
 def deregister_all_services():
     """De-register all existing services"""
     _registered_services.clear()
 
 
+@lib.deprecated
 def registered_services():
     """Return the currently registered services as a dictionary
 
