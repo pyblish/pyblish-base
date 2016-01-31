@@ -1,10 +1,11 @@
 [![Build Status][travis-image]][travis-link]
+[![Build status][appveyor-image]](https://ci.appveyor.com/project/mottosso/pyblish)
 [![Coverage Status][cover-image]][cover-link]
 [![PyPI version][pypi-image]][pypi-link]
 [![Code Health][landscape-image]][landscape-repo]
 [![Gitter][gitter-image]][chat]
 
-[![vlcsnap-2015-07-03-17h02m03s138](https://cloud.githubusercontent.com/assets/2152766/8504730/69ac7ebc-21ce-11e5-8dbd-68571e7b702c.png)](https://www.youtube.com/watch?v=j5uUTW702-U)
+[![image](https://cloud.githubusercontent.com/assets/2152766/12704326/b6ff015c-c850-11e5-91be-68d824526f13.png)](https://www.youtube.com/watch?v=j5uUTW702-U)
 
 Test-driven content creation for collaborative, creative projects.
 
@@ -17,6 +18,9 @@ Test-driven content creation for collaborative, creative projects.
 
 [travis-image]: https://travis-ci.org/pyblish/pyblish-base.svg?branch=master
 [travis-link]: https://travis-ci.org/pyblish/pyblish-base
+
+[appveyor-image]: https://ci.appveyor.com/api/projects/status/github/pyblish/pyblish-base?svg=true
+
 [cover-image]: https://coveralls.io/repos/pyblish/pyblish-base/badge.svg
 [cover-link]: https://coveralls.io/r/pyblish/pyblish-base
 [pypi-image]: https://badge.fury.io/py/pyblish.svg
