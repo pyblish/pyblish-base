@@ -3,7 +3,9 @@ import re
 import sys
 import logging
 import datetime
+import warnings
 import traceback
+import functools
 
 from . import _registered_callbacks
 
@@ -339,3 +341,22 @@ def emit(signal, **kwargs):
             callback(**kwargs)
         except Exception as e:
             traceback.print_exc(e)
+
+
+def deprecated(func):
+    """Deprecation decorator
+
+    Attach this to deprecated functions or methods.
+
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if sys.version_info >= (2, 7):
+            warnings.warn_explicit(
+                "Call to deprecated function {}.".format(func.__name__),
+                category=DeprecationWarning,
+                filename=func.func_code.co_filename,
+                lineno=func.func_code.co_firstlineno + 1)
+        return func(*args, **kwargs)
+    return wrapper

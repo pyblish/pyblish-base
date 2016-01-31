@@ -13,6 +13,7 @@ with "validate" and ends with ".py"
 # Standard library
 import os
 import sys
+import time
 import types
 import logging
 import inspect
@@ -340,9 +341,20 @@ class Integrator(Plugin):
     order = 3
 
 
-# Backwards-compatibility aliases
-Selector = Collector
-Conformer = Integrator
+CollectorOrder = 0
+ValidatorOrder = 1
+ExtractorOrder = 2
+IntegratorOrder = 3
+
+
+class ContextPlugin(Plugin):
+    def process(self, context):
+        pass
+
+
+class InstancePlugin(Plugin):
+    def process(self, instance):
+        pass
 
 
 class MetaAction(type):
@@ -452,7 +464,83 @@ def process(plugin, context, instance=None, action=None):
 
     """
 
-    import time
+    if isinstance(plugin, (ContextPlugin, InstancePlugin)):
+        return __explicit_process(plugin, context, instance, action)
+    else:
+        return __implicit_process(plugin, context, instance, action)
+
+
+def __explicit_process(plugin, context, instance=None, action=None):
+    """Produce result from explicit plug-in
+
+    This is the primary internal mechanism for producing results
+    from the processing of plug-in/instance pairs.
+
+    This mechanism replaces :func:`__implicit_process`.
+
+    """
+
+    if isinstance(plugin, InstancePlugin) and instance is None:
+        log.error("Cannot process an InstancePlugin without an instance.")
+        raise TypeError("This is a bug")
+
+    result = {
+        "success": False,
+        "plugin": plugin,
+        "instance": instance,
+        "action": action,
+        "error": None,
+        "records": list(),
+        "duration": None,
+    }
+
+    if not action:
+        runner = plugin().process
+    else:
+        actions = dict((a.id, a) for a in plugin.actions)
+        action = actions[action] if action else None
+        runner = action().process
+
+    records = list()
+    handler = lib.MessageHandler(records)
+
+    __start = time.time()
+
+    try:
+        with logger(handler):
+            runner(context if isinstance(plugin, ContextPlugin) else instance)
+            result["success"] = True
+    except Exception as error:
+        lib.emit("pluginFailed", plugin=plugin, context=context,
+                 instance=instance, error=error)
+        lib.extract_traceback(error)
+        result["error"] = error
+
+    __end = time.time()
+
+    for record in records:
+        result["records"].append(record)
+
+    result["duration"] = (__end - __start) * 1000  # ms
+
+    if "results" not in context.data:
+        context.data["results"] = list()
+
+    context.data["results"].append(result)
+
+    return result
+
+
+def __implicit_process(plugin, context, instance=None, action=None):
+    """Produce result from implicit plug-in
+
+    This is a fallback mechanism for backwards compatibility.
+    An implicit plug-in are those subclassed from Collector,
+    Validator, Extractor or Integrator.
+
+    The mechanism which replaces this is :func:`__explicit_process`.
+
+    """
 
     result = {
         "success": False,
@@ -572,55 +660,11 @@ class _Dict(dict):
         return self.get(key, default)
 
 
-def deprecated(func):
-    """Deprecation decorator
-
-    Attach this to deprecated functions or methods.
-
-    """
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        if sys.version_info >= (2, 7):
-            warnings.warn_explicit(
-                "Call to deprecated function {}.".format(func.__name__),
-                category=DeprecationWarning,
-                filename=func.func_code.co_filename,
-                lineno=func.func_code.co_firstlineno + 1)
-        return func(*args, **kwargs)
-    return wrapper
-
-
 class AbstractEntity(list):
     """Superclass for Context and Instance"""
 
     def __init__(self):
         self.data = _Dict(self)
-
-    @deprecated
-    def add(self, other):
-        """DEPRECATED - USE .append
-
-        Add member to self
-
-        This is to mimic the interface of set()
-
-        """
-
-        return self.append(other)
-
-    @deprecated
-    def remove(self, other):
-        """DEPRECATED - USE .pop
-
-        Remove member from self
-
-        This is to mimic the interface of set()
-
-        """
-
-        index = self.index(other)
-        return self.pop(index)
 
 
 class Context(AbstractEntity):
@@ -690,14 +734,6 @@ class Context(AbstractEntity):
             return next(c for c in self if c.id == key)
         except StopIteration:
             return default
-
-    @deprecated
-    def create_asset(self, *args, **kwargs):
-        return self.create_instance(*args, **kwargs)
-
-    @deprecated
-    def add(self, other):
-        return super(Context, self).append(other)
 
 
 @lib.log
@@ -1302,58 +1338,3 @@ def sort(plugins):
 
     plugins.sort(key=lambda p: p.order)
     return plugins
-
-
-# Compatibility
-#
-# The below members represent backwards compatibility
-# features, kept separate for maintainability as they
-# will no longer be updated and eventually discarded.
-
-
-def set_data(self, key, value):
-    """DEPRECATED - USE .data DICTIONARY DIRECTLY
-
-    Modify/insert data into entity
-
-    Arguments:
-        key (str): Name of data to add
-        value (object): Value of data to add
-
-    """
-
-    self.data[key] = value
-
-
-def remove_data(self, key):
-    """DEPRECATED - USE .data DICTIONARY DIRECTLY
-
-    Remove data from entity
-
-    Arguments;
-        key (str): Name of data to remove
-
-    """
-
-    self.data.pop(key)
-
-
-def has_data(self, key):
-    """DEPRECATED - USE .data DICTIONARY DIRECTLY
-
-    Check if entity has key
-
-    Arguments:
-        key (str): Key to check
-
-    Return:
-        True if it exists, False otherwise
-
-    """
-
-    return key in self.data
-
-
-AbstractEntity.set_data = set_data
-AbstractEntity.remove_data = remove_data
-AbstractEntity.has_data = has_data

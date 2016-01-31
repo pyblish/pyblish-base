@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 
+import pyblish.api
 import pyblish.plugin
 from pyblish.vendor.nose.tools import (
     with_setup,
@@ -16,7 +17,7 @@ from . import lib
 def test_unique_id():
     """Plug-ins and instances have a unique id"""
 
-    class MyPlugin(pyblish.plugin.Selector):
+    class MyPlugin(pyblish.plugin.Collector):
         pass
 
     assert_true(hasattr(MyPlugin, "id"))
@@ -35,11 +36,11 @@ def test_context_from_instance():
 
 def test_legacy():
     """Legacy is determined by existing process_* methods"""
-    class LegacyPlugin(pyblish.plugin.Selector):
+    class LegacyPlugin(pyblish.plugin.Collector):
         def process_context(self, context):
             pass
 
-    class NotLegacyPlugin(pyblish.plugin.Selector):
+    class NotLegacyPlugin(pyblish.plugin.Collector):
         def process(self, context):
             pass
 
@@ -561,3 +562,65 @@ def test_register_old_plugin():
         requires = "pyblish==0"
 
     pyblish.plugin.register_plugin(MyPlugin)
+
+
+def test_explicit_plugin():
+    """ContextPlugin works as advertised"""
+
+    count = {"#": 0}
+
+    class Collector(pyblish.plugin.ContextPlugin):
+        order = pyblish.plugin.CollectorOrder
+
+        def process(self, context):
+            i = context.create_instance("MyInstance")
+            i.data["family"] = "myFamily"
+            count["#"] += 1
+
+    class Validator(pyblish.plugin.InstancePlugin):
+        order = pyblish.plugin.ValidatorOrder
+        families = ["myFamily"]
+
+        def process(self, instance):
+            assert instance.data["name"] == "MyInstance", "fail"
+            count["#"] += 10
+
+    class ValidatorFailure(pyblish.plugin.InstancePlugin):
+        order = pyblish.plugin.ValidatorOrder
+        families = ["myFamily"]
+
+        def process(self, instance):
+            count["#"] += 100
+            assert "notexist" in instance.data, "fail"
+
+    class Extractor(pyblish.plugin.InstancePlugin):
+        order = pyblish.plugin.ExtractorOrder
+        families = ["myFamily"]
+
+        def process(self, instance):
+            count["#"] += 1000
+
+    pyblish.util.publish(
+        plugins=[
+            Collector,
+            Validator,
+            ValidatorFailure,
+            Extractor
+        ]
+    )
+
+    assert count["#"] == 111, count
+
+
+def test_context_plugin_wrong_arguments():
+    """ContextPlugin doesn't take wrong arguments well"""
+
+    count = {"#": 0}
+
+    class Collector(pyblish.plugin.InstancePlugin):
+        def process(self, context, instance):
+            print("I won't run")
+            count["#"] += 1
+
+    pyblish.util.publish(plugins=[Collector])
+    assert count["#"] == 0

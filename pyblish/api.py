@@ -29,12 +29,10 @@ from .plugin import (
 
     Asset,
     Plugin,
-    Selector,
     Validator,
     Extractor,
-    Conformer,
-    Integrator,  # Alias
-    Collector,  # Alias
+    Integrator,
+    Collector,
     Config as __Config,
     discover,
 
@@ -101,6 +99,8 @@ from .error import (
 from .compat import (
     deregister_all,
     sort,
+    Selector,
+    Conformer,
 )
 
 
