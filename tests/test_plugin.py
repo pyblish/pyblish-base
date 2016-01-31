@@ -8,6 +8,7 @@ from pyblish.vendor.nose.tools import (
     with_setup,
     assert_true,
     assert_equals,
+    assert_raises,
     raises,
 )
 
@@ -217,12 +218,16 @@ def test_unique_logger():
     hello_world = records[0]
     assert_equals(hello_world.msg, "Hello world")
 
+    pyblish.api.deregister_plugin(MyPlugin)
+
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_current_host():
     """pyblish.api.current_host works"""
     pyblish.plugin.register_host("myhost")
     assert_equals(pyblish.plugin.current_host(), "myhost")
+
+    assert_raises(Exception, pyblish.plugin.deregister_host, "notExist")
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -573,6 +578,7 @@ def test_explicit_plugin():
         order = pyblish.plugin.CollectorOrder
 
         def process(self, context):
+            self.log.info("Collecting from ContextPlugin")
             i = context.create_instance("MyInstance")
             i.data["family"] = "myFamily"
             count["#"] += 1
@@ -624,3 +630,25 @@ def test_context_plugin_wrong_arguments():
 
     pyblish.util.publish(plugins=[Collector])
     assert count["#"] == 0
+
+
+def test_explicit_action():
+    """Actions work with explicit plug-ins"""
+
+    count = {"#": 0}
+
+    class MyAction(pyblish.plugin.Action):
+        def process(self, context):
+            count["#"] += 1
+
+    class MyPlugin(pyblish.plugin.ContextPlugin):
+        actions = [MyAction]
+
+        def process(self, context):
+            pass
+
+    context = pyblish.api.Context()
+    pyblish.plugin.process(
+        plugin=MyPlugin,
+        context=context,
+        action="MyAction")
