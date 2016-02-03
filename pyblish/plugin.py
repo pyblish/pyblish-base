@@ -743,6 +743,7 @@ class Instance(AbstractEntity):
 
         self.data["name"] = name
         self.data["family"] = "default"
+        self.data["publish"] = True
 
         if parent is not None:
             parent.append(self)
