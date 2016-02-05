@@ -1,6 +1,6 @@
 
 # Local library
-from . import lib
+from .. import lib
 
 import pyblish.plugin
 import pyblish.logic
