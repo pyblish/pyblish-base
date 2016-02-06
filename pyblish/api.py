@@ -29,14 +29,20 @@ from .plugin import (
 
     Asset,
     Plugin,
-    Selector,
     Validator,
     Extractor,
-    Conformer,
-    Integrator,  # Alias
-    Collector,  # Alias
+    Integrator,
+    Collector,
     Config as __Config,
     discover,
+
+    ContextPlugin,
+    InstancePlugin,
+
+    CollectorOrder,
+    ValidatorOrder,
+    ExtractorOrder,
+    IntegratorOrder,
 
     register_host,
     registered_hosts,
@@ -101,6 +107,8 @@ from .error import (
 from .compat import (
     deregister_all,
     sort,
+    Selector,
+    Conformer,
 )
 
 
@@ -149,6 +157,14 @@ __all__ = [
     "Extractor",
     "Conformer",
     "Integrator",
+
+    "ContextPlugin",
+    "InstancePlugin",
+
+    "CollectorOrder",
+    "ValidatorOrder",
+    "ExtractorOrder",
+    "IntegratorOrder",
 
     # Plug-in utilities
     "discover",

@@ -6,7 +6,7 @@ install:
 - pip install coveralls
 script:
 - nosetests -c .noserc
-- pip install git+git://github.com/pyblish/pyblish.git
+- pip install git+git://github.com/pyblish/pyblish-base.git
 after_success:
 - coveralls
 deploy:

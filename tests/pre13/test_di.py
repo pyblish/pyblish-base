@@ -1,9 +1,15 @@
 
 # Local library
-from . import lib
+from .. import lib
 import pyblish.plugin
 import pyblish.logic
-from pyblish.vendor.nose.tools import *
+from pyblish.vendor.nose.tools import (
+    with_setup,
+    assert_equals,
+    assert_raises,
+    assert_true,
+    assert_false
+)
 
 
 @with_setup(lib.setup_empty, lib.teardown)

@@ -122,7 +122,7 @@ def test_process():
 
     _disk = list()
 
-    class SelectInstance(pyblish.plugin.Selector):
+    class SelectInstance(pyblish.api.Selector):
         def process_context(self, context):
             instance = context.create_instance("MyInstance")
             instance.set_data("family", "MyFamily")
@@ -180,7 +180,7 @@ def test_inmemory_svec():
     _disk = list()
     _server = dict()
 
-    class SelectInstances(pyblish.plugin.Selector):
+    class SelectInstances(pyblish.api.Selector):
         def process_context(self, context):
             instance = context.create_instance(name="MyInstance")
             instance.set_data("family", "MyFamily")
@@ -354,7 +354,7 @@ def test_interface():
 def test_failing_context():
     """Context processing yields identical information to instances"""
 
-    class SelectFailure(pyblish.plugin.Selector):
+    class SelectFailure(pyblish.api.Selector):
         def process_context(self, context):
             assert False, "I was programmed to fail"
 
@@ -408,7 +408,7 @@ def test_order():
 
     order = {"#": "0"}
 
-    class SelectInstance(pyblish.plugin.Selector):
+    class SelectInstance(pyblish.api.Selector):
         def process_context(self, context):
             order["#"] += "1"
             instance = context.create_instance("MyInstance")
