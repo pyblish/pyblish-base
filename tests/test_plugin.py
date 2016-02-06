@@ -1,6 +1,4 @@
 import os
-import shutil
-import tempfile
 
 from pyblish.vendor import mock
 import pyblish.api

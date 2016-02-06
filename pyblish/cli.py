@@ -47,10 +47,6 @@ def _setup_log(root="pyblish"):
 log = _setup_log()
 main_log = pyblish.lib.setup_log(level=logging.ERROR)
 
-# Constants
-CONFIG_PATH = "config.yaml"
-DATA_PATH = "data.yaml"
-
 PATH_TEMPLATE = "{path} <{typ}>"
 LOG_TEMPATE = "{tab}<log>: %(message)s"
 
@@ -65,9 +61,6 @@ LOG_LEVEL = {
 }
 
 intro_message = """pyblish version {version}
-
-Custom data @ {data_path}
-Custom configuration @ {config_path}
 
 Available plugin paths:
 {paths}
@@ -95,42 +88,6 @@ def _format_time(start, finish):
     """Return right-aligned time-taken message"""
     message = "Time taken: %.2fs" % (finish - start)
     return message.rjust(SCREEN_WIDTH)
-
-
-def _load_data(context):
-    """Inject context with user-supplied data"""
-    try:
-        with open(DATA_PATH) as f:
-            data = yaml.load(f)
-            for key, value in data.iteritems():
-                context.data[key] = value
-
-            return True
-
-    except IOError:
-        pass
-
-    return False
-
-
-def _load_config():
-    """Augment configuration with user-supplied config.yaml"""
-    try:
-        with open(CONFIG_PATH) as f:
-            config = yaml.load(f)
-
-            if config is not None:
-                pyblish.api.config.update(config)
-
-            return True
-
-    except IOError:
-        pass
-
-    except pyblish.vendor.yaml.scanner.ScannerError:
-        raise
-
-    return False
 
 
 @click.group(invoke_without_command=True)
@@ -224,10 +181,6 @@ def main(ctx,
         else:
             context.data[str(key)] = yaml_loaded
 
-    # Load user data
-    data_loaded = _load_data(context)
-    config_loaded = _load_config()
-
     if not plugin_paths:
         plugin_paths = pyblish.api.plugin_paths()
     plugin_paths += add_plugin_paths
@@ -242,8 +195,6 @@ def main(ctx,
         click.echo(
             intro_message.format(
                 version=pyblish.__version__,
-                config_path=CONFIG_PATH if config_loaded else "None",
-                data_path=DATA_PATH if data_loaded else "None",
                 paths=_format_paths(plugin_paths),
                 plugins=_format_plugins(available_plugins))
         )

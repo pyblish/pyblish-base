@@ -7,6 +7,11 @@ Version 1.3.0
 -------------
 
 - Explicit plug-ins (#242)
+- Simplified CLI
+- DEPRECATED: Services
+- DEPRECATED: pyblish.logic.process
+- BACKWARD INCOMPATIBLE: CLI side-car configuration files no longer picked up.
+- BACKWARD INCOMPATIBLE: CLI side-car data files no longer picked up.
 
 Version 1.2.3
 -------------
