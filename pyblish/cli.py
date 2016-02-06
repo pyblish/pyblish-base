@@ -20,6 +20,7 @@ Note:
 
 import os
 import time
+import json
 import logging
 
 import pyblish.api
@@ -28,15 +29,36 @@ import pyblish.util
 import pyblish.plugin
 import pyblish.version
 
-from pyblish.vendor import yaml
 from pyblish.vendor import click
 
 # Current Click context
 _ctx = None
-
-with open(os.path.join(os.path.dirname(__file__), "_help.yaml")) as f:
-    _help = yaml.load(f)
-
+_help = {
+    "main": {
+        "paths": "List all available paths",
+        "registered-paths": "Print only registered-paths",
+        "verbose": "Display detailed information. Useful for "
+            "debugging purposes.",
+        "plugin-path": "Replace all normally discovered paths "
+            "with this This may be called multiple times.",
+        "add-plugin-path": "Append to normally discovered paths.",
+        "logging-level": "Specify with which level to produce "
+            "logging messages. A value lower than the default "
+                "\"warning\" will produce more messages. This "
+                "can be useful for debugging.",
+        "environment-paths": "Print only paths added via environment",
+        "version": "Print the current version of Pyblish",
+        "plugins": "List all available plugins",
+        "data": "Initialise context with data. This takes "
+            "two arguments, key and value."
+    },
+    "publish": {
+        "delay": "Add an artificial delay to each plugin. Typically used in debugging.",
+        "path": "Input path for publishing operation",
+        "file": "Load file in host registered to it's suffix",
+        "instance": "Only publish specified instance. The default behaviour is to publish all instances. This may be called multiple times."
+    }
+}
 
 def _setup_log(root="pyblish"):
     log = logging.getLogger(root)
@@ -164,13 +186,11 @@ def main(ctx,
 
     for key, value in data:
         try:
-            yaml_loaded = yaml.load(value)
-        except Exception as err:
-            log.error("Error: Data must be YAML formatted: "
-                      "--data %s %s" % (key, value))
-            ctx.obj["error"] = err
-        else:
-            context.data[str(key)] = yaml_loaded
+            value = json.loads(value)
+        except ValueError:
+            pass
+        
+        context.data[str(key)] = value
 
     if not plugin_paths:
         plugin_paths = pyblish.api.plugin_paths()

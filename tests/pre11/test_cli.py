@@ -87,28 +87,21 @@ def test_data():
 
     runner = CliRunner()
     runner.invoke(pyblish.cli.main, [
-        "--data", "fail", "I was programmed to fail!", "publish"])
+        "--data", "key", "10", "publish"])
 
-    assert context().has_data("fail")
+    assert context().data["key"] == 10
     assert not context().has_data("notExist")
 
 
 @mock.patch("pyblish.cli.log")
 def test_invalid_data(mock_log):
-    """Injecting invalid data does not affect the context"""
-
-    # Since Context is a singleton, we can modify it
-    # using the CLI and inspect the results directly.
+    """Data not JSON-serialisable is treated as string"""
 
     runner = CliRunner()
     runner.invoke(pyblish.cli.main,
-                  ["--data", "invalid_key", "['test': 'fdf}"])
+                  ["--data", "key", "['test': 'fdf}"])
 
-    assert "invalid_key" not in context().data()
-
-    # An error message is logged
-    assert mock_log.error.called
-    assert mock_log.error.call_count == 1
+    assert context().data["key"] == "['test': 'fdf}"
 
 
 def test_add_plugin_path():

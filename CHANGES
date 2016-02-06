@@ -8,6 +8,7 @@ Version 1.3.0
 
 - Explicit plug-ins (#242)
 - Simplified CLI
+- CLI --data now handles inproperly formatted data (by treating it as strings)
 - DEPRECATED: Services
 - DEPRECATED: pyblish.logic.process
 - BACKWARD INCOMPATIBLE: CLI side-car configuration files no longer picked up.
