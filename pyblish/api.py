@@ -129,7 +129,7 @@ def __init__():
     register_host("python")
 
     # Register default path
-    register_plugin_path("{}/plugins".format(__main_package_path()))
+    register_plugin_path("%s/plugins" % __main_package_path())
 
     # Register default test
     register_test(__default_test)
