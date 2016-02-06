@@ -1,13 +1,6 @@
 # Pyblish Help for command-line interface
 
 main:
-    config: >
-        Absolute path to custom configuration file.
-
-    add-config: >
-        Absolute path to configuration file to use in
-        augmenting the existing configuration.
-
     plugin-path: >
         Replace all normally discovered paths with this
         This may be called multiple times.
@@ -41,9 +34,6 @@ main:
 
     environment-paths: >
         Print only paths added via environment
-
-    configured-paths: >
-        Print only paths added via configuration
 
 publish:
     path: >

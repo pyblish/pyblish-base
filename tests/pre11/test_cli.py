@@ -7,7 +7,9 @@ import pyblish.api
 from . import lib
 
 from pyblish.vendor.click.testing import CliRunner
-from pyblish.vendor.nose.tools import *
+from pyblish.vendor.nose.tools import (
+    with_setup,
+)
 from pyblish.vendor import mock
 
 
@@ -21,21 +23,21 @@ def context():
     return ctx().obj["context"]
 
 
+@with_setup(lib.setup_empty)
 def test_all_commands_run():
     """All commands run without error"""
 
-    for args in [[],
+    for args in [[],            # No argument
                  ["--verbose"],
                  ["publish"],
-                 ["config"]
                  ]:
 
         runner = CliRunner()
         result = runner.invoke(pyblish.cli.main, args)
 
-        print "Args: %s" % args
-        print "Exit code: %s" % result.exit_code
-        print "Output: %s" % result.output
+        print("Args: %s" % args)
+        print("Exit code: %s" % result.exit_code)
+        print("Output: %s" % result.output)
         assert result.exit_code == 0
 
 
@@ -45,7 +47,6 @@ def test_paths():
     for flag, func in {
             "--paths": plugin.plugin_paths,
             "--registered-paths": plugin.registered_paths,
-            "--configured-paths": plugin.configured_paths,
             "--environment-paths": plugin.environment_paths}.iteritems():
 
         print "Flag: %s" % flag

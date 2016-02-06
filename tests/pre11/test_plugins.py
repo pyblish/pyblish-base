@@ -4,7 +4,6 @@ import os
 import random
 
 # Local library
-from . import lib
 import pyblish.plugin
 
 from .lib import (
@@ -13,7 +12,12 @@ from .lib import (
     setup_duplicate,
     setup_empty
 )
-from pyblish.vendor.nose.tools import *
+from pyblish.vendor.nose.tools import (
+    with_setup,
+    assert_equals,
+    assert_true,
+    assert_raises
+)
 
 
 @with_setup(setup, teardown)
@@ -68,7 +72,7 @@ def test_deregister_path():
 
 def test_environment_paths():
     """Registering via the environment works"""
-    key = lib.config['paths_environment_variable']
+    key = "PYBLISHPLUGINPATH"
     path = '/test/path'
     existing = os.environ.get(key)
 

@@ -238,17 +238,11 @@ def Iterator(plugins, context):
     """
 
     for plugin in plugins:
-        args = inspect.getargspec(plugin.process).args
-
-        # Backwards compatibility with `asset`
-        if "asset" in args:
-            args.append("instance")
-
         instances = instances_by_plugin(context, plugin)
 
         # Run once for every instance, plus once for context
         for instance in instances + [None]:
-            if instance is None and "instance" in args:
+            if instance is None and plugin.__instanceEnabled__:
                 continue
 
             yield plugin, instance

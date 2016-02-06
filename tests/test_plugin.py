@@ -547,3 +547,38 @@ def test_explicit_results():
 
     result = context.data["results"][0]
     assert result["records"][0].msg == "logged"
+
+
+def test_cooperative_collection():
+    """Cooperative collection works
+
+    A collector should be able to run such that the following
+    collector "sees" the newly created instance so as to
+    query and/or modify it.
+
+    """
+
+    count = {"#": 0}
+
+    class CollectorA(pyblish.api.Collector):
+        order = 0.0
+
+        def process(self, context):
+            context.create_instance("myInstance")
+            count["#"] += 1
+
+    class CollectorB(pyblish.api.Collector):
+        order = 0.1
+
+        def process(self, context):
+            assert "myInstance" in [i.data["name"] for i in context]
+
+            # This should run
+            count["#"] += 10
+
+    pyblish.api.register_plugin(CollectorA)
+    pyblish.api.register_plugin(CollectorB)
+
+    pyblish.util.publish()
+
+    assert count["#"] == 11, count

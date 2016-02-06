@@ -4,7 +4,6 @@ Usage:
     $ pyblish --help
 
 Attributes:
-    CONFIG_PATH: Default location of pyblsh-configuration
     DATA_PATH: Default location of user-data for the cli.
     SCREEN_WIDTH: Used in right-aligned printed elements.
     TAB: Default tab-width.
@@ -99,8 +98,6 @@ def _format_time(start, finish):
               help=_help["main"]["registered-paths"])
 @click.option("--environment-paths", is_flag=True,
               help=_help["main"]["environment-paths"])
-@click.option("--configured-paths", is_flag=True,
-              help=_help["main"]["configured-paths"])
 @click.option("-pp",
               "--plugin-path",
               "plugin_paths",
@@ -111,10 +108,6 @@ def _format_time(start, finish):
               "add_plugin_paths",
               multiple=True,
               help=_help["main"]["add-plugin-path"])
-@click.option("-c",
-              "--config",
-              default=None,
-              help=_help["main"]["config"])
 @click.option("-d",
               "--data",
               nargs=2,
@@ -132,11 +125,9 @@ def main(ctx,
          paths,
          plugins,
          environment_paths,
-         configured_paths,
          registered_paths,
          plugin_paths,
          add_plugin_paths,
-         config,
          data,
          logging_level):
     """Pyblish command-line interface
@@ -200,13 +191,12 @@ def main(ctx,
         )
 
     # Visualise available paths
-    if any([paths, environment_paths, registered_paths, configured_paths]):
+    if any([paths, environment_paths, registered_paths]):
         _paths = list()
 
         if paths:
             environment_paths = True
             registered_paths = True
-            configured_paths = True
 
         for path in plugin_paths:
 
@@ -218,14 +208,8 @@ def main(ctx,
             elif path in pyblish.api.registered_paths():
                 _typ = "registered"
 
-            elif path in pyblish.api.configured_paths():
-                _typ = "configured"
-
             # Only display queried paths
             if _typ == "environment" and not environment_paths:
-                continue
-
-            if _typ == "configured" and not configured_paths:
                 continue
 
             if _typ == "registered" and not registered_paths:
@@ -289,7 +273,7 @@ def publish(ctx,
         paths=ctx.obj["plugin_paths"]) if p.active)
     context = pyblish.util.publish(context=context, plugins=plugins)
 
-    if any(result["error"] for result in context.data["results"]):
+    if any(result["error"] for result in context.data.get("results", [])):
         click.echo("There were errors.")
 
         for result in context.data["results"]:
@@ -304,37 +288,4 @@ def publish(ctx,
         click.echo(_format_time(_start, _end))
 
 
-@click.command()
-@click.pass_context
-def config(ctx):
-    """List available config.
-
-    \b
-    Usage:
-        $ pyblish config
-        DEFAULTCONFIG = config.yaml
-        DEFAULTCONFIGPATH = pyblish\config.yaml
-        commit_template = {prefix}/{date}/{family}/{instance}
-        configuration_environment_variable = PYBLISHCONFIGPATH
-        conformers_regex = ^conform_.*\.py$
-        date_format = %Y%m%d_%H%M%S
-        extractors_regex = ^extract_.*\.py$
-        identifier = publishable
-        paths = ["{pyblish}/plugins"]
-        paths_environment_variable = PYBLISHPLUGINPATH
-        prefix = published
-        publish_by_default = True
-        selectors_regex = ^select_.*\.py$
-        validators_regex = ^validate_.*\.py$
-
-    """
-
-    for key, value in sorted(pyblish.api.config.iteritems()):
-        entry = "{k} = {v}".format(
-            tab=TAB, k=key, v=value)
-        entry += " " * (SCREEN_WIDTH - len(entry))
-        click.echo(entry)
-
-
 main.add_command(publish)
-main.add_command(config)

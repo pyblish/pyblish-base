@@ -2,7 +2,10 @@ import pyblish.api
 import pyblish.logic
 import pyblish.plugin
 
-from pyblish.vendor.nose.tools import *
+from pyblish.vendor.nose.tools import (
+    assert_equals,
+    with_setup
+)
 
 import lib
 
@@ -45,13 +48,7 @@ def test_simple_manual():
             self.log.info("Done!")
             count["#"] += 1
 
-
-    context = pyblish.api.Context()
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
-            plugins=[SimplePlugin],
-            context=context):
-        print result
+    pyblish.util.publish(plugins=[SimplePlugin])
 
     assert_equals(count["#"], 1)
 
@@ -95,15 +92,9 @@ def test_simple_instance():
         def process(self, instance):
             count["#"] += 100
 
-
-    context = pyblish.api.Context()
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
-            plugins=[SimpleSelector,
-                     SimpleValidator,
-                     SimpleValidatorForB],
-            context=context):
-        assert_equals(result["error"], None)
+    pyblish.util.publish(plugins=[SimpleSelector,
+                                  SimpleValidator,
+                                  SimpleValidatorForB])
 
     assert_equals(count["#"], 121)
 
