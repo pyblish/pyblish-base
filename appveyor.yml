@@ -1,3 +1,6 @@
+matrix:
+  - PYTHON: "C:\\Python26-x64"
+  - PYTHON: "C:\\Python27-x64"
 
 install:
   - "%PYTHON%\\python.exe -m pip install nose"
