@@ -3,8 +3,10 @@ import getpass
 import pyblish.api
 
 
-class CollectCurrentUser(pyblish.api.Collector):
+class CollectCurrentUser(pyblish.api.ContextPlugin):
     """Inject the currently logged on user into the Context"""
 
+    order = pyblish.api.CollectorOrder
+
     def process(self, context):
-        context.set_data('user', value=getpass.getuser())
+        context.data['user'] = getpass.getuser()

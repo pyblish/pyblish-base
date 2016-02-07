@@ -2,7 +2,7 @@ from . import lib
 
 import pyblish.lib
 import pyblish.compat
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     with_setup
 )
 

@@ -3,7 +3,7 @@
 from .. import lib
 import pyblish.plugin
 import pyblish.logic
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     with_setup,
     assert_equals,
     assert_raises,

@@ -124,8 +124,6 @@ def _convenience(order, *args, **kwargs):
     plugins = [p for p in plugin.discover()
                if p.order < order]
 
-    print [p.id for p in plugins]
-
     args = list(args)
     if len(args) > 1:
         args[1] = plugins

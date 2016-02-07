@@ -1,2 +1,8 @@
+install:
+  - set PATH=C:\Python27-x64;%PATH%
+  - set PATH=C:\Python27-x64\scripts;%PATH%
+  - pip install nose
+  - pip install coverage
+
 build_script:
-  - run_coverage.py
+  - python run_coverage.py

@@ -1,9 +1,0 @@
-# Date template
-date_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-
-# You can add to this list with paths to your custom plugins.
-paths: 
-    - "{pyblish}/plugins"
-
-# Or your can append paths to the environment variable.
-paths_environment_variable: PYBLISHPLUGINPATH

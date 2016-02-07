@@ -6,7 +6,7 @@ import pyblish.plugin
 import pyblish.logic
 
 from pyblish.vendor import mock
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     with_setup,
     assert_true,
     assert_false,
@@ -30,7 +30,7 @@ def test_publish_all(_):
     assert "ValidateInstances" in [p.__name__ for p in plugins]
     assert "ExtractInstances" in [p.__name__ for p in plugins]
 
-    context = pyblish.util.publish()
+    context = pyblish.util.publish_all()
     assert_equals(len(context), 1)
 
     for instance in context:
@@ -43,7 +43,7 @@ def test_publish_all(_):
 @with_setup(setup_full, teardown)
 def test_publish_all_no_context():
     """Not passing a context is fine"""
-    context = pyblish.util.publish()
+    context = pyblish.util.publish_all()
     assert_equals(len(context), 1)
 
     for instance in context:

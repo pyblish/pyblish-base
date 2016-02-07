@@ -7,7 +7,7 @@ import pyblish.api
 from . import lib
 
 from pyblish.vendor.click.testing import CliRunner
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     with_setup,
 )
 from pyblish.vendor import mock
@@ -30,6 +30,7 @@ def test_all_commands_run():
     for args in [[],            # No argument
                  ["--verbose"],
                  ["publish"],
+                 ["--verbose", "publish"],
                  ]:
 
         runner = CliRunner()
@@ -49,7 +50,7 @@ def test_paths():
             "--registered-paths": plugin.registered_paths,
             "--environment-paths": plugin.environment_paths}.iteritems():
 
-        print "Flag: %s" % flag
+        print("Flag: %s" % flag)
         runner = CliRunner()
         result = runner.invoke(pyblish.cli.main, [flag])
         for path in func():
@@ -62,7 +63,7 @@ def test_plugins():
     result = runner.invoke(pyblish.cli.main, ["--plugins"])
 
     for plugin in pyblish.api.discover():
-        print "Plugin: %s" % plugin.__name__
+        print("Plugin: %s" % plugin.__name__)
         assert plugin.__name__ in result.output
 
 
@@ -77,7 +78,7 @@ def test_plugins_path():
 
     plugins = pyblish.api.discover(paths=[custom_path])
     for plugin in plugins:
-        print "Output: %s" % result.output
+        print("Output: %s" % result.output)
         assert plugin.__name__ in result.output
 
 
@@ -120,6 +121,6 @@ def test_version():
     """Version returned matches version of Pyblish"""
     runner = CliRunner()
     result = runner.invoke(pyblish.cli.main, ["--version"])
-    print "Output: %s" % result.output
-    print "Version: %s" % pyblish.__version__
+    print("Output: %s" % result.output)
+    print("Version: %s" % pyblish.__version__)
     assert pyblish.__version__ in result.output

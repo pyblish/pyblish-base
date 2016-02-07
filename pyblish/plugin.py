@@ -1126,13 +1126,13 @@ def discover(type=None, regex=None, paths=None):
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
-    for name, plugin in _registered_plugins.iteritems():
+    for name, plugin in _registered_plugins.items():
         if name in plugins:
             log.debug("Duplicate plug-in found: %s", plugin)
             continue
         plugins[name] = plugin
 
-    plugins = plugins.values()
+    plugins = list(plugins.values())
     sort(plugins)  # In-place
 
     return plugins
@@ -1263,6 +1263,9 @@ def sort(plugins):
         plugins (list): Plug-ins to sort
 
     """
+
+    if not isinstance(plugins, list):
+        raise TypeError("plugins must be of type list")
 
     plugins.sort(key=lambda p: p.order)
     return plugins

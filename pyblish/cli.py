@@ -4,11 +4,9 @@ Usage:
     $ pyblish --help
 
 Attributes:
-    DATA_PATH: Default location of user-data for the cli.
     SCREEN_WIDTH: Used in right-aligned printed elements.
     TAB: Default tab-width.
     LOG_LEVEL: Mapping between cli flags and logging flags.
-
     intro_message: Message displayed during each command.
 
 Note:
@@ -31,7 +29,6 @@ import pyblish.version
 
 from pyblish.vendor import click
 
-# Current Click context
 _ctx = None
 _help = {
     "main": {
