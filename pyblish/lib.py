@@ -354,7 +354,7 @@ def deprecated(func):
     def wrapper(*args, **kwargs):
         if sys.version_info <= (2, 7):
             warnings.warn_explicit(
-                "Call to deprecated function {}.".format(func.__name__),
+                "Call to deprecated function %s." % func.__name__,
                 category=DeprecationWarning,
                 filename=func.func_code.co_filename,
                 lineno=func.func_code.co_firstlineno + 1)
