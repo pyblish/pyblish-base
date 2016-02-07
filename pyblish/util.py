@@ -21,7 +21,7 @@ import logging
 import warnings
 
 # Local library
-from . import logic, plugin
+from . import logic, plugin, lib
 
 log = logging.getLogger("pyblish.util")
 
@@ -92,31 +92,42 @@ def publish(context=None, plugins=None, **kwargs):
         if error is not None:
             print(error)
 
+    lib.emit("published", context=context)
+
     return context
 
 
-def select(*args, **kwargs):
+def collect(*args, **kwargs):
     """Convenience function for selection"""
-    return _convenience(0.5, *args, **kwargs)
+    context = _convenience(0.5, *args, **kwargs)
+    lib.emit("collected", context=context)
+    return context
 
 
 def validate(*args, **kwargs):
     """Convenience function for validation"""
-    return _convenience(1.5, *args, **kwargs)
+    context = _convenience(1.5, *args, **kwargs)
+    lib.emit("validated", context=context)
+    return context
 
 
 def extract(*args, **kwargs):
     """Convenience function for extraction"""
-    return _convenience(2.5, *args, **kwargs)
+    context = _convenience(2.5, *args, **kwargs)
+    lib.emit("extracted", context=context)
+    return context
 
 
-def conform(*args, **kwargs):
+def integrate(*args, **kwargs):
     """Convenience function for conform"""
-    return _convenience(3.5, *args, **kwargs)
+    context = _convenience(3.5, *args, **kwargs)
+    lib.emit("integrated", context=context)
+    return context
 
 
-collect = select
-integrate = conform
+# Backwards compatibility
+select = collect
+conform = integrate
 run = publish  # Alias
 
 
