@@ -57,15 +57,10 @@ class MessageHandler(logging.Handler):
 
 
 def extract_traceback(exception):
-    try:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        exception.traceback = traceback.extract_tb(exc_traceback)[-1]
-
-    except:
-        pass
-
-    finally:
-        del(exc_type, exc_value, exc_traceback)
+    """Inject current traceback and store in exception"""
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    exception.traceback = traceback.extract_tb(exc_traceback)[-1]
+    del(exc_type, exc_value, exc_traceback)
 
 
 def time():
@@ -352,7 +347,7 @@ def deprecated(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        if sys.version_info <= (2, 7):
+        if sys.version_info[0] == 2:
             warnings.warn_explicit(
                 "Call to deprecated function %s." % func.__name__,
                 category=DeprecationWarning,
