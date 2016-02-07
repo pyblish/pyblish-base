@@ -1,2 +1,7 @@
+
+install:
+  - "%PYTHON%\\python.exe -m pip install nose"
+  - "%PYTHON%\\python.exe -m pip install coverage"
+
 build_script:
   - run_coverage.py
