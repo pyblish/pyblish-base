@@ -6,7 +6,14 @@ import pyblish.plugin
 import pyblish.logic
 
 from pyblish.vendor import mock
-from pyblish.vendor.nose.tools import *
+from pyblish.vendor.nose.tools import (
+    with_setup,
+    assert_true,
+    assert_false,
+    assert_equal,
+    assert_equals,
+    assert_not_equals
+)
 from .lib import (
     teardown, FAMILY, HOST, setup_failing, setup_full,
     setup, setup_empty, setup_wildcard)
@@ -278,7 +285,7 @@ def test_extraction_failure():
     instance = context.create_instance(name='test_instance')
 
     instance.add('test_PLY')
-    instance.set_data(lib.config['identifier'], value=True)
+    instance.set_data("publishable", value=True)
     instance.set_data('family', value=FAMILY)
 
     # Assuming validations pass
@@ -305,7 +312,7 @@ def test_selection_appends():
     instance = context.create_instance(name='MyInstance')
     instance.add('node1')
     instance.add('node2')
-    instance.set_data(lib.config['identifier'], value=True)
+    instance.set_data("publishable", value=True)
 
     assert len(context) == 1
 
@@ -502,7 +509,7 @@ def test_instances_by_plugin():
         inst = ctx.create_instance(
             name='TestInstance{0}'.format(families.index(family) + 1))
 
-        inst.set_data(lib.config['identifier'], value=True)
+        inst.set_data("publishable", value=True)
         inst.set_data('family', value=family)
         inst.set_data('host', value='python')
 

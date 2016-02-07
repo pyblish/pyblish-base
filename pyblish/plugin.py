@@ -32,7 +32,6 @@ from . import (
 )
 
 from . import lib
-from .vendor import yaml
 from .vendor import iscompatible
 
 
@@ -95,68 +94,6 @@ class Provider(object):
 
     def inject(self, name, obj):
         self._services[name] = obj
-
-
-class Config(dict):
-    """Wrapper for Pyblish configuration file.
-
-    .. note:: Config is a singleton.
-
-    Attributes:
-        CONFIGPATH: Path to configuration, overridable
-            via environment variable PYBLISHCONFIGPATH.
-
-    Usage:
-        >>> config = Config()
-        >>> for key, value in config.iteritems():
-        ...     assert key in config
-        >>> assert Config() is Config()
-
-    """
-
-    _instance = None
-
-    CONFIGPATH = (os.environ.get("PYBLISHCONFIGPATH") or
-                  os.path.join(os.path.dirname(__file__), "config.yaml"))
-
-    log = logging.getLogger("pyblish.Config")
-
-    def __new__(cls, *args, **kwargs):
-        """Make Config into a singleton"""
-        if cls._instance is None:
-            cls._instance = super(Config, cls).__new__(
-                cls, *args, **kwargs)
-            cls._instance.reset()
-        return cls._instance
-
-    def reset(self):
-        """Remove all configuration and re-read from disk"""
-        self.clear()
-        self.load()
-
-        # Deprecated and undocumented variables
-        self.update({
-            "validators_regex": "^validate_.*\.py$",
-            "extractors_regex": "^extract_.*\.py$",
-            "selectors_regex": "^select_.*\.py$",
-            "conformers_regex": "^conform_.*\.py$",
-            "collectors_regex": "^collect_.*\.py$",
-            "integrators_regex": "^integrate_.*\.py$",
-            "commit_template": "{prefix}/{date}/{family}/{instance}",
-            "publish_by_default": True,
-            "prefix": "published",
-            "identifier": "publishable"
-        })
-
-    def load(self):
-        """Load default configuration from package dir"""
-        with open(self.CONFIGPATH, "r") as f:
-            loaded_data = yaml.load(f)
-
-        for key, value in loaded_data.iteritems():
-            self[key] = value
-
-        return True
 
 
 def evaluate_pre11(plugin):
@@ -1072,35 +1009,15 @@ def registered_hosts():
     return list(_registered_hosts)
 
 
-def configured_paths():
-    """Return paths added via configuration"""
-    paths = list()
-    config = Config()
-
-    for path_template in config["paths"]:
-        variables = {"pyblish": lib.main_package_path()}
-
-        plugin_path = path_template.format(**variables)
-
-        paths.append(plugin_path)
-
-    return paths
-
-
 def environment_paths():
     """Return paths added via environment variable"""
 
-    paths = list()
-    config = Config()
+    plugin_path = os.environ.get("PYBLISHPLUGINPATH")
+    if not plugin_path:
+        return list()
 
-    env_var = config["paths_environment_variable"]
-    env_val = os.environ.get(env_var)
-    if env_val:
-        env_paths = env_val.split(os.pathsep)
-        for path in env_paths:
-            paths.append(path)
-
-        log.debug("Paths from environment: %s" % env_paths)
+    paths = plugin_path.split(os.pathsep)
+    log.debug("Paths from environment: %s" % paths)
 
     return paths
 
@@ -1115,7 +1032,6 @@ def plugin_paths():
 
     - Registered paths using :func:`register_plugin_path`,
     - Paths from the environment variable `PYBLISHPLUGINPATH`
-    - Paths from configuration
 
     Returns:
         list of paths in which plugins may be locat
@@ -1124,7 +1040,7 @@ def plugin_paths():
 
     paths = list()
 
-    for path in registered_paths() + configured_paths() + environment_paths():
+    for path in registered_paths() + environment_paths():
         if path in paths:
             continue
         paths.append(path)
