@@ -368,6 +368,16 @@ def test_register_callback():
 
     pyblish.plugin.deregister_callback("mySignal", my_callback)
 
+    assert_raises(
+        ValueError,
+        pyblish.plugin.deregister_callback,
+        "mySignal", my_callback)
+
+    assert_raises(
+        KeyError,
+        pyblish.plugin.deregister_callback,
+        "notExist", my_callback)
+
     msg = "Deregistering a callback failed"
     data = {"mySignal": []}
     assert pyblish.plugin.registered_callbacks() == data, msg

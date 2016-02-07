@@ -794,10 +794,13 @@ def deregister_callback(signal, callback):
     Arguments:
         signal (string): Name of signal to deregister the callback with.
         callback (func): Function to execute when a signal is emitted.
+
+    Raises:
+        KeyError on missing signal
+        ValueError on missing callback
     """
 
-    if callback in _registered_callbacks[signal]:
-        _registered_callbacks[signal].remove(callback)
+    _registered_callbacks[signal].remove(callback)
 
 
 def deregister_all_callbacks():
