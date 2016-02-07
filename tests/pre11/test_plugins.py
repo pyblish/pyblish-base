@@ -12,7 +12,7 @@ from .lib import (
     setup_duplicate,
     setup_empty
 )
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     with_setup,
     assert_equals,
     assert_true,

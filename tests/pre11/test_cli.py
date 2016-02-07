@@ -7,7 +7,7 @@ import pyblish.api
 from . import lib
 
 from pyblish.vendor.click.testing import CliRunner
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     with_setup,
 )
 from pyblish.vendor import mock

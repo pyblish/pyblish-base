@@ -5,7 +5,7 @@ from .. import lib
 import pyblish.plugin
 import pyblish.logic
 
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     assert_equals,
     assert_true,
     assert_false,

@@ -6,7 +6,7 @@ import pyblish.plugin
 import pyblish.logic
 
 from pyblish.vendor import mock
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     with_setup,
     assert_true,
     assert_false,

@@ -7,7 +7,7 @@ import pyblish.lib
 import pyblish.plugin
 
 from . import lib
-from pyblish.vendor.nose.tools import (
+from nose.tools import (
     with_setup,
     raises
 )
