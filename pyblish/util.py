@@ -21,7 +21,7 @@ import logging
 import warnings
 
 # Local library
-from . import logic, plugin, lib
+from . import api, logic, plugin
 
 log = logging.getLogger("pyblish.util")
 
@@ -49,15 +49,15 @@ def publish(context=None, plugins=None, **kwargs):
     # Must check against None, as the
     # Context may come in empty.
     if context is None:
-        context = plugin.Context()
+        context = api.Context()
 
     if plugins is None:
-        plugins = plugin.discover()
+        plugins = api.discover()
 
     # Do not consider inactive plug-ins
     plugins = list(p for p in plugins if p.active)
 
-    test = logic.registered_test()
+    test = api.registered_test()
     state = {
         "nextOrder": None,
         "ordersWithError": set()
@@ -92,7 +92,7 @@ def publish(context=None, plugins=None, **kwargs):
         if error is not None:
             print(error)
 
-    lib.emit("published", context=context)
+    api.emit("published", context=context)
 
     return context
 
@@ -100,28 +100,28 @@ def publish(context=None, plugins=None, **kwargs):
 def collect(*args, **kwargs):
     """Convenience function for selection"""
     context = _convenience(0.5, *args, **kwargs)
-    lib.emit("collected", context=context)
+    api.emit("collected", context=context)
     return context
 
 
 def validate(*args, **kwargs):
     """Convenience function for validation"""
     context = _convenience(1.5, *args, **kwargs)
-    lib.emit("validated", context=context)
+    api.emit("validated", context=context)
     return context
 
 
 def extract(*args, **kwargs):
     """Convenience function for extraction"""
     context = _convenience(2.5, *args, **kwargs)
-    lib.emit("extracted", context=context)
+    api.emit("extracted", context=context)
     return context
 
 
 def integrate(*args, **kwargs):
     """Convenience function for conform"""
     context = _convenience(3.5, *args, **kwargs)
-    lib.emit("integrated", context=context)
+    api.emit("integrated", context=context)
     return context
 
 
@@ -132,7 +132,7 @@ run = publish  # Alias
 
 
 def _convenience(order, *args, **kwargs):
-    plugins = [p for p in plugin.discover()
+    plugins = [p for p in api.discover()
                if p.order < order]
 
     args = list(args)
