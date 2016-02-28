@@ -35,27 +35,31 @@ _help = {
         "paths": "List all available paths",
         "registered-paths": "Print only registered-paths",
         "verbose": "Display detailed information. Useful for "
-            "debugging purposes.",
+                   "debugging purposes.",
         "plugin-path": "Replace all normally discovered paths "
-            "with this This may be called multiple times.",
+                       "with this This may be called multiple times.",
         "add-plugin-path": "Append to normally discovered paths.",
         "logging-level": "Specify with which level to produce "
-            "logging messages. A value lower than the default "
-                "\"warning\" will produce more messages. This "
-                "can be useful for debugging.",
+                         "logging messages. A value lower than the default "
+                         "\"warning\" will produce more messages. This "
+                         "can be useful for debugging.",
         "environment-paths": "Print only paths added via environment",
         "version": "Print the current version of Pyblish",
         "plugins": "List all available plugins",
         "data": "Initialise context with data. This takes "
-            "two arguments, key and value."
+                "two arguments, key and value."
     },
     "publish": {
-        "delay": "Add an artificial delay to each plugin. Typically used in debugging.",
+        "delay": "Add an artificial delay to each plugin. "
+                 "Typically used in debugging.",
         "path": "Input path for publishing operation",
         "file": "Load file in host registered to it's suffix",
-        "instance": "Only publish specified instance. The default behaviour is to publish all instances. This may be called multiple times."
+        "instance": "Only publish specified instance. "
+                    "The default behaviour is to publish "
+                    "all instances. This may be called multiple times."
     }
 }
+
 
 def _setup_log(root="pyblish"):
     log = logging.getLogger(root)
@@ -186,7 +190,7 @@ def main(ctx,
             value = json.loads(value)
         except ValueError:
             pass
-        
+
         context.data[str(key)] = value
 
     if not plugin_paths:
