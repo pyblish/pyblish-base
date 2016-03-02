@@ -592,3 +592,33 @@ def test_cooperative_collection():
     pyblish.util.publish()
 
     assert count["#"] == 11, count
+
+
+def test_actions_and_explicit_plugins():
+    """Actions work with explicit plug-ins"""
+
+    count = {"#": 0}
+
+    class MyAction(pyblish.api.Action):
+        def process(self, context, plugin):
+            count["#"] += 1
+            raise Exception("Errored")
+
+    class MyValidator(pyblish.api.InstancePlugin):
+        order = pyblish.api.ValidatorOrder
+
+        actions = [
+            pyblish.api.Category("Scene"),
+            MyAction
+        ]
+
+        def process(self, instance):
+            count["#"] += 10
+
+    context = pyblish.api.Context()
+    result = pyblish.plugin.process(MyValidator,
+                                    context,
+                                    instance=None,
+                                    action="MyAction")
+    assert count["#"] == 1
+    assert str(result["error"]) == "Errored", result
