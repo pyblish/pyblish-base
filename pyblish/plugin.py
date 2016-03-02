@@ -426,8 +426,9 @@ def __explicit_process(plugin, context, instance=None, action=None):
 
     """
 
-    assert not (issubclass(plugin, InstancePlugin) and instance is None), (
-        "Cannot process an InstancePlugin without an instance. This is a bug")
+    if not action and issubclass(plugin, InstancePlugin) and instance is None:
+        raise AssertionError("Cannot process an InstancePlugin without an "
+                             "instance. This is a bug")
 
     result = {
         "success": False,
@@ -440,10 +441,14 @@ def __explicit_process(plugin, context, instance=None, action=None):
     }
 
     if not action:
+        args = (context if issubclass(plugin, ContextPlugin) else instance,)
         runner = plugin().process
     else:
         actions = dict((a.id, a) for a in plugin.actions)
-        action = actions[action] if action else None
+        assert action in actions, ("%s did not have action: %s. This is a bug"
+                                   % (plugin, action))
+        action = actions[action]
+        args = (context, plugin)
         runner = action().process
 
     records = list()
@@ -453,7 +458,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
 
     try:
         with logger(handler):
-            runner(context if issubclass(plugin, ContextPlugin) else instance)
+            runner(*args)
             result["success"] = True
     except Exception as error:
         lib.emit("pluginFailed", plugin=plugin, context=context,
@@ -501,7 +506,9 @@ def __implicit_process(plugin, context, instance=None, action=None):
         runner = plugin().process
     else:
         actions = dict((a.id, a) for a in plugin.actions)
-        action = actions[action] if action else None
+        assert action in actions, ("%s did not have action: %s. This is a bug"
+                                   % (plugin, action))
+        action = actions[action]
         runner = action().process
 
     records = list()
