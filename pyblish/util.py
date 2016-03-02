@@ -31,13 +31,13 @@ def publish(context=None, plugins=None, **kwargs):
 
     This function will process all available plugins of the
     currently running host, publishing anything picked up
-    during selection.
+    during collection.
 
     Arguments:
-        context (plugin.Context): Optional Context,
-            defaults to creating a new context
-        plugins (list): (Optional) Plug-ins to include,
-            defaults to discover()
+        context (Context, optional): Context, defaults to
+            creating a new context
+        plugins (list, optional): Plug-ins to include,
+            defaults to results of discover()
 
     Usage:
         >> context = plugin.Context()
@@ -46,18 +46,16 @@ def publish(context=None, plugins=None, **kwargs):
 
     """
 
-    # Must check against None, as the
-    # Context may come in empty.
-    if context is None:
-        context = api.Context()
-
-    if plugins is None:
-        plugins = api.discover()
+    # Must check against None, as objects be emptys
+    context = api.Context() if context is None else context
+    plugins = api.discover() if plugins is None else plugins
 
     # Do not consider inactive plug-ins
     plugins = list(p for p in plugins if p.active)
 
     test = api.registered_test()
+
+    # Keep track of state, so we can cancel on failed validation
     state = {
         "nextOrder": None,
         "ordersWithError": set()
@@ -98,7 +96,7 @@ def publish(context=None, plugins=None, **kwargs):
 
 
 def collect(*args, **kwargs):
-    """Convenience function for selection"""
+    """Convenience function for collection"""
     context = _convenience(0.5, *args, **kwargs)
     api.emit("collected", context=context)
     return context
@@ -119,16 +117,10 @@ def extract(*args, **kwargs):
 
 
 def integrate(*args, **kwargs):
-    """Convenience function for conform"""
+    """Convenience function for integration"""
     context = _convenience(3.5, *args, **kwargs)
     api.emit("integrated", context=context)
     return context
-
-
-# Backwards compatibility
-select = collect
-conform = integrate
-run = publish  # Alias
 
 
 def _convenience(order, *args, **kwargs):
@@ -144,6 +136,11 @@ def _convenience(order, *args, **kwargs):
 
 
 # Backwards compatibility
+select = collect
+conform = integrate
+run = publish  # Alias
+
+
 def publish_all(*args, **kwargs):
     warnings.warn("pyblish.util.publish_all has been "
                   "deprecated; use publish()")
