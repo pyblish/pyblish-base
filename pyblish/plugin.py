@@ -771,7 +771,7 @@ def current_host():
 
     """
 
-    return _registered_hosts[-1] or "unknown"
+    return _registered_hosts[-1] if _registered_hosts else "unknown"
 
 
 def register_callback(signal, callback):
