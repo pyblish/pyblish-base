@@ -251,14 +251,15 @@ def test_current_target():
 def test_current_target_latest():
     """pyblish.api.current_target works"""
     pyblish.plugin.deregister_all_targets()
-    pyblish.plugin.register_target("mytarge1")
-    pyblish.plugin.register_target("mytarge2")
-    assert_equals(pyblish.plugin.current_target(), "mytarge2")
+    pyblish.plugin.register_target("mytarget1")
+    pyblish.plugin.register_target("mytarget2")
+    assert_equals(pyblish.plugin.current_target(), "mytarget2")
 
-    pyblish.plugin.register_target("mytarge1")
-    assert_equals(pyblish.plugin.current_target(), "mytarge1")
+    pyblish.plugin.register_target("mytarget1")
+    assert_equals(pyblish.plugin.current_target(), "mytarget1")
 
     assert len(pyblish.plugin.registered_targets()) == 2
+
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_register_target():

@@ -1035,6 +1035,7 @@ def register_target(target):
         True
         >>> current_target()
         'Studio'
+
     """
 
     if target in _registered_targets:
