@@ -29,6 +29,7 @@ from . import (
     _registered_plugins,
     _registered_hosts,
     _registered_paths,
+    _registered_targets,
 )
 
 from . import lib
@@ -1017,6 +1018,57 @@ def deregister_all_hosts():
 def registered_hosts():
     """Return the currently registered hosts"""
     return list(_registered_hosts)
+
+
+def current_target():
+    return _registered_targets[-1] if _registered_targets else ""
+
+
+def register_target(target):
+    """Register a new target
+
+    Registered targets can be used in plug-ins to determin outputs
+
+    Example:
+        >>> register_target("Studio")
+        >>> "Studio" in registered_targets()
+        True
+        >>> current_target()
+        'Studio'
+    """
+
+    if target in _registered_targets:
+        idx = _registered_targets.index(target)
+        _registered_targets.pop(idx)
+
+    _registered_targets.append(target)
+
+
+def deregister_target(target, quiet=False):
+    """Remove an already registered target
+
+    Arguments:
+        target (str): Name of target
+        quiet (bool): Whether to raise an exception
+            when attempting to remove a target that is
+            not already registered.
+
+    """
+
+    try:
+        _registered_targets.remove(target)
+    except Exception as e:
+        if not quiet:
+            raise e
+
+
+def deregister_all_targets():
+    _registered_targets[:] = []
+
+
+def registered_targets():
+    """Return the currently registered targets"""
+    return list(_registered_targets)
 
 
 def environment_paths():

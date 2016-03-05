@@ -239,6 +239,37 @@ def test_register_host():
 
 
 @with_setup(lib.setup_empty, lib.teardown)
+def test_current_target():
+    """pyblish.api.current_target works"""
+    pyblish.plugin.register_target("mytarget")
+    assert_equals(pyblish.plugin.current_target(), "mytarget")
+
+    assert_raises(Exception, pyblish.plugin.deregister_target, "notExist")
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_current_target_latest():
+    """pyblish.api.current_target works"""
+    pyblish.plugin.deregister_all_targets()
+    pyblish.plugin.register_target("mytarge1")
+    pyblish.plugin.register_target("mytarge2")
+    assert_equals(pyblish.plugin.current_target(), "mytarge2")
+
+    pyblish.plugin.register_target("mytarge1")
+    assert_equals(pyblish.plugin.current_target(), "mytarge1")
+
+    assert len(pyblish.plugin.registered_targets()) == 2
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_register_target():
+    """Registering and deregistering targets works fine"""
+    pyblish.plugin.register_target("mytarget")
+    assert "mytarget" in pyblish.plugin.registered_targets()
+    pyblish.plugin.deregister_target("mytarget")
+    assert "mytarget" not in pyblish.plugin.registered_targets()
+
+
+@with_setup(lib.setup_empty, lib.teardown)
 def test_data_dict():
     """.data is a pure dictionary"""
 
