@@ -48,6 +48,12 @@ from .plugin import (
     deregister_host,
     deregister_all_hosts,
 
+    current_target,
+    register_target,
+    registered_targets,
+    deregister_target,
+    deregister_all_targets,
+
     register_plugin,
     deregister_plugin,
     deregister_all_plugins,

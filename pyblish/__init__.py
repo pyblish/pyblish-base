@@ -15,6 +15,7 @@ _registered_plugins = dict()
 _registered_services = dict()
 _registered_test = dict()
 _registered_hosts = list()
+_registered_targets = list()
 
 
 __all__ = [
@@ -27,4 +28,5 @@ __all__ = [
     "_registered_services",
     "_registered_test",
     "_registered_hosts",
+    "_registered_targets",
 ]
