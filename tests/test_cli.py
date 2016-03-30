@@ -3,8 +3,11 @@ import os
 import pyblish
 import pyblish.cli
 import pyblish.api
-
+from nose.tools import (
+    with_setup
+)
 from pyblish.vendor.click.testing import CliRunner
+from . import lib
 
 
 def ctx():
@@ -34,18 +37,21 @@ def test_visualise_environment_paths():
             os.environ["PYBLISHPLUGINPATH"] = current_path
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_publishing():
     """Basic publishing works"""
 
     count = {"#": 0}
 
     class Collector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+
         def process(self, context):
             self.log.warning("Running")
             count["#"] += 1
             context.create_instance("MyInstance")
 
-    class Validator(pyblish.api.InstancePlugin):
+    class MyValidator(pyblish.api.InstancePlugin):
         order = pyblish.api.ValidatorOrder
 
         def process(self, instance):
@@ -54,9 +60,10 @@ def test_publishing():
             count["#"] += 100
 
     pyblish.api.register_plugin(Collector)
-    pyblish.api.register_plugin(Validator)
+    pyblish.api.register_plugin(MyValidator)
 
     runner = CliRunner()
-    runner.invoke(pyblish.cli.main, ["publish"])
+    result = runner.invoke(pyblish.cli.main, ["publish"])
+    print(result.output)
 
     assert count["#"] == 111, count

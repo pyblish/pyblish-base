@@ -654,3 +654,34 @@ def test_actions_and_explicit_plugins():
                                     action="MyAction")
     assert count["#"] == 1
     assert str(result["error"]) == "Errored", result
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_argumentless_plugin():
+    """Plug-ins with neither instance nor context should still run"""
+    count = {"#": 0}
+
+    class MyPlugin(pyblish.api.Validator):
+        def process(self):
+            count["#"] += 1
+
+    pyblish.api.register_plugin(MyPlugin)
+    pyblish.util.publish()
+
+    assert count["#"] == 1
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_argumentless_explitic_plugin():
+    """Explicit plug-ins, without arguments, should fail"""
+    class MyPlugin(pyblish.api.InstancePlugin):
+        def process(self):
+            pass
+
+    raises(TypeError, pyblish.api.register_plugin, MyPlugin)
+
+    class MyPlugin(pyblish.api.ContextPlugin):
+        def process(self):
+            pass
+
+    raises(TypeError, pyblish.api.register_plugin, MyPlugin)
