@@ -292,13 +292,7 @@ def validate_argument_signature(plugin):
 
 
 class ExplicitMetaPlugin(MetaPlugin):
-    """Rewrite plug-ins written prior to 1.1
-
-    ..warning:: In case of plug-ins written prior to 1.1,
-        that also process both instance and context,
-        only the instance process will remain available.
-
-    """
+    """Validate explicit plug-ins"""
 
     def __init__(cls, *args, **kwargs):
         validate_argument_signature(cls)
