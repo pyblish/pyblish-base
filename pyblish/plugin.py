@@ -136,7 +136,7 @@ def evaluate_enabledness(plugin):
     if "context" in args_:
         plugin.__contextEnabled__ = True
 
-    # Forwards-compatibility with asset
+    # Backwards-compatibility with asset
     if "asset" in args_:
         plugin.__instanceEnabled__ = True
 
@@ -284,7 +284,25 @@ ExtractorOrder = 2
 IntegratorOrder = 3
 
 
+def validate_argument_signature(plugin):
+    """Ensure plug-in processes either 'instance' or 'context'"""
+    if not any(arg in inspect.getargspec(plugin.process).args
+               for arg in ("instance", "context")):
+        plugin.__invalidSignature__ = True
+
+
+class ExplicitMetaPlugin(MetaPlugin):
+    """Validate explicit plug-ins"""
+
+    def __init__(cls, *args, **kwargs):
+        validate_argument_signature(cls)
+        return super(ExplicitMetaPlugin, cls).__init__(*args, **kwargs)
+
+
 class ContextPlugin(Plugin):
+
+    __metaclass__ = ExplicitMetaPlugin
+
     def process(self, context):
         """Primary processing method
 
@@ -295,6 +313,9 @@ class ContextPlugin(Plugin):
 
 
 class InstancePlugin(Plugin):
+
+    __metaclass__ = ExplicitMetaPlugin
+
     def process(self, instance):
         """Primary processing method
 
@@ -1275,6 +1296,10 @@ def plugin_is_valid(plugin):
         if not isinstance(host, basestring):
             log.debug("Hosts must be string")
             return False
+
+    if hasattr(plugin, "__invalidSignature__"):
+        log.debug("Invalid signature")
+        return False
 
     return True
 

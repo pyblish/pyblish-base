@@ -21,13 +21,8 @@ import time
 import json
 import logging
 
-import pyblish.api
-import pyblish.lib
-import pyblish.util
-import pyblish.plugin
-import pyblish.version
-
-from pyblish.vendor import click
+from . import api, lib, util, __version__
+from .vendor import click
 
 _ctx = None
 _help = {
@@ -67,7 +62,7 @@ def _setup_log(root="pyblish"):
     return log
 
 log = _setup_log()
-main_log = pyblish.lib.setup_log(level=logging.ERROR)
+main_log = lib.setup_log(level=logging.ERROR)
 
 PATH_TEMPLATE = "{path} <{typ}>"
 LOG_TEMPATE = "{tab}<log>: %(message)s"
@@ -175,14 +170,14 @@ def main(ctx,
 
     # Process top-level arguments
     if version:
-        click.echo("pyblish version %s" % pyblish.__version__)
+        click.echo("pyblish version %s" % __version__)
 
     # Respond to sub-commands
     if not ctx.obj:
         ctx.obj = dict()
 
     # Initialise context with data passed as argument
-    context = pyblish.api.Context()
+    context = api.Context()
     ctx.obj["context"] = context
 
     for key, value in data:
@@ -194,11 +189,11 @@ def main(ctx,
         context.data[str(key)] = value
 
     if not plugin_paths:
-        plugin_paths = pyblish.api.plugin_paths()
+        plugin_paths = api.plugin_paths()
     plugin_paths += add_plugin_paths
     ctx.obj["plugin_paths"] = plugin_paths
 
-    available_plugins = pyblish.api.discover(paths=plugin_paths)
+    available_plugins = api.discover(paths=plugin_paths)
 
     if plugins:
         click.echo(_format_plugins(available_plugins))
@@ -206,7 +201,7 @@ def main(ctx,
     if verbose:
         click.echo(
             intro_message.format(
-                version=pyblish.__version__,
+                version=__version__,
                 paths=_format_paths(plugin_paths),
                 plugins=_format_plugins(available_plugins))
         )
@@ -223,10 +218,10 @@ def main(ctx,
 
             # Determine the source of each path
             _typ = "custom"
-            if path in pyblish.api.environment_paths():
+            if path in api.environment_paths():
                 _typ = "environment"
 
-            elif path in pyblish.api.registered_paths():
+            elif path in api.registered_paths():
                 _typ = "registered"
 
             # Only display queried paths
@@ -290,9 +285,8 @@ def publish(ctx,
         context.data["currentFile"] = path
 
     # Begin processing
-    plugins = list(p for p in pyblish.api.discover(
-        paths=ctx.obj["plugin_paths"]) if p.active)
-    context = pyblish.util.publish(context=context, plugins=plugins)
+    plugins = api.discover(paths=ctx.obj["plugin_paths"])
+    context = util.publish(context=context, plugins=plugins)
 
     if any(result["error"] for result in context.data.get("results", [])):
         click.echo("There were errors.")

@@ -21,7 +21,7 @@ import logging
 import warnings
 
 # Local library
-from . import api, logic, plugin
+from . import api, logic, plugin, lib
 
 log = logging.getLogger("pyblish.util")
 
@@ -52,8 +52,24 @@ def publish(context=None, plugins=None, **kwargs):
 
     # Do not consider inactive plug-ins
     plugins = list(p for p in plugins if p.active)
+    collectors = list(p for p in plugins if lib.inrange(
+        number=p.order,
+        base=api.CollectorOrder)
+    )
 
-    test = api.registered_test()
+    # First pass, collection
+    for plug, instance in logic.Iterator(collectors, context):
+        plugin.process(plug, context, instance)
+
+        # Exclude collectors for second pass
+        plugins.remove(plug)
+
+    # Exclude plug-ins that do not have at
+    # least one compatible instance.
+    for plug in list(plugins):
+        if plug.__instanceEnabled__:
+            if not logic.instances_by_plugin(context, plug):
+                plugins.remove(plug)
 
     # Keep track of state, so we can cancel on failed validation
     state = {
@@ -61,6 +77,9 @@ def publish(context=None, plugins=None, **kwargs):
         "ordersWithError": set()
     }
 
+    test = api.registered_test()
+
+    # Second pass, the remainder
     for plug, instance in logic.Iterator(plugins, context):
         state["nextOrder"] = plug.order
 
