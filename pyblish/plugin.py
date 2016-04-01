@@ -140,6 +140,9 @@ def evaluate_enabledness(plugin):
     if "asset" in args_:
         plugin.__instanceEnabled__ = True
 
+    if "context" in args_ and plugin.families[0] is not "*":
+        plugin.__instanceEnabled__ = True
+
 
 def append_logger(plugin):
     """Append logger to plugin
