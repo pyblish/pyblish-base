@@ -240,12 +240,13 @@ def Iterator(plugins, context):
     for plugin in plugins:
         instances = instances_by_plugin(context, plugin)
 
-        # Run once for every instance, plus once for context
-        for instance in instances + [None]:
-            if instance is None and plugin.__instanceEnabled__:
-                continue
-
+        # Run once for every instance..
+        for instance in instances:
             yield plugin, instance
+
+        # Plus once for the context
+        if not plugin.__instanceEnabled__:
+            yield plugin, None
 
 
 @lib.deprecated
