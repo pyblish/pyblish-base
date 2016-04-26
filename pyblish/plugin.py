@@ -176,7 +176,7 @@ class MetaPlugin(type):
         append_logger(cls)
         evaluate_pre11(cls)
         evaluate_enabledness(cls)
-        cls.id = property(lambda self: str(uuid.uuid4()))
+        cls.id = lib.classproperty(lambda self: str(uuid.uuid4()))
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
 
