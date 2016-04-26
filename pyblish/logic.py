@@ -182,11 +182,6 @@ def instances_by_plugin(instances, plugin):
 
     compatible = list()
 
-    if not plugin.__instanceEnabled__:
-        # A plug-in not capable of handling instances should
-        # not be given the opportunity to handle them.
-        return compatible
-
     for instance in instances:
         family = instance.data["family"]
 
@@ -240,12 +235,12 @@ def Iterator(plugins, context):
     for plugin in plugins:
         instances = instances_by_plugin(context, plugin)
 
-        # Run once for every instance, plus once for context
-        for instance in instances + [None]:
-            if instance is None and plugin.__instanceEnabled__:
-                continue
+        if plugin.__instanceEnabled__:
+            for instance in instances:
+                yield plugin, instance
 
-            yield plugin, instance
+        else:
+            yield plugin, None
 
 
 @lib.deprecated
