@@ -751,7 +751,7 @@ class Instance(AbstractEntity):
         self.parent = parent
         
         # Generate unique id for this instance
-        self.id = uuid.uuid4()
+        self.id = str(uuid.uuid4())
 
         self.data["name"] = name
         self.data["family"] = "default"
