@@ -20,10 +20,21 @@ def test_unique_id():
     class MyPlugin(pyblish.plugin.Collector):
         pass
 
+    class MyAction(pyblish.plugin.Action):
+        pass
+
     assert_true(hasattr(MyPlugin, "id"))
 
     instance = pyblish.plugin.Instance("MyInstance")
     assert_true(hasattr(instance, "id"))
+
+    # IDs are persistent
+    assert_equals(instance.id, instance.id)
+    assert_equals(MyAction.id, MyAction.id)
+    assert_equals(MyPlugin.id, MyPlugin.id)
+
+    context = pyblish.plugin.Context()
+    assert_equals(context.id, context.id)
 
 
 def test_context_from_instance():

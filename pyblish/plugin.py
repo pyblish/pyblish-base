@@ -176,7 +176,11 @@ class MetaPlugin(type):
         append_logger(cls)
         evaluate_pre11(cls)
         evaluate_enabledness(cls)
-        cls.id = lib.classproperty(lambda self: str(uuid.uuid4()))
+
+        # Compute once
+        cls._id = str(uuid.uuid4())
+        cls.id = lib.classproperty(lambda self: self._id)
+
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
 
@@ -330,7 +334,9 @@ class MetaAction(type):
     """Inject additional metadata into Action"""
 
     def __init__(cls, *args, **kwargs):
-        cls.id = property(lambda self: str(uuid.uuid4()))
+        cls._id = str(uuid.uuid4())
+        cls.id = lib.classproperty(lambda self: cls._id)
+
         cls.__error__ = None
 
         if cls.on not in ("all",
@@ -750,7 +756,7 @@ class Instance(AbstractEntity):
         super(Instance, self).__init__()
         assert isinstance(name, basestring)
         assert parent is None or isinstance(parent, AbstractEntity)
-    
+
         # Read-only properties
         self._name = name
         self._parent = parent
@@ -764,7 +770,7 @@ class Instance(AbstractEntity):
     @property
     def parent(self):
         return self._parent
-        
+
     @property
     def name(self):
         return self._name
