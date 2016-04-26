@@ -15,7 +15,7 @@ from . import lib
 
 
 def test_unique_id():
-    """Plug-ins and instances have a unique id"""
+    """Plug-ins and instances have an id"""
 
     class MyPlugin(pyblish.plugin.Collector):
         pass
