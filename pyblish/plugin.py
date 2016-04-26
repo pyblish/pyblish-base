@@ -19,6 +19,7 @@ import logging
 import inspect
 import warnings
 import contextlib
+import uuid
 
 # Local library
 from . import (
@@ -652,7 +653,7 @@ class Context(AbstractEntity):
         Example:
             >>> context = Context()
             >>> instance = context.create_instance("MyInstance")
-            >>> "MyInstance" in context
+            >>> instance.id in context
             True
             >>> instance in context
             True
@@ -690,9 +691,9 @@ class Context(AbstractEntity):
         Example:
             >>> context = Context()
             >>> instance = context.create_instance("MyInstance")
-            >>> assert context["MyInstance"].name == "MyInstance"
+            >>> assert context[instance.id].name == "MyInstance"
             >>> assert context[0].name == "MyInstance"
-            >>> assert context.get("MyInstance").name == "MyInstance"
+            >>> assert context.get(instance.id).name == "MyInstance"
 
         """
 
@@ -730,8 +731,6 @@ class Instance(AbstractEntity):
 
     """
 
-    id = property(lambda self: self.name)
-
     def __eq__(self, other):
         return self.id == getattr(other, "id", None)
 
@@ -750,6 +749,9 @@ class Instance(AbstractEntity):
         assert parent is None or isinstance(parent, AbstractEntity)
         self.name = name
         self.parent = parent
+        
+        # Generate unique id for this instance
+        self.id = str(uuid.uuid4())
 
         self.data["name"] = name
         self.data["family"] = "default"

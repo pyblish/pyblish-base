@@ -61,8 +61,8 @@ def publish(context=None, plugins=None, **kwargs):
     for plug, instance in logic.Iterator(collectors, context):
         plugin.process(plug, context, instance)
 
-        # Exclude collectors for second pass
-        plugins.remove(plug)
+    # Exclude collectors from further processing
+    plugins = list(p for p in plugins if p not in collectors)
 
     # Exclude plug-ins that do not have at
     # least one compatible instance.

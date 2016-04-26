@@ -56,19 +56,19 @@ def test_instance_equality():
     inst3 = pyblish.plugin.Instance('Test2')
 
     assert inst1 != inst2
-    assert inst2 == inst3
+    assert inst2 != inst3
 
 
 def test_context_itemgetter():
     """Context.get() works"""
     context = pyblish.api.Context()
-    context.create_instance("MyInstanceA")
-    context.create_instance("MyInstanceB")
+    instanceA = context.create_instance("MyInstanceA")
+    instanceB = context.create_instance("MyInstanceB")
 
-    assert context["MyInstanceA"].name == "MyInstanceA"
-    assert context["MyInstanceB"].name == "MyInstanceB"
-    assert context.get("MyInstanceA").name == "MyInstanceA"
-    assert context.get("MyInstanceB").name == "MyInstanceB"
+    assert context[instanceA.id].name == "MyInstanceA"
+    assert context[instanceB.id].name == "MyInstanceB"
+    assert context.get(instanceA.id).name == "MyInstanceA"
+    assert context.get(instanceB.id).name == "MyInstanceB"
     assert context[0].name == "MyInstanceA"
     assert context[1].name == "MyInstanceB"
 
@@ -77,8 +77,8 @@ def test_in():
     """Querying whether an Instance is in a Context works"""
 
     context = pyblish.api.Context()
-    context.create_instance("MyInstance")
-    assert "MyInstance" in context
+    instance = context.create_instance("MyInstance")
+    assert instance.id in context
     assert "NotExist" not in context
 
 
@@ -115,6 +115,15 @@ def test_context_getitem_validrange():
     context = pyblish.api.Context()
     context.create_instance("MyInstance")
     assert context[0].data["name"] == "MyInstance"
+
+
+def test_context_instance_unique_id():
+    """Same named instances have unique ids"""
+
+    context = pyblish.api.Context()
+    instance1 = context.create_instance("MyInstance")
+    instance2 = context.create_instance("MyInstance")
+    assert instance1.id != instance2.id
 
 
 if __name__ == '__main__':
