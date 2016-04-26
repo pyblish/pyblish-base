@@ -28,7 +28,7 @@ def test_data():
 
     # Not passing a key returns all data as a dict,
     # but there is none yet.
-    assert ctx.data(key=None) == dict()
+    assert ctx.data(key=None) == dict(), ctx.data(key=None)
 
     key = 'test_key'
 

@@ -176,6 +176,7 @@ class MetaPlugin(type):
         append_logger(cls)
         evaluate_pre11(cls)
         evaluate_enabledness(cls)
+        cls.id = property(lambda self: str(uuid.uuid4()))
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
 
@@ -219,8 +220,7 @@ class Plugin(object):
     optional = False
     requires = "pyblish>=1"
     actions = []
-
-    id = lib.classproperty(lambda cls: cls.__name__)
+    id = None  # Defined by metaclass
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -330,7 +330,9 @@ class MetaAction(type):
     """Inject additional metadata into Action"""
 
     def __init__(cls, *args, **kwargs):
+        cls.id = property(lambda self: str(uuid.uuid4()))
         cls.__error__ = None
+
         if cls.on not in ("all",
                           "processed",
                           "failed",
@@ -374,8 +376,6 @@ class Action(object):
     active = True
     on = "all"
     icon = None
-
-    id = lib.classproperty(lambda cls: cls.__name__)
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -641,8 +641,6 @@ class AbstractEntity(list):
     def __init__(self):
         self.data = _Dict(self)
         self._id = str(uuid.uuid4())
-
-        self.data["id"] = self._id
 
     @property
     def id(self):

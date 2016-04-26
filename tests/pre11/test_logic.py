@@ -257,17 +257,22 @@ def test_process_context_error():
     """Processing context raises an exception"""
 
     context = pyblish.plugin.Context()
-
-    selector = pyblish.plugin.discover(
-        'selectors', regex='^SelectInstancesError$')[0]
+    
+    @pyblish.api.log
+    class SelectInstancesError(pyblish.api.Selector):
+        hosts = ['python']
+        version = (0, 1, 0)
+    
+        def process_context(self, context):
+            raise ValueError("Test exception")
 
     iterator = pyblish.logic.process(
         func=pyblish.plugin.process,
-        plugins=[selector],
+        plugins=[SelectInstancesError],
         context=context)
 
     result = next(iterator)
-    assert_equals(result["plugin"], selector)
+    assert_equals(result["plugin"], SelectInstancesError)
     assert_true(isinstance(result["error"], Exception))
 
 
@@ -289,10 +294,10 @@ def test_extraction_failure():
     instance.set_data('family', value=FAMILY)
 
     # Assuming validations pass
-    plugins = dict((p.id, p) for p in pyblish.plugin.discover())
+    plugins = dict((p.__name__, p) for p in pyblish.plugin.discover())
     extractor = plugins["ExtractInstancesFail"]
 
-    print extractor
+    print(extractor)
     assert extractor.__name__ == "ExtractInstancesFail"
     for result in pyblish.logic.process(
             func=pyblish.plugin.process,

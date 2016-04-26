@@ -312,7 +312,7 @@ def test_action():
     pyblish.plugin.process(
         plugin=MyPlugin,
         context=context,
-        action="MyAction")
+        action=MyAction.id)
 
     assert count["#"] == 1
 
@@ -572,7 +572,7 @@ def test_explicit_action():
     pyblish.plugin.process(
         plugin=MyPlugin,
         context=context,
-        action="MyAction")
+        action=MyAction.id)
 
 
 def test_explicit_results():
@@ -651,7 +651,7 @@ def test_actions_and_explicit_plugins():
     result = pyblish.plugin.process(MyValidator,
                                     context,
                                     instance=None,
-                                    action="MyAction")
+                                    action=MyAction.id)
     assert count["#"] == 1
     assert str(result["error"]) == "Errored", result
 
