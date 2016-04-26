@@ -640,12 +640,17 @@ class AbstractEntity(list):
 
     def __init__(self):
         self.data = _Dict(self)
+        self._id = str(uuid.uuid4())
+
+        self.data["id"] = self._id
+
+    @property
+    def id(self):
+        return self._id
 
 
 class Context(AbstractEntity):
     """Maintain a collection of Instances"""
-
-    id = property(lambda self: "Context")
 
     def __contains__(self, key):
         """Support both Instance objects and `id` strings
@@ -732,32 +737,39 @@ class Instance(AbstractEntity):
     """
 
     def __eq__(self, other):
-        return self.id == getattr(other, "id", None)
+        return self._id == getattr(other, "id", None)
 
     def __ne__(self, other):
-        return self.id != getattr(other, "id", None)
+        return self._id != getattr(other, "id", None)
 
     def __repr__(self):
         return u"%s.%s(\"%s\")" % (__name__, type(self).__name__, self)
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def __init__(self, name, parent=None):
         super(Instance, self).__init__()
         assert isinstance(name, basestring)
         assert parent is None or isinstance(parent, AbstractEntity)
-        self.name = name
-        self.parent = parent
-        
-        # Generate unique id for this instance
-        self.id = str(uuid.uuid4())
+    
+        # Read-only properties
+        self._name = name
+        self._parent = parent
 
         self.data["name"] = name
         self.data["family"] = "default"
 
         if parent is not None:
             parent.append(self)
+
+    @property
+    def parent(self):
+        return self._parent
+        
+    @property
+    def name(self):
+        return self._name
 
     @property
     def context(self):
