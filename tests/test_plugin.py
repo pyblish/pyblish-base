@@ -14,6 +14,7 @@ from nose.tools import (
 from . import lib
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_unique_id():
     """Plug-ins and instances have an id"""
 
@@ -35,6 +36,16 @@ def test_unique_id():
 
     context = pyblish.plugin.Context()
     assert_equals(context.id, context.id)
+
+    # Even across discover()'s
+    # Due to the fact that an ID is generated on module
+    # load, which only happens once per process unless
+    # module is forcefully reloaded by the user.
+    pyblish.api.register_plugin(MyPlugin)
+    plugins = list(p for p in pyblish.api.discover()
+                   if p.id == MyPlugin.id)
+    assert len(plugins) == 1, plugins
+    assert plugins[0].__name__ == MyPlugin.__name__
 
 
 def test_context_from_instance():
