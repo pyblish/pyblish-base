@@ -1220,11 +1220,11 @@ def discover(type=None, regex=None, paths=None):
                 continue
 
             for plugin in plugins_from_module(module):
-                if plugin.id in plugins:
+                if plugin.__name__ in plugins:
                     log.debug("Duplicate plug-in found: %s", plugin)
                     continue
 
-                plugins[plugin.id] = plugin
+                plugins[plugin.__name__] = plugin
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
