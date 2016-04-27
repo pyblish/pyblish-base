@@ -14,16 +14,38 @@ from nose.tools import (
 from . import lib
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_unique_id():
-    """Plug-ins and instances have a unique id"""
+    """Plug-ins and instances have an id"""
 
     class MyPlugin(pyblish.plugin.Collector):
+        pass
+
+    class MyAction(pyblish.plugin.Action):
         pass
 
     assert_true(hasattr(MyPlugin, "id"))
 
     instance = pyblish.plugin.Instance("MyInstance")
     assert_true(hasattr(instance, "id"))
+
+    # IDs are persistent
+    assert_equals(instance.id, instance.id)
+    assert_equals(MyAction.id, MyAction.id)
+    assert_equals(MyPlugin.id, MyPlugin.id)
+
+    context = pyblish.plugin.Context()
+    assert_equals(context.id, context.id)
+
+    # Even across discover()'s
+    # Due to the fact that an ID is generated on module
+    # load, which only happens once per process unless
+    # module is forcefully reloaded by the user.
+    pyblish.api.register_plugin(MyPlugin)
+    plugins = list(p for p in pyblish.api.discover()
+                   if p.id == MyPlugin.id)
+    assert len(plugins) == 1, plugins
+    assert plugins[0].__name__ == MyPlugin.__name__
 
 
 def test_context_from_instance():
@@ -312,7 +334,7 @@ def test_action():
     pyblish.plugin.process(
         plugin=MyPlugin,
         context=context,
-        action="MyAction")
+        action=MyAction.id)
 
     assert count["#"] == 1
 
@@ -572,7 +594,7 @@ def test_explicit_action():
     pyblish.plugin.process(
         plugin=MyPlugin,
         context=context,
-        action="MyAction")
+        action=MyAction.id)
 
 
 def test_explicit_results():
@@ -651,7 +673,7 @@ def test_actions_and_explicit_plugins():
     result = pyblish.plugin.process(MyValidator,
                                     context,
                                     instance=None,
-                                    action="MyAction")
+                                    action=MyAction.id)
     assert count["#"] == 1
     assert str(result["error"]) == "Errored", result
 

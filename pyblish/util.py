@@ -58,18 +58,18 @@ def publish(context=None, plugins=None, **kwargs):
     )
 
     # First pass, collection
-    for plug, instance in logic.Iterator(collectors, context):
-        plugin.process(plug, context, instance)
+    for Plugin, instance in logic.Iterator(collectors, context):
+        plugin.process(Plugin, context, instance)
 
-        # Exclude collectors for second pass
-        plugins.remove(plug)
+    # Exclude collectors from further processing
+    plugins = list(p for p in plugins if p not in collectors)
 
     # Exclude plug-ins that do not have at
     # least one compatible instance.
-    for plug in list(plugins):
-        if plug.__instanceEnabled__:
-            if not logic.instances_by_plugin(context, plug):
-                plugins.remove(plug)
+    for Plugin in list(plugins):
+        if Plugin.__instanceEnabled__:
+            if not logic.instances_by_plugin(context, Plugin):
+                plugins.remove(Plugin)
 
     # Keep track of state, so we can cancel on failed validation
     state = {
@@ -80,15 +80,15 @@ def publish(context=None, plugins=None, **kwargs):
     test = api.registered_test()
 
     # Second pass, the remainder
-    for plug, instance in logic.Iterator(plugins, context):
-        state["nextOrder"] = plug.order
+    for Plugin, instance in logic.Iterator(plugins, context):
+        state["nextOrder"] = Plugin.order
 
         if test(**state):
             log.error("Stopped due to: %s" % test(**state))
             break
 
         try:
-            result = plugin.process(plug, context, instance)
+            result = plugin.process(Plugin, context, instance)
 
         except:
             # This exception is unexpected
@@ -99,7 +99,7 @@ def publish(context=None, plugins=None, **kwargs):
             # Make note of the order at which the
             # potential error error occured.
             if result["error"]:
-                state["ordersWithError"].add(plug.order)
+                state["ordersWithError"].add(Plugin.order)
 
         if isinstance(result, Exception):
             log.error("An unexpected error happened: %s" % result)

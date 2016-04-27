@@ -19,6 +19,7 @@ import logging
 import inspect
 import warnings
 import contextlib
+import uuid
 
 # Local library
 from . import (
@@ -175,6 +176,11 @@ class MetaPlugin(type):
         append_logger(cls)
         evaluate_pre11(cls)
         evaluate_enabledness(cls)
+
+        # Compute once
+        cls._id = str(uuid.uuid4())
+        cls.id = lib.classproperty(lambda self: self._id)
+
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
 
@@ -218,8 +224,7 @@ class Plugin(object):
     optional = False
     requires = "pyblish>=1"
     actions = []
-
-    id = lib.classproperty(lambda cls: cls.__name__)
+    id = None  # Defined by metaclass
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -329,7 +334,11 @@ class MetaAction(type):
     """Inject additional metadata into Action"""
 
     def __init__(cls, *args, **kwargs):
+        cls._id = str(uuid.uuid4())
+        cls.id = lib.classproperty(lambda self: cls._id)
+
         cls.__error__ = None
+
         if cls.on not in ("all",
                           "processed",
                           "failed",
@@ -373,8 +382,6 @@ class Action(object):
     active = True
     on = "all"
     icon = None
-
-    id = lib.classproperty(lambda cls: cls.__name__)
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -483,6 +490,9 @@ def __explicit_process(plugin, context, instance=None, action=None):
             runner(*args)
             result["success"] = True
     except Exception as error:
+        # FIXME: This is apparently not very healthy,
+        # as it creates a circular reference.
+        # http://stackoverflow.com/a/11417308/478949
         lib.emit("pluginFailed", plugin=plugin, context=context,
                  instance=instance, error=error)
         lib.extract_traceback(error)
@@ -635,16 +645,51 @@ class _Dict(dict):
 
 
 class AbstractEntity(list):
-    """Superclass for Context and Instance"""
+    """Superclass for Context and Instance
 
-    def __init__(self):
-        self.data = _Dict(self)
+    Attributes:
+        id (str): Unique identifier of instance
+        name (str): Name of instance
+        data (dict): Data shared between plug-ins
+        parent (AbstractEntity): Optional parent of instance
+
+    """
+
+    def __init__(self, name, parent=None):
+        assert isinstance(name, basestring)
+        assert parent is None or isinstance(parent, AbstractEntity)
+
+        # Read-only properties
+        self._name = name
+        self._data = _Dict(self)
+        self._id = str(uuid.uuid4())
+        self._parent = parent
+
+        if parent is not None:
+            parent.append(self)
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def data(self):
+        return self._data
 
 
 class Context(AbstractEntity):
     """Maintain a collection of Instances"""
 
-    id = property(lambda self: "Context")
+    def __init__(self, name="Context", parent=None):
+        super(Context, self).__init__(name, parent)
 
     def __contains__(self, key):
         """Support both Instance objects and `id` strings
@@ -652,7 +697,7 @@ class Context(AbstractEntity):
         Example:
             >>> context = Context()
             >>> instance = context.create_instance("MyInstance")
-            >>> "MyInstance" in context
+            >>> instance.id in context
             True
             >>> instance in context
             True
@@ -690,9 +735,8 @@ class Context(AbstractEntity):
         Example:
             >>> context = Context()
             >>> instance = context.create_instance("MyInstance")
-            >>> assert context["MyInstance"].name == "MyInstance"
+            >>> assert context[instance.id].name == "MyInstance"
             >>> assert context[0].name == "MyInstance"
-            >>> assert context.get("MyInstance").name == "MyInstance"
 
         """
 
@@ -704,10 +748,16 @@ class Context(AbstractEntity):
             raise KeyError("%s not in list" % item)
 
     def get(self, key, default=None):
-        try:
-            return next(c for c in self if c.id == key)
-        except StopIteration:
-            return default
+        """Enable support for dict-like getting of children by id
+
+        Example
+            >>> context = Context()
+            >>> instance = context.create_instance("MyInstance")
+            >>> assert context.get(instance.id).name == "MyInstance"
+
+        """
+
+        return next((c for c in self if c.id == key), default)
 
 
 @lib.log
@@ -723,50 +773,38 @@ class Instance(AbstractEntity):
             supplied automatically when creating instances with
             :class:`Context.create_instance()`.
 
-    Attributes:
-        id (str): Unique identifier of instance
-        name (str): Name of instance
-        parent (AbstractEntity): Optional parent of instance
-
     """
-
-    id = property(lambda self: self.name)
+    
+    def __init__(self, name, parent=None):
+        super(Instance, self).__init__(name, parent)
+        self._data["family"] = "default"
+        self._data["name"] = name
 
     def __eq__(self, other):
-        return self.id == getattr(other, "id", None)
+        return self._id == getattr(other, "id", None)
 
     def __ne__(self, other):
-        return self.id != getattr(other, "id", None)
+        return self._id != getattr(other, "id", None)
 
     def __repr__(self):
         return u"%s.%s(\"%s\")" % (__name__, type(self).__name__, self)
 
     def __str__(self):
-        return self.name
-
-    def __init__(self, name, parent=None):
-        super(Instance, self).__init__()
-        assert isinstance(name, basestring)
-        assert parent is None or isinstance(parent, AbstractEntity)
-        self.name = name
-        self.parent = parent
-
-        self.data["name"] = name
-        self.data["family"] = "default"
-
-        if parent is not None:
-            parent.append(self)
+        return self._name
 
     @property
     def context(self):
         """Return top-level parent; the context"""
         parent = self.parent
-        while parent:
+        while parent.parent:
             try:
                 parent = parent.parent
             except:
                 break
-        assert isinstance(parent, Context)
+
+        assert isinstance(parent, Context), ("Parent was not a Context:"
+                                             "%s" % type(parent))
+
         return parent
 
 
@@ -1202,11 +1240,11 @@ def discover(type=None, regex=None, paths=None):
                 continue
 
             for plugin in plugins_from_module(module):
-                if plugin.id in plugins:
+                if plugin.__name__ in plugins:
                     log.debug("Duplicate plug-in found: %s", plugin)
                     continue
 
-                plugins[plugin.id] = plugin
+                plugins[plugin.__name__] = plugin
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.

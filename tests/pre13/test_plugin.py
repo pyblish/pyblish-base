@@ -66,7 +66,7 @@ class BadFamilies2(pyblish.api.Plugin):
 
     plugins = pyblish.plugin.plugins_from_module(module)
 
-    assert [p.id for p in plugins] == ["MyPlugin"], plugins
+    assert [p.__name__ for p in plugins] == ["MyPlugin"], plugins
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -97,7 +97,7 @@ class MyPlugin(pyblish.api.Plugin):
 
     exec code in module.__dict__
     MyPlugin = pyblish.plugin.plugins_from_module(module)[0]
-    assert MyPlugin.id == "MyPlugin"
+    assert MyPlugin.__name__ == "MyPlugin"
 
     assert_true(MyPlugin().process(True))
     assert_true(MyPlugin().module_is_present())
