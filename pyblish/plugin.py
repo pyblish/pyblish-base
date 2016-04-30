@@ -633,6 +633,7 @@ def repair(plugin, context, instance=None):
 
 class _Dict(dict):
     """Temporary object during transition from set_data to data dictionary"""
+
     def __init__(self, parent):
         self._parent = parent
 
@@ -776,7 +777,7 @@ class Instance(AbstractEntity):
             :class:`Context.create_instance()`.
 
     """
-    
+
     def __init__(self, name, parent=None):
         super(Instance, self).__init__(name, parent)
         self._data["family"] = "default"
@@ -909,8 +910,20 @@ def register_plugin(plugin):
                 plugin, __version__))
 
     if not host_is_compatible(plugin):
-        raise TypeError("Plug-in %s is not compatible "
-                        "with this host" % plugin)
+
+        hosts = registered_hosts()
+        required_hosts = plugin.hosts
+
+        err = """Plug-in %s is not compatible with available host(s).
+
+Required host(s): %s
+Registered host(s): %s
+
+Make sure the integration for your host is correctly setup
+or register a new host using `pyblish.api.register_host("%s")`
+""" % (plugin, repr(required_hosts), repr(hosts), required_hosts[0])
+
+        raise TypeError(err)
 
     _registered_plugins[plugin.__name__] = plugin
 
