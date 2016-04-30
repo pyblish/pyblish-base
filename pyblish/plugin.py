@@ -340,6 +340,7 @@ class MetaAction(type):
         cls.__error__ = None
 
         if cls.on not in ("all",
+                          "notProcessed",
                           "processed",
                           "failed",
                           "succeeded"):
@@ -364,6 +365,7 @@ class Action(object):
         active: Whether or not to allow execution of action.
         on: When to enable this action; available options are:
             - "all": Always available (default).
+            - "notProcessed": The plug-in has not yet been processed
             - "processed": The plug-in has been processed
             - "succeeded": The plug-in has been processed, and succeeded
             - "failed": The plug-in has been processed, and failed
