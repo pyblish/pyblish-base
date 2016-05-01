@@ -30,7 +30,11 @@ def test_simple_discover():
 
     pyblish.api.register_plugin(SimplePlugin)
     pyblish.api.register_plugin(SimplePlugin2)
-    assert_equals(pyblish.api.discover(), [SimplePlugin, SimplePlugin2])
+
+    assert_equals(
+        list(p.id for p in pyblish.api.discover()),
+        list(p.id for p in [SimplePlugin, SimplePlugin2])
+    )
 
     pyblish.util.publish()
 

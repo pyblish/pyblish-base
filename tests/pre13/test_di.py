@@ -246,7 +246,7 @@ def test_test_failure():
         context=context))
 
     assert_equals(len(triggered), 1)
-    assert_equals(type(triggered[0]), ValidateFailure)
+    assert_equals(type(triggered[0]).id, ValidateFailure.id)
     assert_true(isinstance(results[-1], Exception))
 
 
