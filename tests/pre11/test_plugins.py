@@ -167,7 +167,7 @@ def test_inmemory_plugins():
             func=pyblish.plugin.process,
             plugins=pyblish.api.discover,
             context=context):
-        assert_true(result["plugin"] is InMemoryPlugin)
+        assert_true(result["plugin"].id == InMemoryPlugin.id)
 
     assert context.data("workingFine") is True
 
@@ -178,7 +178,7 @@ def test_inmemory_query():
 
     InMemoryPlugin = type("InMemoryPlugin", (pyblish.api.Selector,), {})
     pyblish.api.register_plugin(InMemoryPlugin)
-    assert pyblish.api.registered_plugins()[0] == InMemoryPlugin
+    assert pyblish.api.registered_plugins()[0].id == InMemoryPlugin.id
 
 
 @with_setup(setup_empty, teardown)

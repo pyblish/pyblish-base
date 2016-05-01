@@ -707,3 +707,27 @@ def test_argumentless_explitic_plugin():
             pass
 
     raises(TypeError, pyblish.api.register_plugin, MyPlugin)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_changes_to_registered_plugins_are_not_persistent():
+    """Changes to registerd plug-ins do not persist
+
+    This is the expected behaviour of file-based plug-ins.
+
+    """
+
+    class MyPlugin(pyblish.api.ContextPlugin):
+        active = False
+
+    pyblish.api.register_plugin(MyPlugin)
+
+    registered = pyblish.api.registered_plugins()[0]
+    assert registered.id == MyPlugin.id
+    assert registered.active is False
+
+    registered.active = True
+    assert registered.active is True
+
+    registered = pyblish.api.registered_plugins()[0]
+    assert registered.active is False

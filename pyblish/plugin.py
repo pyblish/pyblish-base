@@ -774,7 +774,7 @@ class Instance(AbstractEntity):
             :class:`Context.create_instance()`.
 
     """
-    
+
     def __init__(self, name, parent=None):
         super(Instance, self).__init__(name, parent)
         self._data["family"] = "default"
@@ -1032,7 +1032,15 @@ def registered_plugins():
 
     """
 
-    return _registered_plugins.values()
+    plugins = list()
+
+    for plugin in _registered_plugins.values():
+        # Maintain immutability across retrievals
+        copy = type(plugin.__name__, (plugin,), {})
+        copy._id = plugin._id
+        plugins.append(copy)
+
+    return plugins
 
 
 def register_host(host):
@@ -1248,11 +1256,11 @@ def discover(type=None, regex=None, paths=None):
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
-    for name, plugin in _registered_plugins.items():
-        if name in plugins:
+    for plugin in registered_plugins():
+        if plugin.__name__ in plugins:
             log.debug("Duplicate plug-in found: %s", plugin)
             continue
-        plugins[name] = plugin
+        plugins[plugin.__name__] = plugin
 
     plugins = list(plugins.values())
     sort(plugins)  # In-place
