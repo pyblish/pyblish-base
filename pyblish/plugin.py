@@ -1234,7 +1234,8 @@ def discover(type=None, regex=None, paths=None):
             module.__file__ = abspath
 
             try:
-                execfile(abspath, module.__dict__)
+                with open(abspath) as f:
+                    six.exec_(f.read(), module.__dict__)
 
                 # Store reference to original module, to avoid
                 # garbage collection from collecting it's global

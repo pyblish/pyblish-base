@@ -9,6 +9,8 @@ from nose.tools import (
     assert_true,
 )
 
+from pyblish.vendor import six
+
 from .. import lib
 
 
@@ -62,7 +64,7 @@ class BadFamilies2(pyblish.api.Plugin):
 
 """
 
-    exec code in module.__dict__
+    six.exec_(code, module.__dict__)
 
     plugins = pyblish.plugin.plugins_from_module(module)
 
@@ -95,7 +97,7 @@ class MyPlugin(pyblish.api.Plugin):
 
 """
 
-    exec code in module.__dict__
+    six.exec_(code, module.__dict__)
     MyPlugin = pyblish.plugin.plugins_from_module(module)[0]
     assert MyPlugin.__name__ == "MyPlugin"
 

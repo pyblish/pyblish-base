@@ -355,7 +355,7 @@ def test_interface():
             context=context):
 
         if isinstance(result, pyblish.logic.TestFailed):
-            print result
+            print(result)
 
         if isinstance(result, Exception):
             raise result
@@ -410,7 +410,7 @@ def test_failing_validator():
         context=context)
     result = next(iterator)
     error = result["error"]
-    assert_equal(error.message, "instance failed")
+    assert_equal(str(error), "instance failed")
     assert_true(hasattr(error, "traceback"))
 
 
@@ -576,7 +576,7 @@ def test_repair():
             func=pyblish.plugin.repair,
             plugins=repair,
             context=context):
-        print result
+        print(result)
 
     assert_false(_data["broken"])
 

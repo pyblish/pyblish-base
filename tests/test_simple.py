@@ -7,7 +7,7 @@ from nose.tools import (
     with_setup
 )
 
-import lib
+from . import lib
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -136,6 +136,6 @@ def test_simple_order():
             func=pyblish.plugin.process,
             plugins=plugins,
             context=context):
-        print result
+        print(result)
 
     assert_equals(order, [1, 2, 3, 4])

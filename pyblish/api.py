@@ -84,7 +84,6 @@ from .plugin import (
 from .lib import (
     log,
     time as __time,
-    format_filename,
     emit,
     main_package_path as __main_package_path
 )
@@ -114,6 +113,7 @@ from .compat import (
     sort,
     Selector,
     Conformer,
+    format_filename,
 )
 
 

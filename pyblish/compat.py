@@ -1,5 +1,7 @@
 """Compatibility module"""
 
+import os
+import re
 import warnings
 from . import plugin, lib
 from .vendor import six
@@ -7,6 +9,10 @@ from .vendor import six
 # Aliases
 Selector = plugin.Collector
 Conformer = plugin.Integrator
+
+_filename_ascii_strip_re = re.compile(r'[^-\w.]')
+_windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
+                         'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
 
 
 def sort(*args, **kwargs):
@@ -217,3 +223,6 @@ else:
     
         return filename
 
+
+lib.format_filename = format_filename
+lib.format_filename2 = format_filename2

@@ -10,10 +10,6 @@ import functools
 from . import _registered_callbacks
 from .vendor import six
 
-_filename_ascii_strip_re = re.compile(r'[^-\w.]')
-_windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
-                         'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
-
 
 def inrange(number, base, offset=0.5):
     r"""Evaluate whether `number` is within `base` +- `offset`
@@ -88,7 +84,7 @@ class ItemList(list):
         >>> try:
         ...   l["NotInList"]
         ... except KeyError:
-        ...   print True
+        ...   print(True)
         True
         >>> obj == l.get("Test")
         True
@@ -242,7 +238,7 @@ def emit(signal, **kwargs):
     Example:
         >>> import sys
         >>> from .plugin import register_callback
-        >>> register_callback("mysignal", lambda data: sys.stdout.write(data))
+        >>> register_callback("mysignal", lambda data: sys.stdout.write(str(data)))
         >>> emit("mysignal", data={"something": "cool"})
         {'something': 'cool'}
 
@@ -251,9 +247,18 @@ def emit(signal, **kwargs):
     for callback in _registered_callbacks.get(signal, []):
         try:
             callback(**kwargs)
-        except Exception as e:
-            traceback.print_exc(e)
-
+        except Exception:
+            file = six.StringIO()
+            traceback.print_exc(file=file)
+            sys.stderr.write(file.getvalue())
+            # Why the roundabout through StringIO?
+            # 
+            # tests.lib.captured_stderr attempts to capture stderr
+            # but doing so with plain print_exc() results in a type
+            # error in Python 3. I'm not confident in Python 3 unicode
+            # handling so there is likely a better way to solve this.
+            #
+            # TODO(marcus): Make it prettier
 
 def deprecated(func):
     """Deprecation decorator
