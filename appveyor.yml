@@ -1,4 +1,4 @@
-  matrix:
+matrix:
     - PYTHON: "C:\\Python26"
       PYTHON_VERSION: "2.6.6"
       PYTHON_ARCH: "32"
