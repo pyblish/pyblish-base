@@ -31,11 +31,18 @@
       PYTHON_VERSION: "3.4.1"
       PYTHON_ARCH: "64"
 
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.5.1"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python35-x64"
+      PYTHON_VERSION: "3.5.1"
+      PYTHON_ARCH: "64"
+
 install:
-  - set PATH=C:\Python27-x64;%PATH%
-  - set PATH=C:\Python27-x64\scripts;%PATH%
+  - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
   - pip install nose
   - pip install coverage
 
-build_script:
-  - python run_coverage.py
+test_script:
+  - %CMD_IN_ENV% python run_coverage.py
