@@ -11,3 +11,4 @@ docs/_*
 build
 playground.py
 *.sublime-*
+__*

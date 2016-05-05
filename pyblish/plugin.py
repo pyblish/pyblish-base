@@ -34,13 +34,14 @@ from . import (
 )
 
 from . import lib
-from .vendor import iscompatible
-
+from .vendor import iscompatible, six
 
 log = logging.getLogger("pyblish.plugin")
 
+__metaclass__ = type  # Make all classes new-style
 
-class Provider(object):
+
+class Provider():
     """Dependency provider
 
     This object is given a series of "services" that it then distributes
@@ -185,7 +186,8 @@ class MetaPlugin(type):
 
 
 @lib.log
-class Plugin(object):
+@six.add_metaclass(MetaPlugin)
+class Plugin():
     """Base-class for plugins
 
     Attributes:
@@ -212,8 +214,6 @@ class Plugin(object):
         actions: Actions associated to this plug-in
 
     """
-
-    __metaclass__ = MetaPlugin
 
     hosts = ["*"]
     families = ["*"]
@@ -304,9 +304,8 @@ class ExplicitMetaPlugin(MetaPlugin):
         return super(ExplicitMetaPlugin, cls).__init__(*args, **kwargs)
 
 
+@six.add_metaclass(ExplicitMetaPlugin)
 class ContextPlugin(Plugin):
-
-    __metaclass__ = ExplicitMetaPlugin
 
     def process(self, context):
         """Primary processing method
@@ -317,9 +316,8 @@ class ContextPlugin(Plugin):
         """
 
 
+@six.add_metaclass(MetaPlugin)
 class InstancePlugin(Plugin):
-
-    __metaclass__ = ExplicitMetaPlugin
 
     def process(self, instance):
         """Primary processing method
@@ -352,7 +350,8 @@ class MetaAction(type):
 
 
 @lib.log
-class Action(object):
+@six.add_metaclass(MetaAction)
+class Action():
     """User-supplied interactive action
 
     Subclass this class and append to Plugin.actions in order
@@ -375,7 +374,6 @@ class Action(object):
 
     """
 
-    __metaclass__ = MetaAction
     __type__ = "action"
 
     label = None
@@ -656,7 +654,7 @@ class AbstractEntity(list):
     """
 
     def __init__(self, name, parent=None):
-        assert isinstance(name, basestring)
+        assert isinstance(name, six.string_types)
         assert parent is None or isinstance(parent, AbstractEntity)
 
         # Read-only properties
@@ -935,7 +933,7 @@ def register_service(name, obj):
 
     Arguments:
         name (str): Name of service
-        obj (object): Any object
+        obj (any): Any object
 
     """
 
@@ -1321,7 +1319,7 @@ def plugin_is_valid(plugin):
 
     """
 
-    if not isinstance(plugin.requires, basestring):
+    if not isinstance(plugin.requires, six.string_types):
         log.debug("Plug-in requires must be of type string: %s", plugin)
         return False
 
@@ -1334,12 +1332,12 @@ def plugin_is_valid(plugin):
         return False
 
     for family in plugin.families:
-        if not isinstance(family, basestring):
+        if not isinstance(family, six.string_types):
             log.debug("Families must be string")
             return False
 
     for host in plugin.hosts:
-        if not isinstance(host, basestring):
+        if not isinstance(host, six.string_types):
             log.debug("Hosts must be string")
             return False
 
