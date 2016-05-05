@@ -42,8 +42,8 @@ environment:
 
 install:
   - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
-  - pip install nose
-  - pip install coverage
+  - python -m pip install nose
+  - python -m pip install coverage
 
-test_script:
+build_script:
   - python run_coverage.py
