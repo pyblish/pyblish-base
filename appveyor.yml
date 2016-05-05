@@ -1,4 +1,5 @@
-matrix:
+environment:
+  matrix:
     - PYTHON: "C:\\Python26"
       PYTHON_VERSION: "2.6.6"
       PYTHON_ARCH: "32"
@@ -45,4 +46,4 @@ install:
   - pip install coverage
 
 test_script:
-  - %CMD_IN_ENV% python run_coverage.py
+  - python run_coverage.py
