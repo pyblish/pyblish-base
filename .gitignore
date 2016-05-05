@@ -11,4 +11,4 @@ docs/_*
 build
 playground.py
 *.sublime-*
-__*
+__pycache__
