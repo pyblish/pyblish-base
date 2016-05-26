@@ -1,6 +1,47 @@
+environment:
+  matrix:
+    - PYTHON: "C:\\Python26"
+      PYTHON_VERSION: "2.6.6"
+      PYTHON_ARCH: "32"
+    
+    - PYTHON: "C:\\Python26-x64"
+      PYTHON_VERSION: "2.6.6"
+      PYTHON_ARCH: "64"
+    
+    - PYTHON: "C:\\Python27"
+      PYTHON_VERSION: "2.7.8"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python27-x64"
+      PYTHON_VERSION: "2.7.8"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python33"
+      PYTHON_VERSION: "3.3.5"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python33-x64"
+      PYTHON_VERSION: "3.3.5"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python34"
+      PYTHON_VERSION: "3.4.1"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python34-x64"
+      PYTHON_VERSION: "3.4.1"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.5.1"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python35-x64"
+      PYTHON_VERSION: "3.5.1"
+      PYTHON_ARCH: "64"
+
 install:
-  - set PATH=C:\Python27-x64;%PATH%
-  - set PATH=C:\Python27-x64\scripts;%PATH%
+  - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
   - pip install nose
   - pip install coverage
 

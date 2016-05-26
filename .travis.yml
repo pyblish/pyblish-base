@@ -2,6 +2,7 @@ language: python
 python:
 - 2.6
 - 2.7
+- 3.5
 install:
 - pip install coveralls
 script:
@@ -14,7 +15,7 @@ deploy:
   user: mottosso
   distributions: "sdist"
   password:
-    secure: WHvKto4HrDGY/3gokOxqTW8wVlP8C0CuQKIPW6DAhcJB5L8oJ6LLpm/1FRhn9trkhTcQNjXSrMwZqXCK9e5vuvY5rdsc49K81mOsGhRTgN5k9LFqrJ/AEExagjRfQrMDfvS5lsaCShPBlUIDABwNUI/wEsCRzyHryfXnIKHsPsY=
+    secure: fwXIOGKn38gJFNkzlpvholQBhSBzNorOnMvs04JT3+Fdq6ys2TiUV6tlXHDwo6DkMY++USI19oD9NWlvg8gQaRJq4g2V/taazn8XDv1XnyKLzb6DnAT1ALilJtbIgotH/0QNOvkDP40a8UDwbelE0aR4AptNO1Ts7n1eERygENA=
   on:
     tags: true
     all_branches: true

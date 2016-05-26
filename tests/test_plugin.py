@@ -232,7 +232,7 @@ def test_unique_logger():
     context = pyblish.util.publish()
 
     assert_equals(count["#"], 1)
-    print context.data("results")
+    print(context.data("results"))
 
     results = context.data("results")[0]
     records = results["records"]
@@ -368,7 +368,7 @@ def test_action_printing():
         pass
 
     print(MyAction())
-    print repr(MyAction())
+    print(repr(MyAction()))
 
     assert str(MyAction()) == "MyAction"
     assert repr(MyAction()) == "pyblish.plugin.MyAction('MyAction')"
@@ -448,14 +448,15 @@ def test_register_callback():
 def test_emit_signal_wrongly():
     """Exception from callback prints traceback"""
 
-    def other_callback(data=None):
-        print "Ping from 'other_callback' with %s" % data
+    def other_callback(an_argument=None):
+        print("Ping from 'other_callback' with %s" % an_argument)
 
     pyblish.plugin.register_callback("otherSignal", other_callback)
 
     with lib.captured_stderr() as stderr:
-        pyblish.lib.emit("otherSignal", akeyword="")
+        pyblish.lib.emit("otherSignal", not_an_argument="")
         output = stderr.getvalue().strip()
+        print("Output: %s" % stderr.getvalue())
         assert output.startswith("Traceback")
 
 

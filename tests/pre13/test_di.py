@@ -27,7 +27,7 @@ def test_di():
                 instance.set_data("family", "myFamily")
                 instance.set_data("value", "123")
 
-            print "Instance: %s" % instance
+            print("Instance: %s" % instance)
 
     class ValidateInstance(pyblish.api.Validator):
         def process(self, instance):
@@ -209,7 +209,7 @@ def test_unavailable_service_logic():
 
     class SelectUnavailable(pyblish.api.Selector):
         def process(self, unavailable):
-            print "HHOH"
+            print("HHOH")
             self.log.critical("Test")
 
     for result in pyblish.logic.process(
@@ -265,7 +265,7 @@ def test_when_to_trigger_process():
         families = ["incompatibleFamily"]
 
         def process(self, instance):
-            print "Instance is: %s" % instance
+            print("Instance is: %s" % instance)
             _data["error"] = True
             assert False, "I should not have been run"
 
@@ -326,7 +326,7 @@ def test_asset():
             func=pyblish.plugin.process,
             plugins=[SelectCharacters, ValidateColor],
             context=pyblish.api.Context()):
-        print result
+        print(result)
 
     assert_equals(count["#"], 3)
 

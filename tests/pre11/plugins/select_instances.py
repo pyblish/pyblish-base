@@ -20,6 +20,6 @@ class SelectInstances(pyblish.api.Selector):
                 'family': 'test',
                 'startFrame': 1001,
                 'endFrame': 1025
-                }.iteritems():
+                }.items():
 
             instance.set_data(key, value)

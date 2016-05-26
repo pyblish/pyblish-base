@@ -6,4 +6,4 @@ class SelectEcho(pyblish.Selector):
     version = (0, 0, 1)
 
     def process_context(self, context):
-        print context.data()
+        print(context.data())

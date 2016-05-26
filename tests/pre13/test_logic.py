@@ -114,7 +114,7 @@ def test_repair():
             func=pyblish.plugin.repair,
             plugins=repair,
             context=context):
-        print result
+        print(result)
 
     assert_false(_data["broken"])
 
@@ -194,7 +194,7 @@ def test_custom_test():
     count = {"#": 0}
 
     def custom_test(**vars):
-        print "I accept anything"
+        print("I accept anything")
         return
 
     class MyValidator(pyblish.api.Validator):
@@ -203,7 +203,7 @@ def test_custom_test():
 
     class MyExtractor(pyblish.api.Extractor):
         def process(self, context):
-            print "I came, I saw, I extracted.."
+            print("I came, I saw, I extracted..")
             count["#"] += 1
 
     pyblish.api.register_test(custom_test)
@@ -390,8 +390,7 @@ def test_extract_traceback():
     except Exception as e:
         assert not hasattr(e, "traceback")
         pyblish.logic._extract_traceback(e)
-
-    assert hasattr(e, "traceback")
+        assert hasattr(e, "traceback")
 
 
 def test_plugins_by_families():

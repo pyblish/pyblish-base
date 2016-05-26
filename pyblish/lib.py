@@ -8,10 +8,7 @@ import traceback
 import functools
 
 from . import _registered_callbacks
-
-_filename_ascii_strip_re = re.compile(r'[^-\w.]')
-_windows_device_files = ('CON', 'AUX', 'COM1', 'COM2', 'COM3', 'COM4',
-                         'LPT1', 'LPT2', 'LPT3', 'PRN', 'NUL')
+from .vendor import six
 
 
 def inrange(number, base, offset=0.5):
@@ -87,7 +84,7 @@ class ItemList(list):
         >>> try:
         ...   l["NotInList"]
         ... except KeyError:
-        ...   print True
+        ...   print(True)
         True
         >>> obj == l.get("Test")
         True
@@ -180,90 +177,6 @@ def parse_environment_paths(paths):
     return paths_list
 
 
-def format_filename(filename):
-    """Convert arbitrary string to valid filename, django-style.
-
-    Modified from django.utils.text.get_valid_filename()
-
-    Returns the given string converted to a string that can be used for a clean
-    filename. Specifically, leading and trailing spaces are removed; other
-    spaces are converted to underscores; and anything that is not a unicode
-    alphanumeric, dash, underscore, or dot, is removed.
-
-    Usage:
-        >>> format_filename("john's portrait in 2004.jpg")
-        'johns_portrait_in_2004.jpg'
-        >>> format_filename("something^_SD.dda.//fd/ad.exe")
-        'something_SD.dda.fdad.exe'
-        >>> format_filename("Napoleon_:namespaces_GRP|group1_GRP")
-        'Napoleon_namespaces_GRPgroup1_GRP'
-
-    """
-
-    filename = filename.strip().replace(' ', '_')
-
-    # on nt a couple of special files are present in each folder.  We
-    # have to ensure that the target file is not such a filename.  In
-    # this case we prepend an underline
-    if os.name == 'nt' and filename and \
-       filename.split('.')[0].upper() in _windows_device_files:
-        filename = '_' + filename
-
-    return re.sub(r'(?u)[^-\w.]', '', filename)
-
-
-def format_filename2(filename):
-    """Convert arbitrary string to valid filename, werkzeug-style.
-
-    Modified from werkzeug.utils.secure_filename()
-
-    Pass it a filename and it will return a secure version of it.  This
-    filename can then safely be stored on a regular file system and passed
-    to :func:`os.path.join`. The filename returned is an ASCII only string
-    for maximum portability.
-
-    On windows system the function also makes sure that the file is not
-    named after one of the special device files.
-
-    Arguments:
-        filename (str): the filename to secure
-
-    Usage:
-        >>> format_filename2("john's portrait in 2004.jpg")
-        'johns_portrait_in_2004.jpg'
-        >>> format_filename2("something^_SD.dda.//fd/ad.exe")
-        'something_SD.dda._fd_ad.exe'
-        >>> format_filename2("Napoleon_:namespaces_GRP|group1_GRP")
-        'Napoleon_namespaces_GRPgroup1_GRP'
-
-    .. warning:: The function might return an empty filename.  It's your
-        responsibility to ensure that the filename is unique and that you
-        generate random filename if the function returned an empty one.
-
-    .. versionadded:: 1.0.9
-
-    """
-
-    if isinstance(filename, unicode):
-        from unicodedata import normalize
-        filename = normalize('NFKD', filename).encode('ascii', 'ignore')
-
-    for sep in os.path.sep, os.path.altsep:
-        if sep:
-            filename = filename.replace(sep, ' ')
-    filename = str(_filename_ascii_strip_re.sub('', '_'.join(
-                   filename.split()))).strip('._')
-
-    # on nt a couple of special files are present in each folder.  We
-    # have to ensure that the target file is not such a filename.  In
-    # this case we prepend an underline
-    if os.name == 'nt' and filename and \
-       filename.split('.')[0].upper() in _windows_device_files:
-        filename = '_' + filename
-
-    return filename
-
-
 def get_formatter():
     """Return a default Pyblish formatter for logging
 
@@ -325,7 +238,7 @@ def emit(signal, **kwargs):
     Example:
         >>> import sys
         >>> from .plugin import register_callback
-        >>> register_callback("mysignal", lambda data: sys.stdout.write(data))
+        >>> register_callback("mysignal", lambda data: sys.stdout.write(str(data)))
         >>> emit("mysignal", data={"something": "cool"})
         {'something': 'cool'}
 
@@ -334,9 +247,18 @@ def emit(signal, **kwargs):
     for callback in _registered_callbacks.get(signal, []):
         try:
             callback(**kwargs)
-        except Exception as e:
-            traceback.print_exc(e)
-
+        except Exception:
+            file = six.StringIO()
+            traceback.print_exc(file=file)
+            sys.stderr.write(file.getvalue())
+            # Why the roundabout through StringIO?
+            # 
+            # tests.lib.captured_stderr attempts to capture stderr
+            # but doing so with plain print_exc() results in a type
+            # error in Python 3. I'm not confident in Python 3 unicode
+            # handling so there is likely a better way to solve this.
+            #
+            # TODO(marcus): Make it prettier
 
 def deprecated(func):
     """Deprecation decorator

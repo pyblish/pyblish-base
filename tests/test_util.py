@@ -19,7 +19,7 @@ def test_multiple_instance_util_publish():
     count = {"#": 0}
 
     class MyContextCollector(pyblish.api.ContextPlugin):
-    	order = pyblish.api.CollectorOrder
+        order = pyblish.api.CollectorOrder
         def process(self, context):
             context.create_instance("A")
             context.create_instance("B")
@@ -27,9 +27,9 @@ def test_multiple_instance_util_publish():
 
 
     class MyInstancePluginCollector(pyblish.api.InstancePlugin):
-    	order = pyblish.api.CollectorOrder + 0.1
+        order = pyblish.api.CollectorOrder + 0.1
         def process(self, instance):
-        	count["#"] += 1
+            count["#"] += 1
 
 
     pyblish.api.register_plugin(MyContextCollector)

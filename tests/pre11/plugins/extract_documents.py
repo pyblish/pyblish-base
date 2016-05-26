@@ -2,7 +2,6 @@ import os
 import tempfile
 import pyblish.api
 
-
 @pyblish.api.log
 class ExtractDocuments(pyblish.api.Extractor):
     """Extract instances"""
@@ -15,7 +14,7 @@ class ExtractDocuments(pyblish.api.Extractor):
         temp_dir = tempfile.mkdtemp()
 
         for document in instance:
-            for name, content in document.iteritems():
+            for name, content in document.items():
                 temp_file = os.path.join(temp_dir,
                                          '{0}.txt'.format(name))
                 with open(temp_file, 'w') as f:
