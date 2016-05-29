@@ -1051,6 +1051,7 @@ def registered_plugins():
         # Maintain immutability across retrievals
         copy = type(plugin.__name__, (plugin,), {})
         copy._id = plugin._id
+        copy.__doc__ = plugin.__doc__
         plugins.append(copy)
 
     return plugins
