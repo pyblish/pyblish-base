@@ -1,10 +1,8 @@
 """Compatibility module"""
 
-import os
 import re
 import warnings
 from . import plugin, lib
-from .vendor import six
 
 # Aliases
 Selector = plugin.Collector
@@ -128,6 +126,7 @@ def add(self, other):
 
 plugin.Context.create_asset = create_asset
 plugin.Context.add = add
+
 
 @lib.deprecated
 def format_filename(filename):

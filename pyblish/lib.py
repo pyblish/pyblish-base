@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 import logging
 import datetime
@@ -237,8 +236,10 @@ def emit(signal, **kwargs):
 
     Example:
         >>> import sys
-        >>> from .plugin import register_callback
-        >>> register_callback("mysignal", lambda data: sys.stdout.write(str(data)))
+        >>> from . import plugin
+        >>> plugin.register_callback(
+        ...   "mysignal", lambda data: sys.stdout.write(str(data)))
+        ...
         >>> emit("mysignal", data={"something": "cool"})
         {'something': 'cool'}
 
@@ -252,13 +253,14 @@ def emit(signal, **kwargs):
             traceback.print_exc(file=file)
             sys.stderr.write(file.getvalue())
             # Why the roundabout through StringIO?
-            # 
+            #
             # tests.lib.captured_stderr attempts to capture stderr
             # but doing so with plain print_exc() results in a type
             # error in Python 3. I'm not confident in Python 3 unicode
             # handling so there is likely a better way to solve this.
             #
             # TODO(marcus): Make it prettier
+
 
 def deprecated(func):
     """Deprecation decorator
