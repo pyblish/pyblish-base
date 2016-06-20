@@ -210,6 +210,12 @@ __all__ = [
     "plugins_by_instance",
     "instances_by_plugin",
 
+    "current_target",
+    "register_target",
+    "registered_targets",
+    "deregister_target",
+    "deregister_all_targets",
+
     "sort_plugins",
     "format_filename",
     "current_host",
