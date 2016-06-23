@@ -1,4 +1,4 @@
-### Contributing to Qt
+### Contributing to this project
 
 To contribute, fork this project and submit a pull-request.
 
