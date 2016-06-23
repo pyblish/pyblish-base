@@ -3,18 +3,63 @@
 [![Coverage Status][cover-image]][cover-link]
 [![PyPI version][pypi-image]][pypi-link]
 [![Code Health][landscape-image]][landscape-repo]
-[![Gitter][gitter-image]][chat]
+[![Gitter][gitter-image]](https://gitter.im/pyblish/pyblish?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![image](https://cloud.githubusercontent.com/assets/2152766/12704326/b6ff015c-c850-11e5-91be-68d824526f13.png)](https://www.youtube.com/watch?v=j5uUTW702-U)
 
 Test-driven content creation for collaborative, creative projects.
 
-- [Wiki][wiki]
-- [Learn by Example][example]
+- [Wiki](../wiki)
+- [Learn by Example](http://learn.pyblish.com)
 
-[example]: http://forums.pyblish.com/t/learning-pyblish-by-example/108
-[wiki]: https://github.com/pyblish/pyblish-base/wiki
-[chat]: https://gitter.im/pyblish/pyblish?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+<br>
+<br>
+<br>
+
+### Introduction
+
+Pyblish is a modular framework, consisting of many sub-projects. This project contains the primary API upon which all other projects build.
+
+You may use this project as-is, or in conjunction with surrounding projects - such as [pyblish-maya][] for integration with Autodesk Maya, [pyblish-qml][] for a visual front-end and [pyblish-magenta][] for a starting point your publishing pipeline.
+
+[pyblish-maya]: https://github.com/pyblish/pyblish-maya
+[pyblish-qml]: https://github.com/pyblish/pyblish-qml
+[pyblish-magenta]: https://github.com/pyblish/pyblish-magenta
+
+- [Browse All Projects](https://github.com/pyblish)
+
+<br>
+<br>
+<br>
+
+### Installation
+
+pyblish-base is avaialble on PyPI.
+
+```bash
+$ pip install pyblish-base
+```
+
+Like all other Pyblish projects, it may also be clone as-is via Git and added to your PYTHONPATH.
+
+```bash
+$ git clone https://github.com/pyblish/pyblish-base.git
+$ # Windows
+$ set PYTHONPATH=%cd%\pyblish-base
+$ # Unix
+$ export PYTHONPATH=$(pwd)/pyblish-base
+```
+
+<br>
+<br>
+<br>
+
+### Usage
+
+Refer to the [getting started guide](http://learn.pyblish.com) for a gentle introduction to the framework and [the forums](http://forums.pyblish.com) for tips and tricks.
+
+- [Learn Pyblish By Example](http://learn.pyblish.com)
+- [Forums](http://forums.pyblish.com)
 
 [travis-image]: https://travis-ci.org/pyblish/pyblish-base.svg?branch=master
 [travis-link]: https://travis-ci.org/pyblish/pyblish-base
