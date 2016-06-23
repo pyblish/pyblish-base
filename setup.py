@@ -20,6 +20,12 @@ classifiers = [
     "Programming Language :: Python :: 2",
     "Programming Language :: Python :: 2.6",
     "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.1",
+    "Programming Language :: Python :: 3.2",
+    "Programming Language :: Python :: 3.3",
+    "Programming Language :: Python :: 3.4",
+    "Programming Language :: Python :: 3.5",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities"
 ]
@@ -31,7 +37,7 @@ setup(
     description="Plug-in driven automation framework for content",
     long_description=readme,
     author="Abstract Factory and Contributors",
-    author_email="marcus@abstractfactory.com",
+    author_email="marcus@abstractfactory.io",
     url="https://github.com/pyblish/pyblish",
     license="LGPL",
     packages=find_packages(),
@@ -40,7 +46,6 @@ setup(
     package_data={
         "pyblish": ["plugins/*.py",
                     "*.yaml",
-                    "vendor/nose/*.txt",
                     "icons/*.svg"],
     },
     entry_points={
