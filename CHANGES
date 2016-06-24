@@ -3,6 +3,12 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.4.1
+-------------
+
+- Feature: register_gui (#279)
+
+
 Version 1.4.0 - Steel
 ---------------------
 
