@@ -9,7 +9,7 @@
 
 Test-driven content creation for collaborative, creative projects.
 
-- [Wiki](../wiki)
+- [Wiki](../../wiki)
 - [Learn by Example](http://learn.pyblish.com)
 
 <br>
