@@ -1,10 +1,9 @@
 """Shared processing logic"""
 
 import sys
-import inspect
 import traceback
 
-from . import _registered_test, lib
+from . import _registered_test, _registered_gui, lib
 from .plugin import Validator
 
 
@@ -84,6 +83,48 @@ def registered_test():
 def deregister_test():
     """Restore default test"""
     register_test(default_test)
+
+
+def register_gui(package):
+    """Register a default GUI for Pyblish
+
+    The argument `package` must refer to an available Python
+    package with access to a `.show` member function taking no
+    arguments. E.g.
+
+    def show():
+        pass
+
+    This function is called whenever the default GUI
+    is activated.
+
+    Multiple GUIs:
+        You may register more than one GUI, in which case each
+        is tried in turn until a functioning match is found.
+
+        For example, if both Pyblish QML and Pyblish Lite are
+        registered, but Pyblish QML is not installed, then
+        Pyblish Lite would appear as a "fallback".
+
+    Arguments:
+        package (str): Name of Python package with .show function.
+
+    """
+
+    if package not in _registered_gui:
+        _registered_gui.append(package)
+
+
+def registered_guis():
+    """Return registered GUIs"""
+    return list(_registered_gui)
+
+
+def deregister_gui(package):
+    try:
+        _registered_gui.remove(package)
+    except IndexError:
+        raise IndexError("%s has not been registered." % package)
 
 
 def plugins_by_family(plugins, family):
@@ -241,124 +282,3 @@ def Iterator(plugins, context):
 
         else:
             yield plugin, None
-
-
-@lib.deprecated
-def process(func, plugins, context, test=None):
-    r"""Primary processing logic
-
-    Takes callables and data as input, and performs
-    logical operations on them until the currently
-    registered test fails.
-
-    If `plugins` is a callable, it is called early, before
-    processing begins. If `context` is a callable, it will
-    be called once per plug-in.
-
-    Arguments:
-        func (callable): Callable taking three arguments;
-             plugin(Plugin), context(Context) and optional
-             instance(Instance). Each must provide a matching
-             interface to their corresponding objects.
-        plugins (list, callable): Plug-ins to process. If a
-            callable is provided, the return value is used
-            as plug-ins. It is called with no arguments.
-        context (Context, callable): Context whose instances
-            are to be processed. If a callable is provided,
-            the return value is used as context. It is called
-            with no arguments.
-        test (callable, optional): Provide custom test, defaults
-            to the currently registered test.
-
-    Yields:
-        A result per complete process. If test fails,
-        a TestFailed exception is returned, containing the
-        variables used in the test. Finally, any exception
-        thrown by `func` is yielded. Note that this is
-        considered a bug in *your* code as you are the one
-        supplying it.
-
-    """
-
-    __plugins = plugins
-    __context = context
-
-    if test is None:
-        test = registered_test()
-
-    if hasattr(__plugins, "__call__"):
-        plugins = __plugins()
-
-    def gen(plugin, instances):
-        if plugin.__instanceEnabled__ and len(instances) > 0:
-            for instance in instances:
-                yield instance
-        else:
-            yield None
-
-    vars = {
-        "nextOrder": None,
-        "ordersWithError": list()
-    }
-
-    # Clear introspection values
-    # TODO(marcus): Return *next* pair, this currently
-    #   returns the current pair.
-    self = process
-    self.next_plugin = None
-    self.next_instance = None
-
-    for plugin in plugins:
-        self.next_plugin = plugin
-        vars["nextOrder"] = plugin.order
-
-        if not test(**vars):
-            if hasattr(__context, "__call__"):
-                context = __context()
-
-            args = inspect.getargspec(plugin.process).args
-
-            # Backwards compatibility with `asset`
-            if "asset" in args:
-                args.append("instance")
-
-            instances = instances_by_plugin(context, plugin)
-
-            # Limit processing to plug-ins with an available instance
-            if not instances and "*" not in plugin.families:
-                continue
-
-            for instance in gen(plugin, instances):
-                if instance is None and "instance" in args:
-                    continue
-
-                # Provide introspection
-                self.next_instance = instance
-
-                try:
-                    result = func(plugin, context, instance)
-
-                except Exception as exc:
-                    # Any exception occuring within the function
-                    # you pass is yielded, you are expected to
-                    # handle it.
-                    yield exc
-
-                else:
-                    # Make note of the order at which
-                    # the potential error error occured.
-                    if result["error"]:
-                        if plugin.order not in vars["ordersWithError"]:
-                            vars["ordersWithError"].append(plugin.order)
-                    yield result
-
-            # Clear current
-            self.next_instance = None
-
-        else:
-            yield TestFailed(test(**vars), vars)
-            break
-
-
-process.next_plugin = None
-process.next_instance = None

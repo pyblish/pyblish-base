@@ -96,6 +96,11 @@ from .logic import (
     register_test,
     deregister_test,
     registered_test,
+
+    register_gui,
+    registered_guis,
+    deregister_gui,
+
     default_test as __default_test,
 )
 
@@ -205,10 +210,20 @@ __all__ = [
     "deregister_test",
     "registered_test",
 
+    "register_gui",
+    "registered_guis",
+    "deregister_gui",
+
     "plugins_by_family",
     "plugins_by_host",
     "plugins_by_instance",
     "instances_by_plugin",
+
+    "current_target",
+    "register_target",
+    "registered_targets",
+    "deregister_target",
+    "deregister_all_targets",
 
     "sort_plugins",
     "format_filename",
