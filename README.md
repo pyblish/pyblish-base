@@ -40,7 +40,7 @@ pyblish-base is avaialble on PyPI.
 $ pip install pyblish-base
 ```
 
-Like all other Pyblish projects, it may also be clone as-is via Git and added to your PYTHONPATH.
+Like all other Pyblish projects, it may also be cloned as-is via Git and added to your PYTHONPATH.
 
 ```bash
 $ git clone https://github.com/pyblish/pyblish-base.git
@@ -58,8 +58,8 @@ $ export PYTHONPATH=$(pwd)/pyblish-base
 
 Refer to the [getting started guide](http://learn.pyblish.com) for a gentle introduction to the framework and [the forums](http://forums.pyblish.com) for tips and tricks.
 
-- [Learn Pyblish By Example](http://learn.pyblish.com)
-- [Forums](http://forums.pyblish.com)
+- [**learn**.pyblish.com](http://learn.pyblish.com)
+- [**forums**.pyblish.com](http://forums.pyblish.com)
 
 [travis-image]: https://travis-ci.org/pyblish/pyblish-base.svg?branch=master
 [travis-link]: https://travis-ci.org/pyblish/pyblish-base
