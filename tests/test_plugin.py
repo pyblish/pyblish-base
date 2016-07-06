@@ -8,6 +8,7 @@ from nose.tools import (
     assert_true,
     assert_equals,
     assert_raises,
+    assert_in,
     raises,
 )
 
@@ -414,34 +415,49 @@ def test_register_callback():
     def other_callback(data=None):
         pass
 
-    pyblish.plugin.register_callback("mySignal", my_callback)
+    pyblish.api.register_callback("mySignal", my_callback)
 
-    msg = "Registering a callback failed"
-    data = {"mySignal": [my_callback]}
-    assert "mySignal" in pyblish.plugin.registered_callbacks() == data, msg
+    assert_in("mySignal", pyblish.api.registered_callbacks())
 
-    pyblish.plugin.deregister_callback("mySignal", my_callback)
+    pyblish.api.deregister_callback("mySignal", my_callback)
 
-    assert_raises(
-        ValueError,
-        pyblish.plugin.deregister_callback,
-        "mySignal", my_callback)
+    # The callback does not exist
+    assert_raises(KeyError,
+                  pyblish.api.deregister_callback,
+                  "mySignal", my_callback)
 
-    assert_raises(
-        KeyError,
-        pyblish.plugin.deregister_callback,
-        "notExist", my_callback)
+    # The signal does not exist
+    assert_raises(KeyError,
+                  pyblish.api.deregister_callback,
+                  "notExist", my_callback)
 
-    msg = "Deregistering a callback failed"
-    data = {"mySignal": []}
-    assert pyblish.plugin.registered_callbacks() == data, msg
+    assert_equals(pyblish.api.registered_callbacks(), [])
 
-    pyblish.plugin.register_callback("mySignal", my_callback)
-    pyblish.plugin.register_callback("otherSignal", other_callback)
-    pyblish.plugin.deregister_all_callbacks()
+    pyblish.api.register_callback("mySignal", my_callback)
+    pyblish.api.register_callback("otherSignal", other_callback)
+    pyblish.api.deregister_all_callbacks()
 
-    msg = "Deregistering all callbacks failed"
-    assert pyblish.plugin.registered_callbacks() == {}, msg
+    assert_equals(pyblish.api.registered_callbacks(), [])
+
+
+def test_weak_callback():
+    """Callbacks have weak references"""
+
+    count = {"#": 0}
+
+    def my_callback():
+        count["#"] += 1
+
+    pyblish.api.register_callback("on_callback", my_callback)
+    pyblish.api.emit("on_callback")
+    assert count["#"] == 1
+
+    del(my_callback)
+
+    pyblish.api.emit("on_callback")
+
+    # No errors were thrown, count did not increase
+    assert count["#"] == 1
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -451,7 +467,7 @@ def test_emit_signal_wrongly():
     def other_callback(an_argument=None):
         print("Ping from 'other_callback' with %s" % an_argument)
 
-    pyblish.plugin.register_callback("otherSignal", other_callback)
+    pyblish.api.register_callback("otherSignal", other_callback)
 
     with lib.captured_stderr() as stderr:
         pyblish.lib.emit("otherSignal", not_an_argument="")
@@ -464,13 +480,13 @@ def test_emit_signal_wrongly():
 @with_setup(lib.setup_empty, lib.teardown)
 def test_registering_invalid_callback():
     """Can't register non-callables"""
-    pyblish.plugin.register_callback("invalid", None)
+    pyblish.api.register_callback("invalid", None)
 
 
 @raises(KeyError)
 def test_deregistering_nonexisting_callback():
     """Can't deregister a callback that doesn't exist"""
-    pyblish.plugin.deregister_callback("invalid", lambda: "")
+    pyblish.api.deregister_callback("invalid", lambda: "")
 
 
 @raises(TypeError)

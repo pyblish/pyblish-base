@@ -1,5 +1,7 @@
 import os
 import sys
+import new
+import weakref
 import logging
 import datetime
 import warnings
@@ -236,18 +238,25 @@ def emit(signal, **kwargs):
 
     Example:
         >>> import sys
-        >>> from . import plugin
-        >>> plugin.register_callback(
-        ...   "mysignal", lambda data: sys.stdout.write(str(data)))
+        >>> def mycallback(data):
+        ...     sys.stdout.write(str(data))
+        ...
+        >>> register_callback("mysignal", mycallback)
         ...
         >>> emit("mysignal", data={"something": "cool"})
         {'something': 'cool'}
 
     """
 
-    for callback in _registered_callbacks.get(signal, []):
+    for callback in _registered_callbacks.get(signal, {}).values():
         try:
             callback(**kwargs)
+
+        except ReferenceError:
+            # Ignore end-of-life references
+            print("not calling %s" % signal)
+            pass
+
         except Exception:
             file = six.StringIO()
             traceback.print_exc(file=file)
@@ -260,6 +269,74 @@ def emit(signal, **kwargs):
             # handling so there is likely a better way to solve this.
             #
             # TODO(marcus): Make it prettier
+
+
+def register_callback(signal, callback):
+    """Register a new callback
+
+    Arguments:
+        signal (string): Name of signal to register the callback with.
+        callback (func): Function to execute when a signal is emitted.
+
+    Raises:
+        ValueError if `callback` is not callable.
+
+    """
+
+    if not hasattr(callback, "__call__"):
+        raise ValueError("%s must be callable" % callback)
+
+    if signal not in _registered_callbacks:
+        # Need to store in a dictionary so as to
+        # enable removal via deregister_callback,
+        # since the actual function is not comparable
+        # to its weak reference equivalent.
+
+        _registered_callbacks[signal] = weakref.WeakValueDictionary()
+
+    name = callback.__name__
+    callbacks = _registered_callbacks[signal]
+
+    if name in callbacks:
+        raise ValueError(
+            "Callback by this name already registered: \"%s\"" % name
+        )
+
+    # Use weak reference such that connected callbacks
+    # can safely be garbage collected without interference
+    # from observers.
+    callbacks[name] = callback
+
+
+def deregister_callback(signal, callback):
+    """Deregister a callback
+
+    Arguments:
+        signal (string): Name of signal to deregister the callback with.
+        callback (func): Function to execute when a signal is emitted.
+
+    Raises:
+        KeyError on missing signal or callback
+
+    """
+
+    _registered_callbacks[signal].pop(callback.__name__)
+
+    # Erase empty member
+    if not _registered_callbacks[signal]:
+        _registered_callbacks.pop(signal)
+
+
+def deregister_all_callbacks():
+    """Deregisters all callback"""
+
+    _registered_callbacks.clear()
+
+
+def registered_callbacks():
+    """Returns registered callbacks"""
+
+    return _registered_callbacks.keys()
 
 
 def deprecated(func):
@@ -279,3 +356,71 @@ def deprecated(func):
                 lineno=func.func_code.co_firstlineno + 1)
         return func(*args, **kwargs)
     return wrapper
+
+
+class WeakRef(object):
+    """Alternative weak reference with support for instancemethods
+
+    Usage:
+        >>> import weakref
+        >>> class MyClass(object):
+        ...   def func(self):
+        ...     pass
+        ...
+        >>> inst = MyClass()
+        >>> ref = weakref.ref(inst.func)
+        >>> assert ref() is None
+        True
+        >>> ref = WeakRef(inst.func)
+        >>> assert ref() is None
+        False
+
+    """
+
+    def __init__(self, method):
+        try:
+            if method.im_self is not None:
+                # Bound method
+                self._obj = weakref.ref(method.im_self)
+            else:
+                # Unbound method
+                self._obj = None
+
+            self._func = method.im_func
+            self._class = method.im_class
+
+        except AttributeError:
+            # Not a method
+            self._obj = None
+            self._class = None
+            self._func = method
+
+    def __call__(self):
+        if self.is_dead():
+            return None
+
+        if self._obj is None:
+            # We don't have an instance: return just the function
+            return self._func
+
+        # We have an instance: return a bound method
+        return new.instancemethod(self._func, self._obj(), self._class)
+
+    def is_dead(self):
+        """Is the reference dead?
+
+        Returns True if the referenced callable was a bound method and
+        the instance no longer exists. Otherwise, return False.
+
+        """
+
+        return self._obj is not None and self._obj() is None
+
+    def __eq__(self, other):
+        try:
+            return type(self) is type(other) and self() == other()
+        except:
+            return False
+
+    def __ne__(self, other):
+        return not self == other
