@@ -1,4 +1,5 @@
 import sys
+import weakref
 import functools
 
 import pyblish.api
@@ -111,7 +112,7 @@ def test_signals():
             "was_integrated": 0,
             "was_published": 0,
             "was_acted": 0,
-            "finished": 0,
+            "was_finished": 0,
         }
 
     emitted = identity()
@@ -155,6 +156,7 @@ def test_signals():
     self.engine.collect()
     state["was_collected"] = 1
     state["was_processed"] = 1
+    state["was_finished"] = 1
     assert_equals(emitted, state)
     assert_equals(count["#"], 1)
 
@@ -162,6 +164,7 @@ def test_signals():
     self.engine.validate()
     state["was_validated"] = 1
     state["was_processed"] = 2
+    state["was_finished"] = 2
     assert_equals(emitted, state)
     assert_equals(count["#"], 11)
 
@@ -169,6 +172,7 @@ def test_signals():
     # so count should remain the same.
     self.engine.publish()
     state["was_published"] = 1
+    state["was_finished"] = 3
     assert_equals(emitted, state)
     assert_equals(count["#"], 11)
 
@@ -257,3 +261,31 @@ def test_default_signals_are_weakly_referenced():
 
     # Count does not increase, because the observer is dead
     assert count["#"] == 1, count
+
+
+@with_setup(setup_empty)
+def test_engine_cleanup():
+    """Engine cleans itself up on deletion"""
+
+    class MyPlugin(pyblish.api.ContextPlugin):
+        def process(self, context):
+            context.create_instance("MyInstance")
+
+    pyblish.api.register_plugin(MyPlugin)
+
+    engine = pyblish.engine.create_default()
+    engine.reset()
+    engine.collect()
+
+    instance = engine.context[0]
+    weak_instance = weakref.ref(instance)
+
+    assert weak_instance() is not None
+
+    engine.cleanup()
+    print(engine.context)
+    print(instance)
+    del(instance)
+
+    # TODO(marcus): This should pass
+    # assert weak_instance() is None, weak_instance

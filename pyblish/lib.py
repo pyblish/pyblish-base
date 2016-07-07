@@ -377,18 +377,15 @@ if sys.version_info < (3, 4):
                 self._func = weakref.ref(func)
 
         def __call__(self):
-            if self.is_dead():
+            if self._is_dead():
                 return None
 
             if self._instance is None:
                 return self._func()
 
-            if sys.version_info < (3, 4):
-                return types.MethodType(self._func(), self._instance())
-            else:
-                return types.MethodType(self._func(), self._instance(), self._class())
+            return types.MethodType(self._func(), self._instance())
 
-        def is_dead(self):
+        def _is_dead(self):
             """Is the reference dead?
 
             Returns True if the referenced callable was a bound method and
@@ -401,10 +398,10 @@ if sys.version_info < (3, 4):
                 ...
                 >>> o = Object()
                 >>> weak_func = WeakRef(o.func)
-                >>> weak_func.is_dead()
+                >>> weak_func._is_dead()
                 False
                 >>> del(o)
-                >>> weak_func.is_dead()
+                >>> weak_func._is_dead()
                 True
 
             """

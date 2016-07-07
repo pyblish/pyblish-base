@@ -73,9 +73,6 @@ class AbstractEngine(object):
     # e.g. resetting, validating or publishing.
     about_to_process = TemplateSignal(object, object)
 
-    # Optional outlet for observers
-    warned = TemplateSignal(str)
-    logged = TemplateSignal(str)
 
     # Emitted for each process
     was_processed = TemplateSignal(dict)
@@ -90,7 +87,11 @@ class AbstractEngine(object):
     was_acted = TemplateSignal()
 
     # Emitted when processing has finished
-    finished = TemplateSignal()
+    was_finished = TemplateSignal()
+
+    # Informational outlets for observers
+    warned = TemplateSignal(str)
+    logged = TemplateSignal(str)
 
     @property
     def context(self):
@@ -100,23 +101,27 @@ class AbstractEngine(object):
     def plugins(self):
         return self._plugins
 
+    @property
+    def is_running(self):
+        return self._is_running
+
     def __init__(self):
         super(AbstractEngine, self).__init__()
 
         self.asynchronous = True
-        self.is_running = False
+        self._is_running = False
 
         self._context = api.Context()
         self._plugins = list()
 
         # Transient state used during publishing.
-        self.pair_generator = None        # Active producer of pairs
-        self.current_pair = (None, None)  # Active pair
-        self.current_error = None
+        self._pair_generator = None        # Active producer of pairs
+        self._current_pair = (None, None)  # Active pair
+        self._current_error = None
 
         # This is used to track whether or not to continue
         # processing when, for example, validation has failed.
-        self.processing = {
+        self._processing = {
             "nextOrder": None,
             "ordersWithError": set()
         }
@@ -146,7 +151,7 @@ class AbstractEngine(object):
         """
 
     def stop(self):
-        self.is_running = False
+        self._is_running = False
 
     def reset(self):
         """Discover plug-ins and run collection"""
@@ -155,11 +160,11 @@ class AbstractEngine(object):
 
         self.was_discovered.emit()
 
-        self.pair_generator = None
-        self.current_pair = (None, None)
-        self.current_error = None
+        self._pair_generator = None
+        self._current_pair = (None, None)
+        self._current_error = None
 
-        self.processing = {
+        self._processing = {
             "nextOrder": None,
             "ordersWithError": set()
         }
@@ -200,7 +205,7 @@ class AbstractEngine(object):
             self.was_processed.emit(result)
             self.defer(500, lambda: self.was_acted.emit())
 
-        self.is_running = True
+        self._is_running = True
         self.defer(100, on_next)
 
     def cleanup(self):
@@ -220,19 +225,30 @@ class AbstractEngine(object):
 
         """
 
-        for instance in self._context:
-            del(instance)
+        while self._context:
+            self._context.pop(0)
 
-        for plug in self._plugins:
-            del(plug)
+        while self._plugins:
+            self._plugins.pop(0)
+
+        self._context = []
+        self._plugins = []
+
+        try:
+            self._pair_generator.close()
+        except AttributeError:
+            pass
+
+        self._current_pair = ()
+        self._current_error = None
 
     def _load(self):
         """Initiate new generator and load first pair"""
-        self.is_running = True
-        self.pair_generator = self._iterator(self._plugins, self._context)
-        self.current_pair = next(self.pair_generator, (None, None))
-        self.current_error = None
-        self.is_running = False
+        self._is_running = True
+        self._pair_generator = self._iterator(self._plugins, self._context)
+        self._current_pair = next(self._pair_generator, (None, None))
+        self._current_error = None
+        self._is_running = False
 
     def _run(self, until=float("inf"), on_finished=lambda: None):
         """Process current pair and store next pair for next process
@@ -246,26 +262,26 @@ class AbstractEngine(object):
         """
 
         def on_next():
-            if self.current_pair == (None, None):
-                self.is_running = False
-                return self.defer(100, on_finished)
+            if self._current_pair == (None, None):
+                self._is_running = False
+                return finished(100)
 
             # The magic number 0.5 is the range between
             # the various CVEI processing stages;
-            order = self.current_pair[0].order
+            order = self._current_pair[0].order
             if order > (until + 0.5):
-                self.is_running = False
-                return self.defer(100, on_finished)
+                self._is_running = False
+                return finished(100)
 
-            self.about_to_process.emit(*self.current_pair)
+            self.about_to_process.emit(*self._current_pair)
 
             self.defer(10, on_process)
 
         def on_process():
             try:
-                result = self._process(*self.current_pair)
+                result = self._process(*self._current_pair)
                 if result["error"] is not None:
-                    self.current_error = result["error"]
+                    self._current_error = result["error"]
 
                 self.was_processed.emit(result)
 
@@ -281,29 +297,33 @@ class AbstractEngine(object):
             # the current pair, otherwise data generated at that point
             # will *not* be included.
             try:
-                self.current_pair = next(self.pair_generator)
+                self._current_pair = next(self._pair_generator)
 
             except StopIteration:
                 # All pairs were processed successfully!
-                self.current_pair = (None, None)
-                self.is_running = False
-                return self.defer(500, on_finished)
+                self._current_pair = (None, None)
+                self._is_running = False
+                return finished(500)
 
             except Exception as e:
                 # This is a bug
                 stack = traceback.format_exc(e)
-                self.current_pair = (None, None)
+                self._current_pair = (None, None)
                 return self.defer(
                     500, lambda: on_unexpected_error(error=stack))
 
             self.defer(10, on_next)
 
         def on_unexpected_error(error):
-            self.is_running = False
+            self._is_running = False
             self.warned.emit(str(error))
-            return self.defer(500, on_finished)
+            return finished(500)
 
-        self.is_running = True
+        def finished(delay):
+            self.was_finished.emit()
+            return self.defer(delay, on_finished)
+
+        self._is_running = True
         self.defer(10, on_next)
 
     def _iterator(self, plugins, context):
@@ -324,14 +344,14 @@ class AbstractEngine(object):
             if instance is not None and instance.data.get("publish") is False:
                 continue
 
-            self.processing["nextOrder"] = plug.order
+            self._processing["nextOrder"] = plug.order
 
-            if not self.is_running:
+            if not self._is_running:
                 raise StopIteration("Stopped")
 
-            if test(**self.processing):
+            if test(**self._processing):
                 raise StopIteration("Stopped due to %s" % test(
-                    **self.processing))
+                    **self._processing))
 
             yield plug, instance
 
@@ -348,7 +368,7 @@ class AbstractEngine(object):
 
         """
 
-        self.processing["nextOrder"] = plug.order
+        self._processing["nextOrder"] = plug.order
 
         try:
             result = plugin.process(plug, self._context, instance)
@@ -361,7 +381,7 @@ class AbstractEngine(object):
             # potential error occured.
             has_error = result["error"] is not None
             if has_error:
-                self.processing["ordersWithError"].add(plug.order)
+                self._processing["ordersWithError"].add(plug.order)
 
         return result
 
