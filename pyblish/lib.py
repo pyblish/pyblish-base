@@ -381,13 +381,13 @@ class WeakRef(object):
         try:
             if func.im_self is not None:
                 # Bound method
-                self._instance = weakref.ref(func.im_self)
+                self._instance = weakref.ref(func.__self__)
             else:
                 # Unbound method
                 self._instance = None
 
-            self._func = weakref.ref(func.im_func)
-            self._class = weakref.ref(func.im_class)
+            self._func = weakref.ref(func.__func__)
+            self._class = weakref.ref(func.__class__)
 
         except AttributeError:
             # Not a method

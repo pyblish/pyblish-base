@@ -8,7 +8,6 @@ from nose.tools import (
     assert_true,
     assert_equals,
     assert_raises,
-    assert_in,
     raises,
 )
 
@@ -417,7 +416,7 @@ def test_register_callback():
 
     pyblish.api.register_callback("mySignal", my_callback)
 
-    assert_in("mySignal", pyblish.api.registered_callbacks())
+    assert "mySignal" in pyblish.api.registered_callbacks()
 
     pyblish.api.deregister_callback("mySignal", my_callback)
 
