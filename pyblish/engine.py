@@ -29,15 +29,15 @@ Dependencies:
 
 
 Usage:
-    >>> def on_collected(self, context):
-    ...   print("collected")
+    >>> count = {"#": 0}
+    >>> def on_reset():
+    ...   count["#"] += 1
     ...
     >>> engine = create_default()
-    >>> engine.was_collected.connect(on_collected)
+    >>> engine.was_reset.connect(on_reset)
     >>> engine.reset()
-    >>> engine.collect()
-    'collected'
-    >>> assert len(engine.context) == 0, engine.context
+    >>> count["#"]
+    1
 
 """
 
@@ -51,6 +51,12 @@ class TemplateSignal(object):
     """Dynamically replaced by external signalling mechanism"""
     def __init__(self, *args):
         self.args = args
+        
+    def connect(self, *args):
+        pass
+    
+    def emit(self, *args):
+        pass
 
 
 class AbstractEngine(object):

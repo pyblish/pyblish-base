@@ -1,6 +1,6 @@
 import os
 import sys
-import new
+import types
 import weakref
 import logging
 import datetime
@@ -369,42 +369,40 @@ class WeakRef(object):
         ...
         >>> inst = MyClass()
         >>> ref = weakref.ref(inst.func)
-        >>> assert ref() is None
+        >>> ref() is None
         True
         >>> ref = WeakRef(inst.func)
-        >>> assert ref() is None
+        >>> ref() is None
         False
 
     """
 
-    def __init__(self, method):
+    def __init__(self, func):
         try:
-            if method.im_self is not None:
+            if func.im_self is not None:
                 # Bound method
-                self._obj = weakref.ref(method.im_self)
+                self._instance = weakref.ref(func.im_self)
             else:
                 # Unbound method
-                self._obj = None
+                self._instance = None
 
-            self._func = method.im_func
-            self._class = method.im_class
+            self._func = weakref.ref(func.im_func)
+            self._class = weakref.ref(func.im_class)
 
         except AttributeError:
             # Not a method
-            self._obj = None
+            self._instance = None
             self._class = None
-            self._func = method
+            self._func = weakref.ref(func)
 
     def __call__(self):
         if self.is_dead():
             return None
 
-        if self._obj is None:
-            # We don't have an instance: return just the function
-            return self._func
+        if self._instance is None:
+            return self._func()
 
-        # We have an instance: return a bound method
-        return new.instancemethod(self._func, self._obj(), self._class)
+        return types.MethodType(self._func(), self._instance(), self._class())
 
     def is_dead(self):
         """Is the reference dead?
@@ -414,7 +412,7 @@ class WeakRef(object):
 
         """
 
-        return self._obj is not None and self._obj() is None
+        return self._instance is not None and self._instance() is None
 
     def __eq__(self, other):
         try:

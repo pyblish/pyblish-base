@@ -232,3 +232,28 @@ def test_signals_to_instancemethod():
     MyClass()
 
     assert count["#"] == 1, count
+
+
+def test_default_signals_are_weakly_referenced():
+    """Default signals are weakly referenced"""
+
+    count = {"#": 0}
+
+    class Class(object):
+        def method(self):
+            count["#"] += 1
+
+    obj = Class()
+
+    signal = pyblish.engine.DefaultSignal(str)
+    signal.connect(obj.method)
+
+    assert count["#"] == 0, count
+    signal.emit()
+    assert count["#"] == 1, count
+
+    del(obj)
+    signal.emit()
+
+    # Count does not increase, because the observer is dead
+    assert count["#"] == 1, count
