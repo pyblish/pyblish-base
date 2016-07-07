@@ -53,7 +53,7 @@ def test_context_from_instance():
 
     context = pyblish.plugin.Context()
     instance = context.create_instance("MyInstance")
-    assert_equals(context, instance.context)
+    assert_equals(context.id, instance.context.id)
 
 
 def test_legacy():

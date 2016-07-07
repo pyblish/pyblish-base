@@ -16,6 +16,7 @@ import sys
 import time
 import uuid
 import types
+import weakref
 import logging
 import inspect
 import warnings
@@ -725,7 +726,7 @@ class Context(AbstractEntity):
 
         """
 
-        instance = Instance(name, parent=self)
+        instance = Instance(name, parent=weakref.proxy(self))
         instance.data.update(kwargs)
         return instance
 
