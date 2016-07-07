@@ -48,7 +48,14 @@ from . import api, logic, plugin, lib
 
 
 class TemplateSignal(object):
-    """Dynamically replaced by external signalling mechanism"""
+    """Placeholder signal
+
+    This signal is used as an indicator of where to install signals.
+    The instantiator of AbstractEngine later replaces these with
+    supplied signals, either DefaultSignal or QtCore.Signal.
+
+    """
+
     def __init__(self, *args):
         self.args = args
         
@@ -93,9 +100,6 @@ class AbstractEngine(object):
     def plugins(self):
         return self._plugins
 
-    def __del__(self):
-        self.cleanup()
-
     def __init__(self):
         super(AbstractEngine, self).__init__()
 
@@ -134,8 +138,12 @@ class AbstractEngine(object):
             if isinstance(signal, DefaultSignal):
                 setattr(self, attr, DefaultSignal(*signal._args))
 
-    def defer(self):
-        """Virtual"""
+    def defer(self, delay, func):
+        """Virtual
+
+        This method is overridden by factory function :func:`engine`
+
+        """
 
     def stop(self):
         self.is_running = False
