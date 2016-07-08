@@ -58,10 +58,13 @@ class TemplateSignal(object):
 
     def __init__(self, *args):
         self.args = args
-        
+
     def connect(self, *args):
         pass
-    
+
+    def disconnect(self, *args):
+        pass
+
     def emit(self, *args):
         pass
 
@@ -72,7 +75,6 @@ class AbstractEngine(object):
     # Emitted when the GUI is about to start processing;
     # e.g. resetting, validating or publishing.
     about_to_process = TemplateSignal(object, object)
-
 
     # Emitted for each process
     was_processed = TemplateSignal(dict)

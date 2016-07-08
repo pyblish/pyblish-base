@@ -289,3 +289,103 @@ def test_engine_cleanup():
 
     # TODO(marcus): This should pass
     # assert weak_instance() is None, weak_instance
+
+
+def test_template_signal():
+    """TemplateSignal fulfills basic interface"""
+
+    signal = pyblish.engine.TemplateSignal(str)
+
+    assert len(signal.args) == 1
+    assert signal.args[0] == str
+
+    def func():
+        pass
+
+    signal.connect(func)
+    signal.disconnect(func)
+    signal.emit("Hello")
+
+
+@with_setup(setup_empty)
+def test_cvei():
+    """CVEI stages trigger plug-in in the appropriate order"""
+
+    count = {"#": 0}
+
+    class MyCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+
+        def process(self, context):
+            context.create_instance("MyInstance")
+            count["#"] += 1
+
+    class MyValidator(pyblish.api.InstancePlugin):
+        order = pyblish.api.ValidatorOrder
+
+        def process(self, instance):
+            count["#"] += 10
+
+    class MyExtractor(pyblish.api.InstancePlugin):
+        order = pyblish.api.ExtractorOrder
+
+        def process(self, instance):
+            count["#"] += 100
+
+    class MyIntegrator(pyblish.api.InstancePlugin):
+        order = pyblish.api.IntegratorOrder
+
+        def process(self, instance):
+            count["#"] += 1000
+
+    for Plugin in (MyCollector,
+                   MyValidator,
+                   MyExtractor,
+                   MyIntegrator):
+        pyblish.api.register_plugin(Plugin)
+
+    engine = pyblish.engine.create_default()
+    engine.reset()
+
+    assert count["#"] == 0
+
+    engine.collect()
+
+    assert count["#"] == 1
+
+    engine.validate()
+
+    assert count["#"] == 11
+
+    engine.extract()
+
+    assert count["#"] == 111
+
+    engine.integrate()
+
+    assert count["#"] == 1111
+
+    # No more plug-ins to run.
+    engine.publish()
+
+    assert count["#"] == 1111
+
+
+def test_defaultsignal_disconnect():
+    """Observers may be disconnected"""
+
+    count = {"#": 0}
+    signal = pyblish.engine.DefaultSignal(str)
+
+    def func():
+        count["#"] += 1
+
+    signal.connect(func)
+
+    signal.emit()
+    assert count["#"] == 1
+
+    signal.disconnect(func)
+
+    signal.emit()
+    assert count["#"] == 1
