@@ -106,11 +106,14 @@ class AbstractEngine(object):
     @property
     def is_running(self):
         return self._is_running
+        
+    @property
+    def current_error(self):
+        return self._current_error
 
     def __init__(self):
         super(AbstractEngine, self).__init__()
 
-        self.asynchronous = True
         self._is_running = False
 
         self._context = api.Context()
@@ -205,7 +208,11 @@ class AbstractEngine(object):
         def on_next():
             result = plugin.process(plug, context, None, action.id)
             self.was_processed.emit(result)
-            self.defer(500, lambda: self.was_acted.emit())
+            self.defer(500, on_finished)
+            
+        def on_finished():
+            self.was_acted.emit()
+            self._is_running = False
 
         self._is_running = True
         self.defer(100, on_next)
@@ -241,6 +248,7 @@ class AbstractEngine(object):
         except AttributeError:
             pass
 
+        self._pair_generator = None
         self._current_pair = ()
         self._current_error = None
 
@@ -265,14 +273,12 @@ class AbstractEngine(object):
 
         def on_next():
             if self._current_pair == (None, None):
-                self._is_running = False
                 return finished(100)
 
             # The magic number 0.5 is the range between
             # the various CVEI processing stages;
             order = self._current_pair[0].order
             if order > (until + 0.5):
-                self._is_running = False
                 return finished(100)
 
             self.about_to_process.emit(*self._current_pair)
@@ -304,7 +310,6 @@ class AbstractEngine(object):
             except StopIteration:
                 # All pairs were processed successfully!
                 self._current_pair = (None, None)
-                self._is_running = False
                 return finished(500)
 
             except Exception as e:
@@ -317,11 +322,11 @@ class AbstractEngine(object):
             self.defer(10, on_next)
 
         def on_unexpected_error(error):
-            self._is_running = False
             self.warned.emit(str(error))
             return finished(500)
 
         def finished(delay):
+            self._is_running = False
             self.was_finished.emit()
             return self.defer(delay, on_finished)
 

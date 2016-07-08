@@ -283,12 +283,15 @@ def test_engine_cleanup():
     assert weak_instance() is not None
 
     engine.cleanup()
-    print(engine.context)
-    print(instance)
+
     del(instance)
 
     # TODO(marcus): This should pass
     # assert weak_instance() is None, weak_instance
+    
+    # Cleaning up multiple times is harmless
+    engine.cleanup()
+    engine.cleanup()
 
 
 def test_template_signal():
@@ -369,6 +372,10 @@ def test_cvei():
     engine.publish()
 
     assert count["#"] == 1111
+    
+    # When all has been said and done, the engine
+    # should no longer be running.
+    assert not engine.is_running
 
 
 def test_defaultsignal_disconnect():
@@ -389,3 +396,169 @@ def test_defaultsignal_disconnect():
 
     signal.emit()
     assert count["#"] == 1
+
+
+@with_setup(setup_empty)
+def test_act():
+    """Running an action works as advertised"""
+
+    count = {"#": 0}
+
+    class MyAction(pyblish.api.Action):
+        def process(self, context, plugin):
+            count["#"] += 1
+
+    class MyPlugin(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        actions = [MyAction]
+
+    pyblish.api.register_plugin(MyPlugin)
+
+    engine = pyblish.engine.create_default()
+
+    def on_acted():
+        count["#"] += 10
+
+    engine.was_acted.connect(on_acted)
+
+    assert count["#"] == 0
+
+    engine.act(MyPlugin, MyAction)
+
+    assert count["#"] == 11
+
+    assert not engine.is_running
+
+
+@with_setup(setup_empty)
+def test_current_error():
+    """The exception raised by the last run plug-in is stored as current_error"""
+
+    class MyPlugin(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        
+        def process(self, context):
+            assert False
+
+    pyblish.api.register_plugin(MyPlugin)
+
+    engine = pyblish.engine.create_default()
+
+    assert engine.current_error is None, engine.current_error
+
+    engine.reset()
+    engine.collect()
+
+    assert isinstance(engine.current_error, AssertionError)
+
+
+@with_setup(setup_empty)
+def test_inactive_instance():
+    """An inactive instance shouldn't run"""
+
+    count = {"#": 0}
+
+    class MyCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+
+        def process(self, context):
+            active = context.create_instance("ActiveInstance")
+            active.data["publish"] = True
+
+            inactive = context.create_instance("InactiveInstance")
+            inactive.data["publish"] = False
+
+            count["#"] += 1
+
+    class MyValidator(pyblish.api.InstancePlugin):
+        order = pyblish.api.ValidatorOrder
+
+        def process(self, instance):
+            count["#"] += 10
+
+    pyblish.api.register_plugin(MyCollector)
+    pyblish.api.register_plugin(MyValidator)
+
+    engine = pyblish.engine.create_default()
+    engine.reset()
+
+    assert count["#"] == 0
+
+    engine.publish()
+
+    # Both plug-ins run, only one instance runs
+    assert count["#"] == 11, count
+
+
+def test_inactive_plugin():
+    """An inactive plug-in shouldn't run"""
+        
+    count = {"#": 0}
+
+    class ActivePlugin(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        active = True
+
+        def process(self, context):
+            count["#"] += 1
+
+
+    class InactivePlugin(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        active = False
+
+        def process(self, context):
+            count["#"] += 10
+
+    pyblish.api.register_plugin(ActivePlugin)
+    pyblish.api.register_plugin(InactivePlugin)
+
+    engine = pyblish.engine.create_default()
+    engine.reset()
+
+    assert count["#"] == 0
+
+    engine.collect()
+
+    assert count["#"] == 1
+
+
+@with_setup(setup_empty)
+def test_processing_stops_at_validation():
+    """Failed vaildation stops processing"""
+
+    count = {"#": 0}
+
+    class MyCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+
+        def process(self, context):
+            context.create_instance("MyInstance")
+            count["#"] += 1
+
+    class MyValidator(pyblish.api.InstancePlugin):
+        order = pyblish.api.ValidatorOrder
+
+        def process(self, instance):
+            count["#"] += 10
+            assert False
+
+    class MyExtractor(pyblish.api.InstancePlugin):
+        order = pyblish.api.ExtractorOrder
+
+        def process(self, instance):
+            count["#"] += 100
+    
+    pyblish.api.register_plugin(MyCollector)
+    pyblish.api.register_plugin(MyValidator)
+    pyblish.api.register_plugin(MyExtractor)
+
+    engine = pyblish.engine.create_default()
+    engine.reset()
+
+    assert count["#"] == 0
+
+    # Validation fails
+    engine.publish()
+
+    assert count["#"] == 11, count
