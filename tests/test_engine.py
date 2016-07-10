@@ -15,7 +15,7 @@ self = sys.modules[__name__]
 
 
 def setup():
-    self.engine = pyblish.engine.create_default()
+    self.engine = pyblish.engine.create()
 
 
 @with_setup(setup_empty)
@@ -193,8 +193,8 @@ def test_engine_isolation():
 
     """
 
-    engine1 = pyblish.engine.create_default()
-    engine2 = pyblish.engine.create_default()
+    engine1 = pyblish.engine.create()
+    engine2 = pyblish.engine.create()
 
     count = {"#": 0}
 
@@ -224,7 +224,7 @@ def test_signals_to_instancemethod():
 
     class MyClass(object):
         def __init__(self):
-            engine = pyblish.engine.create_default()
+            engine = pyblish.engine.create()
             engine.was_reset.connect(self.func)
 
             # Synchronous
@@ -273,7 +273,7 @@ def test_engine_cleanup():
 
     pyblish.api.register_plugin(MyPlugin)
 
-    engine = pyblish.engine.create_default()
+    engine = pyblish.engine.create()
     engine.reset()
     engine.collect()
 
@@ -288,7 +288,7 @@ def test_engine_cleanup():
 
     # TODO(marcus): This should pass
     # assert weak_instance() is None, weak_instance
-    
+
     # Cleaning up multiple times is harmless
     engine.cleanup()
     engine.cleanup()
@@ -347,7 +347,7 @@ def test_cvei():
                    MyIntegrator):
         pyblish.api.register_plugin(Plugin)
 
-    engine = pyblish.engine.create_default()
+    engine = pyblish.engine.create()
     engine.reset()
 
     assert count["#"] == 0
@@ -372,7 +372,7 @@ def test_cvei():
     engine.publish()
 
     assert count["#"] == 1111
-    
+
     # When all has been said and done, the engine
     # should no longer be running.
     assert not engine.is_running
@@ -414,7 +414,7 @@ def test_act():
 
     pyblish.api.register_plugin(MyPlugin)
 
-    engine = pyblish.engine.create_default()
+    engine = pyblish.engine.create()
 
     def on_acted():
         count["#"] += 10
@@ -432,17 +432,17 @@ def test_act():
 
 @with_setup(setup_empty)
 def test_current_error():
-    """The exception raised by the last run plug-in is stored as current_error"""
+    """The exception raised by the last run plug-in is stored"""
 
     class MyPlugin(pyblish.api.ContextPlugin):
         order = pyblish.api.CollectorOrder
-        
+
         def process(self, context):
             assert False
 
     pyblish.api.register_plugin(MyPlugin)
 
-    engine = pyblish.engine.create_default()
+    engine = pyblish.engine.create()
 
     assert engine.current_error is None, engine.current_error
 
@@ -479,7 +479,7 @@ def test_inactive_instance():
     pyblish.api.register_plugin(MyCollector)
     pyblish.api.register_plugin(MyValidator)
 
-    engine = pyblish.engine.create_default()
+    engine = pyblish.engine.create()
     engine.reset()
 
     assert count["#"] == 0
@@ -492,7 +492,7 @@ def test_inactive_instance():
 
 def test_inactive_plugin():
     """An inactive plug-in shouldn't run"""
-        
+
     count = {"#": 0}
 
     class ActivePlugin(pyblish.api.ContextPlugin):
@@ -501,7 +501,6 @@ def test_inactive_plugin():
 
         def process(self, context):
             count["#"] += 1
-
 
     class InactivePlugin(pyblish.api.ContextPlugin):
         order = pyblish.api.CollectorOrder
@@ -513,7 +512,7 @@ def test_inactive_plugin():
     pyblish.api.register_plugin(ActivePlugin)
     pyblish.api.register_plugin(InactivePlugin)
 
-    engine = pyblish.engine.create_default()
+    engine = pyblish.engine.create()
     engine.reset()
 
     assert count["#"] == 0
@@ -548,12 +547,12 @@ def test_processing_stops_at_validation():
 
         def process(self, instance):
             count["#"] += 100
-    
+
     pyblish.api.register_plugin(MyCollector)
     pyblish.api.register_plugin(MyValidator)
     pyblish.api.register_plugin(MyExtractor)
 
-    engine = pyblish.engine.create_default()
+    engine = pyblish.engine.create()
     engine.reset()
 
     assert count["#"] == 0

@@ -77,7 +77,7 @@ class AbstractEngine(object):
     about_to_process = TemplateSignal(object, object)
 
     # Emitted for each process
-    was_processed = TemplateSignal(dict)
+    was_processed = TemplateSignal(dict)  # dict=result
 
     was_discovered = TemplateSignal()
     was_reset = TemplateSignal()
@@ -92,8 +92,8 @@ class AbstractEngine(object):
     was_finished = TemplateSignal()
 
     # Informational outlets for observers
-    warned = TemplateSignal(str)
-    logged = TemplateSignal(str)
+    warned = TemplateSignal(str)  # str=message
+    logged = TemplateSignal(str)  # str=message
 
     @property
     def context(self):
@@ -106,17 +106,57 @@ class AbstractEngine(object):
     @property
     def is_running(self):
         return self._is_running
-        
+
     @property
     def current_error(self):
         return self._current_error
+
+    def dispatch(self, func, *args, **kwargs):
+        """External functionality
+
+        This is an optional overridable for services that implement their own
+        client-side proxies to the supplied functionality.
+
+        For example, in pyblish-qml, these functions are provided as a
+        wrapper to functionality running remotely.
+
+        Arguments:
+            func (str): Name of external function
+            args (list, optional): Arguments passed to `func`
+            kwargs (dict, optional): Keyword arguments passed to `func`
+
+        Raises:
+            KeyError on missing functionality and
+            whatever exception raised by target function.
+
+        """
+
+        raise NotImplementedError
+
+    def defer(self, delay, func):
+        """Append artificial delay to `func`
+
+        This aids in keeping the GUI responsive, but complicates logic
+        when producing tests. To combat this, the environment variable ensures
+        that every operation is synchonous.
+
+        This function is designed to be overridden in the implementation
+        of your graphical user engine.
+
+        Arguments:
+            delay (float): Delay multiplier; default 1, 0 means no delay
+            func (callable): Any callable
+
+        """
+
+        raise NotImplementedError
 
     def __init__(self):
         super(AbstractEngine, self).__init__()
 
         self._is_running = False
 
-        self._context = api.Context()
+        self._context = self.dispatch("Context")
         self._plugins = list()
 
         # Transient state used during publishing.
@@ -148,20 +188,13 @@ class AbstractEngine(object):
             if isinstance(signal, DefaultSignal):
                 setattr(self, attr, DefaultSignal(*signal._args))
 
-    def defer(self, delay, func):
-        """Virtual
-
-        This method is overridden by factory function :func:`engine`
-
-        """
-
     def stop(self):
         self._is_running = False
 
     def reset(self):
         """Discover plug-ins and run collection"""
-        self._context = api.Context()
-        self._plugins[:] = api.discover()
+        self._context = self.dispatch("Context")
+        self._plugins[:] = self.dispatch("discover")
 
         self.was_discovered.emit()
 
@@ -206,10 +239,10 @@ class AbstractEngine(object):
         context = self._context
 
         def on_next():
-            result = plugin.process(plug, context, None, action.id)
+            result = self.dispatch("process", plug, context, None, action.id)
             self.was_processed.emit(result)
             self.defer(500, on_finished)
-            
+
         def on_finished():
             self.was_acted.emit()
             self._is_running = False
@@ -378,7 +411,7 @@ class AbstractEngine(object):
         self._processing["nextOrder"] = plug.order
 
         try:
-            result = plugin.process(plug, self._context, instance)
+            result = self.dispatch("process", plug, self._context, instance)
 
         except Exception as e:
             raise Exception("Unknown error: %s" % e)
@@ -394,25 +427,28 @@ class AbstractEngine(object):
 
 
 def default_defer(self, delay, func):
-    """Append artificial delay to `func`
-
-    This aids in keeping the GUI responsive, but complicates logic
-    when producing tests. To combat this, the environment variable ensures
-    that every operation is synchonous.
-
-    This function is designed to be overridden in the implementation
-    of your graphical user engine.
-
-    Arguments:
-        delay (float): Delay multiplier; default 1, 0 means no delay
-        func (callable): Any callable
-
-    """
-
+    """Synchronous, non-deferring"""
     return func()
 
 
+def default_dispatch(self, func, *args, **kwargs):
+    """Use local library"""
+    return {
+        "Context": api.Context,
+        "Instance": api.Instance,
+        "discover": api.discover,
+        "process": plugin.process,
+    }[func](*args, **kwargs)
+
+
 class DefaultSignal(object):
+    """Simple, but capable signal
+
+    Handles garbage collection of connected observers
+    via weak referencing. Runs in the emitting thread.
+
+    """
+
     def __init__(self, *args):
         self._args = args
         self._observers = list()
@@ -435,17 +471,30 @@ class DefaultSignal(object):
                 sys.stderr.write(str(e))
 
 
-def create(signal, defer, base=object):
-    """Instantiate an isolated engine with supplied internals
+def create(signal=DefaultSignal,
+           defer=default_defer,
+           base=object,
+           dispatch=default_dispatch):
+    """Instantiate an independent engine of supplied internals
 
     Arguments:
-        signal (func):
-        defer (func):
+        signal (class, optional): Must implement the interface
+            of TemplateSignal. Defaults to `DefaultSignal`
+        defer (callable, optional): Must implement the interface
+            of `default_defer`. Defaults to `default_defer`
+        base (class, optional): Baseclass of AbstractEngine,
+            defaults to `object`.
+        dispatch (callable, optional): Must implement the interface
+            of `default_dispatch`, defaults to `default_dispatch`.
 
     """
 
-    body = {"defer": defer}
+    body = {
+        "defer": defer,
+        "dispatch": dispatch
+    }
 
+    # Replace TemplateSignal with provided mechanism
     for attr in dir(AbstractEngine):
         prop = getattr(AbstractEngine, attr)
         if isinstance(prop, TemplateSignal):
@@ -454,23 +503,3 @@ def create(signal, defer, base=object):
     cls = type("Engine", (AbstractEngine, base), body)
 
     return cls()
-
-
-# Default slots
-def _on_warned(message):
-    sys.stderr.write(message + "\n")
-
-
-def _on_processed(result):
-    for record in result["records"]:
-        print(record.msg)
-
-
-def create_default():
-    """Instantiate an engine with blocking signals"""
-    default = create(DefaultSignal, default_defer)
-
-    default.warned.connect(_on_warned)
-    default.was_processed.connect(_on_processed)
-
-    return default
