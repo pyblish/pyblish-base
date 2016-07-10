@@ -20,7 +20,7 @@ Test-driven content creation for collaborative, creative projects.
 
 Pyblish is a modular framework, consisting of many sub-projects. This project contains the primary API upon which all other projects build.
 
-You may use this project as-is, or in conjunction with surrounding projects - such as [pyblish-maya][] for integration with Autodesk Maya, [pyblish-qml][] for a visual front-end and [pyblish-magenta][] for a starting point your publishing pipeline.
+You may use this project as-is, or in conjunction with surrounding projects - such as [pyblish-maya][] for integration with Autodesk Maya, [pyblish-qml][] for a visual front-end and [pyblish-magenta][] for a starting point to your publishing pipeline.
 
 [pyblish-maya]: https://github.com/pyblish/pyblish-maya
 [pyblish-qml]: https://github.com/pyblish/pyblish-qml
@@ -40,7 +40,7 @@ pyblish-base is avaialble on PyPI.
 $ pip install pyblish-base
 ```
 
-Like all other Pyblish projects, it may also be clone as-is via Git and added to your PYTHONPATH.
+Like all other Pyblish projects, it may also be cloned as-is via Git and added to your PYTHONPATH.
 
 ```bash
 $ git clone https://github.com/pyblish/pyblish-base.git
@@ -58,8 +58,8 @@ $ export PYTHONPATH=$(pwd)/pyblish-base
 
 Refer to the [getting started guide](http://learn.pyblish.com) for a gentle introduction to the framework and [the forums](http://forums.pyblish.com) for tips and tricks.
 
-- [Learn Pyblish By Example](http://learn.pyblish.com)
-- [Forums](http://forums.pyblish.com)
+- [**learn**.pyblish.com](http://learn.pyblish.com)
+- [**forums**.pyblish.com](http://forums.pyblish.com)
 
 [travis-image]: https://travis-ci.org/pyblish/pyblish-base.svg?branch=master
 [travis-link]: https://travis-ci.org/pyblish/pyblish-base
@@ -68,8 +68,8 @@ Refer to the [getting started guide](http://learn.pyblish.com) for a gentle intr
 
 [cover-image]: https://coveralls.io/repos/pyblish/pyblish-base/badge.svg
 [cover-link]: https://coveralls.io/r/pyblish/pyblish-base
-[pypi-image]: https://badge.fury.io/py/pyblish.svg
-[pypi-link]: http://badge.fury.io/py/pyblish
+[pypi-image]: https://badge.fury.io/py/pyblish-base.svg
+[pypi-link]: http://badge.fury.io/py/pyblish-base
 [landscape-image]: https://landscape.io/github/pyblish/pyblish-base/master/landscape.png
 [landscape-repo]: https://landscape.io/github/pyblish/pyblish-base/master
 [gitter-image]: https://badges.gitter.im/Join%20Chat.svg

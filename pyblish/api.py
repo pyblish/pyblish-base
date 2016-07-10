@@ -69,11 +69,6 @@ from .plugin import (
     deregister_all_services,
     registered_services,
 
-    register_callback,
-    deregister_callback,
-    deregister_all_callbacks,
-    registered_callbacks,
-
     sort as sort_plugins,
 
     registered_paths,
@@ -85,8 +80,14 @@ from .lib import (
     log,
     time as __time,
     emit,
-    main_package_path as __main_package_path
+    main_package_path as __main_package_path,
+
+    register_callback,
+    deregister_callback,
+    deregister_all_callbacks,
+    registered_callbacks,
 )
+
 
 from .logic import (
     plugins_by_family,

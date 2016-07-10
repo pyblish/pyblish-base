@@ -1,5 +1,7 @@
 import os
 import sys
+import types
+import weakref
 import logging
 import datetime
 import warnings
@@ -236,18 +238,24 @@ def emit(signal, **kwargs):
 
     Example:
         >>> import sys
-        >>> from . import plugin
-        >>> plugin.register_callback(
-        ...   "mysignal", lambda data: sys.stdout.write(str(data)))
+        >>> def mycallback(data):
+        ...     sys.stdout.write(str(data))
+        ...
+        >>> register_callback("mysignal", mycallback)
         ...
         >>> emit("mysignal", data={"something": "cool"})
         {'something': 'cool'}
 
     """
 
-    for callback in _registered_callbacks.get(signal, []):
+    for callback in _registered_callbacks.get(signal, {}).values():
         try:
             callback(**kwargs)
+
+        except ReferenceError:
+            # Ignore end-of-life references
+            pass
+
         except Exception:
             file = six.StringIO()
             traceback.print_exc(file=file)
@@ -260,6 +268,74 @@ def emit(signal, **kwargs):
             # handling so there is likely a better way to solve this.
             #
             # TODO(marcus): Make it prettier
+
+
+def register_callback(signal, callback):
+    """Register a new callback
+
+    Arguments:
+        signal (string): Name of signal to register the callback with.
+        callback (func): Function to execute when a signal is emitted.
+
+    Raises:
+        ValueError if `callback` is not callable.
+
+    """
+
+    if not hasattr(callback, "__call__"):
+        raise ValueError("%s must be callable" % callback)
+
+    if signal not in _registered_callbacks:
+        # Need to store in a dictionary so as to
+        # enable removal via deregister_callback,
+        # since the actual function is not comparable
+        # to its weak reference equivalent.
+
+        _registered_callbacks[signal] = weakref.WeakValueDictionary()
+
+    name = callback.__name__
+    callbacks = _registered_callbacks[signal]
+
+    if name in callbacks:
+        raise ValueError(
+            "Callback by this name already registered: \"%s\"" % name
+        )
+
+    # Use weak reference such that connected callbacks
+    # can safely be garbage collected without interference
+    # from observers.
+    callbacks[name] = callback
+
+
+def deregister_callback(signal, callback):
+    """Deregister a callback
+
+    Arguments:
+        signal (string): Name of signal to deregister the callback with.
+        callback (func): Function to execute when a signal is emitted.
+
+    Raises:
+        KeyError on missing signal or callback
+
+    """
+
+    _registered_callbacks[signal].pop(callback.__name__)
+
+    # Erase empty member
+    if not _registered_callbacks[signal]:
+        _registered_callbacks.pop(signal)
+
+
+def deregister_all_callbacks():
+    """Deregisters all callback"""
+
+    _registered_callbacks.clear()
+
+
+def registered_callbacks():
+    """Returns registered callbacks"""
+
+    return list(_registered_callbacks.keys())
 
 
 def deprecated(func):
@@ -279,3 +355,116 @@ def deprecated(func):
                 lineno=func.func_code.co_firstlineno + 1)
         return func(*args, **kwargs)
     return wrapper
+
+
+if sys.version_info < (3, 4):
+    class _WeakRef(object):
+        def __init__(self, func):
+            try:
+                if func.__self__ is not None:
+                    self._instance = weakref.ref(func.__self__)
+                else:
+                    # Unbound method
+                    self._instance = None
+
+                self._func = weakref.ref(func.__func__)
+                self._class = weakref.ref(func.__class__)
+
+            except AttributeError:
+                # Not a method
+                self._instance = None
+                self._class = None
+                self._func = weakref.ref(func)
+
+        def __call__(self):
+            if self._is_dead():
+                return None
+
+            if self._instance is None:
+                return self._func()
+
+            return types.MethodType(self._func(), self._instance())
+
+        def _is_dead(self):
+            """Is the reference dead?
+
+            Returns True if the referenced callable was a bound method and
+            the instance no longer exists. Otherwise, return False.
+
+            Usage:
+                >>> class Object(object):
+                ...   def func(self):
+                ...     pass
+                ...
+                >>> o = Object()
+                >>> weak_func = WeakRef(o.func)
+                >>> weak_func._is_dead()
+                False
+                >>> del(o)
+                >>> weak_func._is_dead()
+                True
+
+            """
+
+            return self._instance is not None and self._instance() is None
+
+else:
+    # Python 3.4 upwards implement weakref.WeakMethod
+    class _WeakRef:
+        def __init__(self, func):
+            try:
+                func.__self__
+                self._func = weakref.WeakMethod(func)
+            except AttributeError:
+                self._func = weakref.ref(func)
+
+        def __call__(self):
+            return self._func()
+
+
+class WeakRef(_WeakRef):
+        """Alternative weak reference with support for instancemethods
+
+        Usage:
+            >>> import weakref
+            >>> class MyClass(object):
+            ...   def func(self):
+            ...     pass
+            ...
+            >>> inst = MyClass()
+            >>> ref = weakref.ref(inst.func)
+            >>> ref() is None
+            True
+            >>> ref = WeakRef(inst.func)
+            >>> ref() is None
+            False
+
+        """
+
+        def __eq__(self, other):
+            """Compare weak references against each other
+
+            Example:
+                >>> def func_a():
+                ...   pass
+                ...
+                >>> def func_b():
+                ...   pass
+                ...
+                >>> weak_a1 = WeakRef(func_a)
+                >>> weak_a2 = WeakRef(func_a)
+                >>> weak_b = WeakRef(func_b)
+                >>> weak_a1 == weak_a2
+                True
+                >>> weak_b == weak_a1
+                False
+
+            """
+
+            try:
+                return type(self) is type(other) and self() == other()
+            except:
+                return False
+
+        def __ne__(self, other):
+            return not self == other
