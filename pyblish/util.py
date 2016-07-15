@@ -1,18 +1,4 @@
-"""Conveinence function for Pyblish
-
-Attributes:
-    TAB: Number of spaces for a tab
-    LOG_TEMPATE: Template used for logging coming from
-        plug-ins
-    SCREEN_WIDTH: Default width at which logging and printing
-        will (attempt to) restrain to.
-    logging_handlers: Record of handlers at the start of
-        importing this module. This module will modify the
-        currently handlers and restore then once finished.
-    log: Current logger
-    intro_message: Message printed upon initiating a publish.
-
-"""
+"""Conveinence functions for general publishing"""
 
 from __future__ import absolute_import
 
@@ -26,7 +12,7 @@ from . import api, logic, plugin, lib
 log = logging.getLogger("pyblish.util")
 
 
-def publish(context=None, plugins=None, **kwargs):
+def publish(context=None, plugins=None):
     """Publish everything
 
     This function will process all available plugins of the
@@ -41,7 +27,7 @@ def publish(context=None, plugins=None, **kwargs):
 
     Usage:
         >> context = plugin.Context()
-        >> publish(context)  # Pass..
+        >> publish(context)     # Pass..
         >> context = publish()  # ..or receive a new
 
     """
@@ -114,45 +100,73 @@ def publish(context=None, plugins=None, **kwargs):
     return context
 
 
-def collect(*args, **kwargs):
-    """Convenience function for collection"""
-    context = _convenience(0.5, *args, **kwargs)
+def collect(context=None, plugins=None):
+    """Convenience function for collection
+
+     _________    . . . . .  .   . . . . . .   . . . . . . .
+    |         |   .          .   .         .   .           .
+    | Collect |-->. Validate .-->. Extract .-->. Integrate .
+    |_________|   . . . . .  .   . . . . . .   . . . . . . . 
+
+    """
+
+    context = _convenience(0.5, context, plugins)
     api.emit("collected", context=context)
     return context
 
 
-def validate(*args, **kwargs):
-    """Convenience function for validation"""
-    context = _convenience(1.5, *args, **kwargs)
+def validate(context=None, plugins=None):
+    """Convenience function for collection through validation
+
+     _________     __________    . . . . . .   . . . . . . .
+    |         |   |          |   .         .   .           .
+    | Collect |-->| Validate |-->. Extract .-->. Integrate .
+    |_________|   |__________|   . . . . . .   . . . . . . . 
+
+    """
+
+    context = _convenience(1.5, context, plugins)
     api.emit("validated", context=context)
     return context
 
 
-def extract(*args, **kwargs):
-    """Convenience function for extraction"""
-    context = _convenience(2.5, *args, **kwargs)
+def extract(context=None, plugins=None):
+    """Convenience function for collection through extraction
+
+     _________     __________     _________    . . . . . . .
+    |         |   |          |   |         |   .           .
+    | Collect |-->| Validate |-->| Extract |-->. Integrate .
+    |_________|   |__________|   |_________|   . . . . . . . 
+
+    """
+
+    context = _convenience(2.5, context, plugins)
     api.emit("extracted", context=context)
     return context
 
 
-def integrate(*args, **kwargs):
-    """Convenience function for integration"""
-    context = _convenience(3.5, *args, **kwargs)
+def integrate(context=None, plugins=None):
+    """Convenience function for collection through end
+
+     _________     __________     _________     ___________ 
+    |         |   |          |   |         |   |           |
+    | Collect |-->| Validate |-->| Extract |-->| Integrate |
+    |_________|   |__________|   |_________|   |___________| 
+
+    """
+
+    context = _convenience(float("inf"), context, plugins)
     api.emit("integrated", context=context)
     return context
 
 
-def _convenience(order, *args, **kwargs):
-    plugins = kwargs.get("plugins") if "plugins" in kwargs else plugin.discover()
-    plugins = [p for p in plugins
-               if p.order < order]
+def _convenience(order, context=None, plugins=None):
+    plugins = list(
+        p for p in (api.discover() if plugins is None else plugins)
+        if p.order < order
+    )
 
-    args = list(args)
-    if len(args) > 1:
-        args[1] = plugins
-    else:
-        kwargs["plugins"] = plugins
-    return publish(*args, **kwargs)
+    return publish(context, plugins)
 
 
 # Backwards compatibility
