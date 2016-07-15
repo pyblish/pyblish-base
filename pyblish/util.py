@@ -143,7 +143,8 @@ def integrate(*args, **kwargs):
 
 
 def _convenience(order, *args, **kwargs):
-    plugins = [p for p in api.discover()
+    plugins = kwargs.get("plugins") if "plugins" in kwargs else plugin.discover()
+    plugins = [p for p in plugins
                if p.order < order]
 
     args = list(args)
