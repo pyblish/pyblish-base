@@ -3,11 +3,17 @@ pyblish Changelog
 
 This contains all major version changes between pyblish releases.
 
+Version 1.4.2
+-------------
+
+- Bugfix: `plugins` argument of CVEI convenience functions did not have any effect (#286)
+- Feature: CVEI-friendly convenience functions (#288)
+- BACKWARD INCOMPATIBLE: Due to #288, the behavior of util.collect() and friends are different and will need refactoring in your code if you depend on them.
+
 Version 1.4.1
 -------------
 
 - Feature: register_gui (#279)
-
 
 Version 1.4.0 - Steel
 ---------------------
