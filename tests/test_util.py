@@ -138,3 +138,52 @@ def test_multiple_instance_util_publish():
     util.publish()
 
     assert count["#"] == 3
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_modify_context_during_CVEI():
+    """Custom logic made possible via convenience members"""
+
+    count = {"#": 0}
+
+    class MyCollector(api.ContextPlugin):
+        order = api.CollectorOrder
+
+        def process(self, context):
+            camera = context.create_instance("MyCamera")
+            model = context.create_instance("MyModel")
+
+            camera.data["family"] = "camera"
+            model.data["family"] = "model"
+
+            count["#"] += 1
+
+    class MyValidator(api.InstancePlugin):
+        order = api.ValidatorOrder
+
+        def process(self, instance):
+            count["#"] += 10
+
+    api.register_plugin(MyCollector)
+    api.register_plugin(MyValidator)
+
+    context = api.Context()
+
+    assert count["#"] == 0, count
+
+    util.collect(context)
+
+    assert count["#"] == 1, count
+
+    context[:] = filter(lambda i: i.data["family"] == "camera", context)
+
+    util.validate(context)
+
+    # Only model remains
+    assert count["#"] == 11, count
+
+    # No further processing occurs.
+    util.extract(context)
+    util.integrate(context)
+
+    assert count["#"] == 11, count
