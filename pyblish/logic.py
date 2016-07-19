@@ -1,10 +1,14 @@
 """Shared processing logic"""
 
 import sys
+import logging
 import traceback
 
 from . import _registered_test, _registered_gui, lib
 from .plugin import Validator
+
+
+log = logging.getLogger("pyblish.logic")
 
 
 class TestFailed(Exception):
@@ -260,7 +264,7 @@ def _extract_traceback(exception):
         del(exc_type, exc_value, exc_traceback)
 
 
-def Iterator(plugins, context):
+def Iterator(plugins, context, state=None):
     """Primary iterator
 
     This is the brains of publishing. It handles logic related
@@ -270,14 +274,34 @@ def Iterator(plugins, context):
     Arguments:
         plugins (list): Plug-ins to consider
         context (list): Instances to consider
+        state (dict): Mutable state
 
     """
 
-    for plugin in plugins:
-        instances = instances_by_plugin(context, plugin)
+    test = registered_test()
+    state = state or {
+        "nextOrder": None,
+        "ordersWithError": set()
+    }
 
+    for plugin in plugins:
+        if not plugin.active:
+            log.debug("%s was inactive, skipping.." % plugin)
+            continue
+
+        state["nextOrder"] = plugin.order
+
+        message = test(**state)
+        if message:
+            raise StopIteration("Stopped due to %s" % message)
+
+        instances = instances_by_plugin(context, plugin)
         if plugin.__instanceEnabled__:
             for instance in instances:
+                if instance.data.get("publish") is False:
+                    log.debug("%s was inactive, skipping.." % instance)
+                    continue
+
                 yield plugin, instance
 
         else:

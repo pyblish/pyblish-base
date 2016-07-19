@@ -57,27 +57,21 @@ def publish(context=None, plugins=None):
             if not logic.instances_by_plugin(context, Plugin):
                 plugins.remove(Plugin)
 
-    # Keep track of state, so we can cancel on failed validation
+    # Mutable state, used in Iterator
     state = {
         "nextOrder": None,
         "ordersWithError": set()
     }
 
-    test = api.registered_test()
-
     # Second pass, the remainder
-    for Plugin, instance in logic.Iterator(plugins, context):
-        state["nextOrder"] = Plugin.order
-
-        if test(**state):
-            log.error("Stopped due to: %s" % test(**state))
-            break
-
+    for Plugin, instance in logic.Iterator(plugins, context, state):
         try:
             result = plugin.process(Plugin, context, instance)
 
-        except:
-            # This exception is unexpected
+        except StopIteration:  # End of items
+            raise
+
+        except:  # This is unexpected, most likely a bug
             log.error("An exception occurred.\n")
             raise
 
