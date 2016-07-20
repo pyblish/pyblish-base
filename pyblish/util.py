@@ -101,61 +101,61 @@ def publish(context=None, plugins=None):
 
 
 def collect(context=None, plugins=None):
-    """Convenience function for collection
+    """Convenience function for collection-only
 
      _________    . . . . .  .   . . . . . .   . . . . . . .
     |         |   .          .   .         .   .           .
     | Collect |-->. Validate .-->. Extract .-->. Integrate .
-    |_________|   . . . . .  .   . . . . . .   . . . . . . . 
+    |_________|   . . . . .  .   . . . . . .   . . . . . . .
 
     """
 
-    context = _convenience(0.5, context, plugins)
+    context = _convenience(api.CollectorOrder, context, plugins)
     api.emit("collected", context=context)
     return context
 
 
 def validate(context=None, plugins=None):
-    """Convenience function for collection through validation
+    """Convenience function for validation-only
 
-     _________     __________    . . . . . .   . . . . . . .
-    |         |   |          |   .         .   .           .
-    | Collect |-->| Validate |-->. Extract .-->. Integrate .
-    |_________|   |__________|   . . . . . .   . . . . . . . 
+    . . . . . .    __________    . . . . . .   . . . . . . .
+    .         .   |          |   .         .   .           .
+    . Collect .-->| Validate |-->. Extract .-->. Integrate .
+    . . . . . .   |__________|   . . . . . .   . . . . . . .
 
     """
 
-    context = _convenience(1.5, context, plugins)
+    context = _convenience(api.ValidatorOrder, context, plugins)
     api.emit("validated", context=context)
     return context
 
 
 def extract(context=None, plugins=None):
-    """Convenience function for collection through extraction
+    """Convenience function for extraction-only
 
-     _________     __________     _________    . . . . . . .
-    |         |   |          |   |         |   .           .
-    | Collect |-->| Validate |-->| Extract |-->. Integrate .
-    |_________|   |__________|   |_________|   . . . . . . . 
+    . . . . . .   . . . . .  .    _________    . . . . . . .
+    .         .   .          .   |         |   .           .
+    . Collect .-->. Validate .-->| Extract |-->. Integrate .
+    . . . . . .   . . . . .  .   |_________|   . . . . . . .
 
     """
 
-    context = _convenience(2.5, context, plugins)
+    context = _convenience(api.ExtractorOrder, context, plugins)
     api.emit("extracted", context=context)
     return context
 
 
 def integrate(context=None, plugins=None):
-    """Convenience function for collection through end
+    """Convenience function for integration-only
 
-     _________     __________     _________     ___________ 
-    |         |   |          |   |         |   |           |
-    | Collect |-->| Validate |-->| Extract |-->| Integrate |
-    |_________|   |__________|   |_________|   |___________| 
+    . . . . . .   . . . . .  .   . . . . . .    ___________
+    .         .   .          .   .         .   |           |
+    . Collect .-->. Validate .-->. Extract .-->| Integrate |
+    . . . . . .   . . . . .  .   . . . . . .   |___________|
 
     """
 
-    context = _convenience(float("inf"), context, plugins)
+    context = _convenience(api.IntegratorOrder, context, plugins)
     api.emit("integrated", context=context)
     return context
 
@@ -163,7 +163,7 @@ def integrate(context=None, plugins=None):
 def _convenience(order, context=None, plugins=None):
     plugins = list(
         p for p in (api.discover() if plugins is None else plugins)
-        if p.order < order
+        if lib.inrange(p.order, order)
     )
 
     return publish(context, plugins)
@@ -175,13 +175,14 @@ conform = integrate
 run = publish  # Alias
 
 
-def publish_all(*args, **kwargs):
+def publish_all(context=None, plugins=None):
     warnings.warn("pyblish.util.publish_all has been "
                   "deprecated; use publish()")
-    return publish(*args, **kwargs)
+    return publish(context, plugins)
 
 
-def validate_all(*args, **kwargs):
+def validate_all(context=None, plugins=None):
     warnings.warn("pyblish.util.validate_all has been "
-                  "deprecated; use validate()")
-    return validate(*args, **kwargs)
+                  "deprecated; use collect() followed by validate()")
+    context = collect(context, plugins)
+    return validate(context, plugins)

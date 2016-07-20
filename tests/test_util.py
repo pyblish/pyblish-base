@@ -1,9 +1,6 @@
 from . import lib
 
-import pyblish.api
-import pyblish.lib
-import pyblish.util
-import pyblish.compat
+from pyblish import api, util
 from nose.tools import (
     with_setup
 )
@@ -11,29 +8,29 @@ from nose.tools import (
 
 def test_convenience_plugins_argument():
     """util._convenience() `plugins` argument works
-    
+
     Issue: #286
-    
+
     """
 
     count = {"#": 0}
 
-    class PluginA(pyblish.api.ContextPlugin):
-      order = pyblish.api.CollectorOrder
-    
-      def process(self, context):
-        count["#"] += 1
+    class PluginA(api.ContextPlugin):
+        order = api.CollectorOrder
 
-    class PluginB(pyblish.api.ContextPlugin):
-      order = pyblish.api.CollectorOrder
+        def process(self, context):
+            count["#"] += 1
 
-      def process(self, context):
-        count["#"] += 10
+    class PluginB(api.ContextPlugin):
+        order = api.CollectorOrder
+
+        def process(self, context):
+            count["#"] += 10
 
     assert count["#"] == 0
 
-    pyblish.api.register_plugin(PluginA)
-    pyblish.util._convenience(0.5, plugins=[PluginB])
+    api.register_plugin(PluginA)
+    util._convenience(0.5, plugins=[PluginB])
 
     assert count["#"] == 10, count
 
@@ -44,63 +41,67 @@ def test_convenience_functions():
 
     count = {"#": 0}
 
-    class Collector(pyblish.plugin.ContextPlugin):
-        order = pyblish.plugin.CollectorOrder
+    class Collector(api.ContextPlugin):
+        order = api.CollectorOrder
 
         def process(self, context):
             context.create_instance("MyInstance")
             count["#"] += 1
 
-    class Validator(pyblish.plugin.InstancePlugin):
-        order = pyblish.plugin.ValidatorOrder
+    class Validator(api.InstancePlugin):
+        order = api.ValidatorOrder
 
         def process(self, instance):
             count["#"] += 10
 
-    class Extractor(pyblish.plugin.InstancePlugin):
-        order = pyblish.plugin.ExtractorOrder
+    class Extractor(api.InstancePlugin):
+        order = api.ExtractorOrder
 
         def process(self, instance):
             count["#"] += 100
 
-    class Integrator(pyblish.plugin.ContextPlugin):
-        order = pyblish.plugin.IntegratorOrder
+    class Integrator(api.ContextPlugin):
+        order = api.IntegratorOrder
 
         def process(self, instance):
             count["#"] += 1000
 
-    class PostIntegrator(pyblish.plugin.ContextPlugin):
-        order = pyblish.plugin.IntegratorOrder + 0.5
+    class PostIntegrator(api.ContextPlugin):
+        order = api.IntegratorOrder + 0.1
 
         def process(self, instance):
             count["#"] += 10000
 
+    class NotCVEI(api.ContextPlugin):
+        """This plug-in is too far away from Integration to qualify as CVEI"""
+        order = api.IntegratorOrder + 2.0
+
+        def process(self, instance):
+            count["#"] += 100000
+
     assert count["#"] == 0
-    
+
     for Plugin in (Collector,
                    Validator,
                    Extractor,
                    Integrator,
-                   PostIntegrator):
-        pyblish.api.register_plugin(Plugin)
+                   PostIntegrator,
+                   NotCVEI):
+        api.register_plugin(Plugin)
 
-    pyblish.util.collect()
+    context = util.collect()
 
     assert count["#"] == 1
-    count["#"] = 0
 
-    pyblish.util.validate()
+    util.validate(context)
 
     assert count["#"] == 11
 
-    count["#"] = 0
-    pyblish.util.extract()
+    util.extract(context)
 
     assert count["#"] == 111
 
-    # Integration runs integration, but also anything after
-    count["#"] = 0
-    pyblish.util.integrate()
+    util.integrate(context)
 
     assert count["#"] == 11111
 
@@ -116,24 +117,73 @@ def test_multiple_instance_util_publish():
 
     count = {"#": 0}
 
-    class MyContextCollector(pyblish.api.ContextPlugin):
-        order = pyblish.api.CollectorOrder
+    class MyContextCollector(api.ContextPlugin):
+        order = api.CollectorOrder
 
         def process(self, context):
             context.create_instance("A")
             context.create_instance("B")
             count["#"] += 1
 
-    class MyInstancePluginCollector(pyblish.api.InstancePlugin):
-        order = pyblish.api.CollectorOrder + 0.1
+    class MyInstancePluginCollector(api.InstancePlugin):
+        order = api.CollectorOrder + 0.1
 
         def process(self, instance):
             count["#"] += 1
 
-    pyblish.api.register_plugin(MyContextCollector)
-    pyblish.api.register_plugin(MyInstancePluginCollector)
+    api.register_plugin(MyContextCollector)
+    api.register_plugin(MyInstancePluginCollector)
 
     # Ensure it runs without errors
-    pyblish.util.publish()
+    util.publish()
 
     assert count["#"] == 3
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_modify_context_during_CVEI():
+    """Custom logic made possible via convenience members"""
+
+    count = {"#": 0}
+
+    class MyCollector(api.ContextPlugin):
+        order = api.CollectorOrder
+
+        def process(self, context):
+            camera = context.create_instance("MyCamera")
+            model = context.create_instance("MyModel")
+
+            camera.data["family"] = "camera"
+            model.data["family"] = "model"
+
+            count["#"] += 1
+
+    class MyValidator(api.InstancePlugin):
+        order = api.ValidatorOrder
+
+        def process(self, instance):
+            count["#"] += 10
+
+    api.register_plugin(MyCollector)
+    api.register_plugin(MyValidator)
+
+    context = api.Context()
+
+    assert count["#"] == 0, count
+
+    util.collect(context)
+
+    assert count["#"] == 1, count
+
+    context[:] = filter(lambda i: i.data["family"] == "camera", context)
+
+    util.validate(context)
+
+    # Only model remains
+    assert count["#"] == 11, count
+
+    # No further processing occurs.
+    util.extract(context)
+    util.integrate(context)
+
+    assert count["#"] == 11, count
