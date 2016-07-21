@@ -511,7 +511,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
     context.data["results"].append(result)
 
     lib.emit("pluginProcessed", plugin=plugin, context=context,
-             instance=instance, results=result)
+             instance=instance, result=result)
 
     return result
 
