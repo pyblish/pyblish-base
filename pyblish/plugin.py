@@ -440,9 +440,12 @@ def process(plugin, context, instance=None, action=None):
     """
 
     if issubclass(plugin, (ContextPlugin, InstancePlugin)):
-        return __explicit_process(plugin, context, instance, action)
+        result = __explicit_process(plugin, context, instance, action)
     else:
-        return __implicit_process(plugin, context, instance, action)
+        result = __implicit_process(plugin, context, instance, action)
+
+    lib.emit("pluginProcessed", result=result)
+    return result
 
 
 def __explicit_process(plugin, context, instance=None, action=None):
