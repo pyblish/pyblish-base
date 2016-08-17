@@ -74,3 +74,45 @@ def test_plugin_processed_event():
     pyblish.util.publish()
 
     assert count["#"] == 3, count
+
+@with_setup(lib.setup_empty)
+def test_plugin_failed_event():
+    """pluginFailed is emitted upon a plugin failing for any reason"""
+
+    class MyContextCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+
+        def process(self, context):
+            context.create_instance("A")
+
+    class CheckInstancePass(pyblish.api.InstancePlugin):
+        order = pyblish.api.ValidatorOrder
+
+        def process(self, instance):
+            pass
+
+    class CheckInstanceFail(pyblish.api.InstancePlugin):
+        order = pyblish.api.ValidatorOrder
+
+        def process(self, instance):
+            raise Exception("Test Fail")
+    pyblish.api.register_plugin(MyContextCollector)
+    pyblish.api.register_plugin(CheckInstancePass)
+    pyblish.api.register_plugin(CheckInstanceFail)
+
+
+
+    count = {"#": 0}
+
+    def on_failed(plugin, context, instance, error):
+        #assert isinstance(instance, CheckInstanceFailRaise)
+        #assert isinstance(plugin, pyblish.api.InstancePlugin)
+        assert isinstance(context, pyblish.api.Context)
+        assert isinstance(error, Exception)
+
+        count["#"] += 1
+
+    pyblish.api.register_callback("pluginFailed", on_failed)
+    pyblish.util.publish()
+
+    assert count["#"] == 2, count
