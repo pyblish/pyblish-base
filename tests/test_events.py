@@ -36,3 +36,18 @@ def test_validated_event():
     pyblish.util.validate()
 
     assert count["#"] == 1, count
+
+@with_setup(lib.setup_empty)
+def test_plugin_processed_event():
+    """pluginProcessed is emitted upon a plugin being processed, regardless of its success"""
+
+    count = {"#": 0}
+
+    def on_processed(context):
+        assert isinstance(context, pyblish.api.Context)
+        count["#"] += 1
+
+    pyblish.api.register_callback("pluginProcessed", on_processed)
+    pyblish.util.publish()
+
+    assert count["#"] == 1, count
