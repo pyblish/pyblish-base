@@ -41,13 +41,36 @@ def test_validated_event():
 def test_plugin_processed_event():
     """pluginProcessed is emitted upon a plugin being processed, regardless of its success"""
 
+    class MyContextCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+
+        def process(self, context):
+            context.create_instance("A")
+
+    class CheckInstancePass(pyblish.api.InstancePlugin):
+        order = pyblish.api.ValidatorOrder
+
+        def process(self, instance):
+            pass
+
+    class CheckInstanceFail(pyblish.api.InstancePlugin):
+        order = pyblish.api.ValidatorOrder
+
+        def process(self, instance):
+            raise Exception("Test Fail")
+
+    pyblish.api.register_plugin(MyContextCollector)
+    pyblish.api.register_plugin(CheckInstancePass)
+    pyblish.api.register_plugin(CheckInstanceFail)
+
+
     count = {"#": 0}
 
-    def on_processed(context):
-        assert isinstance(context, pyblish.api.Context)
+    def on_processed(result):
+        assert isinstance(result, dict)
         count["#"] += 1
 
     pyblish.api.register_callback("pluginProcessed", on_processed)
     pyblish.util.publish()
 
-    assert count["#"] == 1, count
+    assert count["#"] == 3, count
