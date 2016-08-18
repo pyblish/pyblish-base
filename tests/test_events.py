@@ -101,10 +101,9 @@ def test_plugin_failed_event():
     count = {"#": 0}
 
     def on_failed(plugin, context, instance, error):
-        #todo: add further checks for the other incoming args
-        #assert isinstance(instance, CheckInstanceFailRaise)
-        #assert isinstance(plugin, pyblish.api.InstancePlugin)
+        assert issubclass(plugin, pyblish.api.InstancePlugin) #plugin == CheckInstanceFail
         assert isinstance(context, pyblish.api.Context)
+        assert isinstance(instance, pyblish.api.Instance)
         assert isinstance(error, Exception)
 
         count["#"] += 1
