@@ -7,7 +7,7 @@ with open("README.txt") as f:
     readme = f.read()
 
 
-version_file = os.path.abspath("pyblish/version.py")
+version_file = os.path.abspath("pyblish/_version.py")
 version_mod = imp.load_source("version", version_file)
 version = version_mod.version
 
@@ -49,6 +49,6 @@ setup(
                     "icons/*.svg"],
     },
     entry_points={
-        "console_scripts": ["pyblish = pyblish.cli:main"]
+        "console_scripts": ["pyblish = pyblish._cli:main"]
     },
 )
