@@ -1,6 +1,4 @@
-import pyblish.api
-import pyblish.logic
-import pyblish.plugin
+from pyblish import api, util, _logic, _plugin
 
 from nose.tools import (
     assert_equals,
@@ -16,27 +14,27 @@ def test_simple_discover():
 
     count = {"#": 0}
 
-    class SimplePlugin(pyblish.api.Plugin):
+    class SimplePlugin(api.Plugin):
         def process(self, context):
             self.log.info("Processing context..")
             self.log.info("Done!")
             count["#"] += 1
 
-    class SimplePlugin2(pyblish.api.Validator):
+    class SimplePlugin2(api.Validator):
         def process(self, context):
             self.log.info("Processing context..")
             self.log.info("Done!")
             count["#"] += 1
 
-    pyblish.api.register_plugin(SimplePlugin)
-    pyblish.api.register_plugin(SimplePlugin2)
+    api.register_plugin(SimplePlugin)
+    api.register_plugin(SimplePlugin2)
 
     assert_equals(
-        list(p.id for p in pyblish.api.discover()),
+        list(p.id for p in api.discover()),
         list(p.id for p in [SimplePlugin, SimplePlugin2])
     )
 
-    pyblish.util.publish()
+    util.publish()
 
     assert_equals(count["#"], 2)
 
@@ -46,13 +44,13 @@ def test_simple_manual():
 
     count = {"#": 0}
 
-    class SimplePlugin(pyblish.api.Plugin):
+    class SimplePlugin(api.Plugin):
         def process(self):
             self.log.info("Processing..")
             self.log.info("Done!")
             count["#"] += 1
 
-    pyblish.util.publish(plugins=[SimplePlugin])
+    util.publish(plugins=[SimplePlugin])
 
     assert_equals(count["#"], 1)
 
@@ -68,7 +66,7 @@ def test_simple_instance():
 
     count = {"#": 0}
 
-    class SimpleSelector(pyblish.api.Plugin):
+    class SimpleSelector(api.Plugin):
         """Runs once"""
         order = 0
 
@@ -81,14 +79,14 @@ def test_simple_instance():
 
             count["#"] += 1
 
-    class SimpleValidator(pyblish.api.Plugin):
+    class SimpleValidator(api.Plugin):
         """Runs twice"""
         order = 1
 
         def process(self, instance):
             count["#"] += 10
 
-    class SimpleValidatorForB(pyblish.api.Plugin):
+    class SimpleValidatorForB(api.Plugin):
         """Runs once, for familyB"""
         families = ["familyB"]
         order = 2
@@ -96,9 +94,9 @@ def test_simple_instance():
         def process(self, instance):
             count["#"] += 100
 
-    pyblish.util.publish(plugins=[SimpleSelector,
-                                  SimpleValidator,
-                                  SimpleValidatorForB])
+    util.publish(plugins=[SimpleSelector,
+                          SimpleValidator,
+                          SimpleValidatorForB])
 
     assert_equals(count["#"], 121)
 
@@ -108,19 +106,19 @@ def test_simple_order():
 
     order = list()
 
-    class SimplePlugin(pyblish.api.Plugin):
+    class SimplePlugin(api.Plugin):
         def process(self):
             order.append(1)
 
-    class SelectSomething1234(pyblish.api.Selector):
+    class SelectSomething1234(api.Selector):
         def process(self):
             order.append(2)
 
-    class ValidateSomething1234(pyblish.api.Validator):
+    class ValidateSomething1234(api.Validator):
         def process(self):
             order.append(3)
 
-    class ExtractSomething1234(pyblish.api.Extractor):
+    class ExtractSomething1234(api.Extractor):
         def process(self):
             order.append(4)
 
@@ -128,12 +126,12 @@ def test_simple_order():
                    ValidateSomething1234,
                    SimplePlugin,
                    SelectSomething1234):
-        pyblish.api.register_plugin(plugin)
+        api.register_plugin(plugin)
 
-    plugins = pyblish.api.discover()
-    context = pyblish.api.Context()
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
+    plugins = api.discover()
+    context = api.Context()
+    for result in _logic.process(
+            func=_plugin.process,
             plugins=plugins,
             context=context):
         print(result)

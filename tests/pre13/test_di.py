@@ -1,8 +1,7 @@
 
 # Local library
 from .. import lib
-import pyblish.plugin
-import pyblish.logic
+from pyblish import api, _logic, _plugin
 from nose.tools import (
     with_setup,
     assert_equals,
@@ -19,7 +18,7 @@ def test_di():
     _disk = dict()
 
     # Plugins
-    class SelectInstance(pyblish.api.Selector):
+    class SelectInstance(api.Selector):
         def process(self, context):
             self.log.info("Test")
             for name in ("MyInstanceA", "MyInstanceB"):
@@ -29,24 +28,24 @@ def test_di():
 
             print("Instance: %s" % instance)
 
-    class ValidateInstance(pyblish.api.Validator):
+    class ValidateInstance(api.Validator):
         def process(self, instance):
             assert instance.data("family") == "myFamily", "Wrong family"
 
-    class ExtractInstanceX(pyblish.api.Extractor):
+    class ExtractInstanceX(api.Extractor):
         def process(self, context, instance, user, time):
             self.log.warning("Filling up disk..")
             _disk[instance.name] = "%s - %s: %s" % (
                 time(), user, instance.data("value"))
 
     for plugin in (SelectInstance, ValidateInstance, ExtractInstanceX):
-        pyblish.api.register_plugin(plugin)
+        api.register_plugin(plugin)
 
-    context = pyblish.api.Context()
+    context = api.Context()
 
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
-            plugins=pyblish.api.discover(),
+    for result in _logic.process(
+            func=_plugin.process,
+            plugins=api.discover(),
             context=context):
         assert result["error"] is None, result["error"]
 
@@ -59,7 +58,7 @@ def test_init():
 
     count = {"#": 0}
 
-    class HappensOnce(pyblish.api.Selector):
+    class HappensOnce(api.Selector):
         def __init__(self):
             count["#"] += 1
 
@@ -68,7 +67,7 @@ def test_init():
                 instance = context.create_instance(name)
                 instance.set_data("family", "smurfFamily")
 
-    class HappensTwice(pyblish.api.Validator):
+    class HappensTwice(api.Validator):
         def __init__(self):
             count["#"] += 10
 
@@ -77,12 +76,12 @@ def test_init():
 
     for plugin in (HappensOnce,
                    HappensTwice):
-        pyblish.api.register_plugin(plugin)
+        api.register_plugin(plugin)
 
-    list(pyblish.logic.process(
-        func=pyblish.plugin.process,
-        plugins=pyblish.api.discover(),
-        context=pyblish.api.Context()))
+    list(_logic.process(
+        func=_plugin.process,
+        plugins=api.discover(),
+        context=api.Context()))
 
     assert_equals(count["#"], 21)
 
@@ -93,18 +92,18 @@ def test_occurence():
 
     count = {"#": 0}
 
-    class HappensOnce1(pyblish.api.Selector):
+    class HappensOnce1(api.Selector):
         def process(self, context):
             count["#"] += 1
             for name in ("Smurfette", "Passive-aggressive smurf"):
                 instance = context.create_instance(name)
                 instance.set_data("family", "smurfFamily")
 
-    class HappensOnce2(pyblish.api.Validator):
+    class HappensOnce2(api.Validator):
         def process(self):
             count["#"] += 1
 
-    class DoesNotHappen1(pyblish.api.Validator):
+    class DoesNotHappen1(api.Validator):
         """Doesn't run
 
         It's requesting to be triggered only in the presence
@@ -118,7 +117,7 @@ def test_occurence():
             self.log.critical(str(self))
             count["#"] += 1
 
-    class DoesNotHappen2(pyblish.api.Validator):
+    class DoesNotHappen2(api.Validator):
         """Doesn't run.
 
         Asking for `instance`, and only supporting an unavailable
@@ -132,7 +131,7 @@ def test_occurence():
             self.log.critical(str(self))
             count["#"] += 1
 
-    class HappensEveryInstance(pyblish.api.Validator):
+    class HappensEveryInstance(api.Validator):
         def process(self, instance):
             count["#"] += 1
 
@@ -141,13 +140,13 @@ def test_occurence():
                    DoesNotHappen1,
                    DoesNotHappen2,
                    HappensEveryInstance):
-        pyblish.api.register_plugin(plugin)
+        api.register_plugin(plugin)
 
-    context = pyblish.api.Context()
+    context = api.Context()
 
-    list(pyblish.logic.process(
-        func=pyblish.plugin.process,
-        plugins=pyblish.api.discover(),
+    list(_logic.process(
+        func=_plugin.process,
+        plugins=api.discover(),
         context=context))
 
     assert_equals(count["#"], 4)
@@ -159,11 +158,11 @@ def test_no_instances():
 
     count = {"#": 0}
 
-    class Extract(pyblish.api.Extractor):
+    class Extract(api.Extractor):
         def process(self, context):
             count["#"] += 1
 
-    class Extract2(pyblish.api.Extractor):
+    class Extract2(api.Extractor):
         """This doesn't run
 
         Because it asks for instance, and there aren't any instances
@@ -174,18 +173,18 @@ def test_no_instances():
             assert instance is None
             count["#"] += 1
 
-    class Conform(pyblish.api.Conformer):
+    class Conform(api.Conformer):
         def process(self, context):
             count["#"] += 1
 
     for plugin in (Extract, Extract2, Conform):
-        pyblish.api.register_plugin(plugin)
+        api.register_plugin(plugin)
 
-    context = pyblish.api.Context()
+    context = api.Context()
 
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
-            plugins=pyblish.api.discover(),
+    for result in _logic.process(
+            func=_plugin.process,
+            plugins=api.discover(),
             context=context):
         pass
 
@@ -195,7 +194,7 @@ def test_no_instances():
 def test_unavailable_service():
     """Asking for unavailable service throws exception"""
 
-    provider = pyblish.plugin.Provider()
+    provider = _plugin.Provider()
 
     def func(arg1, arg2):
         return True
@@ -207,15 +206,15 @@ def test_unavailable_service():
 def test_unavailable_service_logic():
     """Asking for unavailable service ..?"""
 
-    class SelectUnavailable(pyblish.api.Selector):
+    class SelectUnavailable(api.Selector):
         def process(self, unavailable):
             print("HHOH")
             self.log.critical("Test")
 
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
+    for result in _logic.process(
+            func=_plugin.process,
             plugins=[SelectUnavailable],
-            context=pyblish.api.Context()):
+            context=api.Context()):
         assert_true(isinstance(result["error"], KeyError))
 
 
@@ -225,24 +224,24 @@ def test_test_failure():
 
     triggered = list()
 
-    class ValidateFailure(pyblish.api.Validator):
+    class ValidateFailure(api.Validator):
         def process(self, context):
             triggered.append(self)
             assert False
 
-    class ExtractFailure(pyblish.api.Extractor):
+    class ExtractFailure(api.Extractor):
         def process(self, context):
             triggered.append(self)
             pass
 
-    pyblish.api.register_plugin(ValidateFailure)
-    pyblish.api.register_plugin(ExtractFailure)
+    api.register_plugin(ValidateFailure)
+    api.register_plugin(ExtractFailure)
 
-    context = pyblish.api.Context()
+    context = api.Context()
 
-    results = list(pyblish.logic.process(
-        func=pyblish.plugin.process,
-        plugins=pyblish.api.discover(),
+    results = list(_logic.process(
+        func=_plugin.process,
+        plugins=api.discover(),
         context=context))
 
     assert_equals(len(triggered), 1)
@@ -256,12 +255,12 @@ def test_when_to_trigger_process():
 
     _data = {"error": False}
 
-    class SelectInstance(pyblish.api.Selector):
+    class SelectInstance(api.Selector):
         def process(self, context):
             instance = context.create_instance("MyInstance")
             instance.set_data("family", "compatibleFamily")
 
-    class IncompatibleValidator(pyblish.api.Validator):
+    class IncompatibleValidator(api.Validator):
         families = ["incompatibleFamily"]
 
         def process(self, instance):
@@ -269,19 +268,19 @@ def test_when_to_trigger_process():
             _data["error"] = True
             assert False, "I should not have been run"
 
-    class CompatibleValiator(pyblish.api.Validator):
+    class CompatibleValiator(api.Validator):
         families = ["compatibleFamily"]
 
         def process(self, instance):
             assert True
 
     for plugin in (SelectInstance, IncompatibleValidator, CompatibleValiator):
-        pyblish.api.register_plugin(plugin)
+        api.register_plugin(plugin)
 
-    context = pyblish.api.Context()
-    list(pyblish.logic.process(
-        func=pyblish.plugin.process,
-        plugins=pyblish.api.discover(),
+    context = api.Context()
+    list(_logic.process(
+        func=_plugin.process,
+        plugins=api.discover(),
         context=context))
 
     assert_equals(_data["error"], False)
@@ -292,14 +291,14 @@ def test_default_services():
 
     services = ["user", "time"]
     for service in services:
-        assert_true(service in pyblish.api.registered_services())
+        assert_true(service in api.registered_services())
 
     # user is passed by value, as it does not change at run-time
-    user = pyblish.api.registered_services()["user"]
+    user = api.registered_services()["user"]
     assert_false(hasattr(user, "__call__"))
 
     # time is passed by reference, and is callable, as it changes
-    time = pyblish.api.registered_services()["time"]
+    time = api.registered_services()["time"]
     time()
 
 
@@ -308,24 +307,24 @@ def test_asset():
 
     count = {"#": 0}
 
-    class SelectCharacters(pyblish.api.Selector):
+    class SelectCharacters(api.Selector):
         """Called once"""
         def process(self, context):
             for name in ("A", "B"):
                 context.create_asset(name, family="myFamily")
             count["#"] += 1
 
-    class ValidateColor(pyblish.api.Validator):
+    class ValidateColor(api.Validator):
         """Called twice"""
         families = ["myFamily"]
 
         def process(self, asset):
             count["#"] += 1
 
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
+    for result in _logic.process(
+            func=_plugin.process,
             plugins=[SelectCharacters, ValidateColor],
-            context=pyblish.api.Context()):
+            context=api.Context()):
         print(result)
 
     assert_equals(count["#"], 3)
@@ -337,7 +336,7 @@ def test_di_testing():
 
     instances = list()
 
-    class SelectCharacters(pyblish.api.Validator):
+    class SelectCharacters(api.Validator):
         def process(self, context, host):
             for char in host.ls("*_char"):
                 instance = context.create_instance(char, family="character")
@@ -355,12 +354,12 @@ def test_di_testing():
                 return ["propeller"]
             return []
 
-    pyblish.api.register_service("host", HostMock())
+    api.register_service("host", HostMock())
 
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
+    for result in _logic.process(
+            func=_plugin.process,
             plugins=[SelectCharacters],
-            context=pyblish.api.Context()):
+            context=api.Context()):
         assert_equals(result["error"], None)
 
     assert_equals(len(instances), 2)

@@ -2,14 +2,12 @@ import os
 import shutil
 import tempfile
 
-import pyblish.api
-import pyblish.plugin
+from pyblish import api, util, _plugin
+from pyblish._vendor import six
 from nose.tools import (
     with_setup,
     assert_true,
 )
-
-from pyblish.vendor import six
 
 from .. import lib
 
@@ -66,7 +64,7 @@ class BadFamilies2(pyblish.api.Plugin):
 
     six.exec_(code, module.__dict__)
 
-    plugins = pyblish.plugin.plugins_from_module(module)
+    plugins = _plugin.plugins_from_module(module)
 
     assert [p.__name__ for p in plugins] == ["MyPlugin"], plugins
 
@@ -98,7 +96,7 @@ class MyPlugin(pyblish.api.Plugin):
 """
 
     six.exec_(code, module.__dict__)
-    MyPlugin = pyblish.plugin.plugins_from_module(module)[0]
+    MyPlugin = _plugin.plugins_from_module(module)[0]
     assert MyPlugin.__name__ == "MyPlugin"
 
     assert_true(MyPlugin().process(True))
@@ -111,8 +109,8 @@ class MyPlugin(pyblish.api.Plugin):
         with open(tempplugin, "w") as f:
             f.write(code)
 
-        pyblish.api.register_plugin_path(tempdir)
-        plugins = pyblish.api.discover()
+        api.register_plugin_path(tempdir)
+        plugins = api.discover()
 
     finally:
         shutil.rmtree(tempdir)
@@ -132,19 +130,19 @@ def test_multi_families():
 
     count = {"#": 0}
 
-    class CollectInstance(pyblish.api.Collector):
+    class CollectInstance(api.Collector):
         def process(self, context):
             instance = context.create_instance("MyInstance")
             instance.data["families"] = ["geometry", "human"]
 
-    class ValidateHumans(pyblish.api.Validator):
+    class ValidateHumans(api.Validator):
         families = ["human"]
 
         def process(self, instance):
             assert "human" in instance.data["families"]
             count["#"] += 10
 
-    class ValidateGeometry(pyblish.api.Validator):
+    class ValidateGeometry(api.Validator):
         families = ["geometry"]
 
         def process(self, instance):
@@ -152,8 +150,8 @@ def test_multi_families():
             count["#"] += 100
 
     for plugin in (CollectInstance, ValidateHumans, ValidateGeometry):
-        pyblish.api.register_plugin(plugin)
+        api.register_plugin(plugin)
 
-    pyblish.util.publish()
+    util.publish()
 
     assert count["#"] == 110, count["#"]

@@ -1,18 +1,16 @@
 import os
 
-import pyblish
-import pyblish.cli
-import pyblish.api
+from pyblish import api, _cli
 from nose.tools import (
     with_setup
 )
-from pyblish.vendor.click.testing import CliRunner
+from pyblish._vendor.click.testing import CliRunner
 from . import lib
 
 
 def ctx():
     """Return current Click context"""
-    return pyblish.cli._ctx
+    return _cli._ctx
 
 
 def context():
@@ -28,7 +26,7 @@ def test_visualise_environment_paths():
         os.environ["PYBLISHPLUGINPATH"] = "/custom/path"
 
         runner = CliRunner()
-        result = runner.invoke(pyblish.cli.main, ["--environment-paths"])
+        result = runner.invoke(_cli.main, ["--environment-paths"])
 
         assert result.output.startswith("/custom/path"), result.output
 
@@ -43,27 +41,27 @@ def test_publishing():
 
     count = {"#": 0}
 
-    class Collector(pyblish.api.ContextPlugin):
-        order = pyblish.api.CollectorOrder
+    class Collector(api.ContextPlugin):
+        order = api.CollectorOrder
 
         def process(self, context):
             self.log.warning("Running")
             count["#"] += 1
             context.create_instance("MyInstance")
 
-    class MyValidator(pyblish.api.InstancePlugin):
-        order = pyblish.api.ValidatorOrder
+    class MyValidator(api.InstancePlugin):
+        order = api.ValidatorOrder
 
         def process(self, instance):
             count["#"] += 10
             assert instance.data["name"] == "MyInstance"
             count["#"] += 100
 
-    pyblish.api.register_plugin(Collector)
-    pyblish.api.register_plugin(MyValidator)
+    api.register_plugin(Collector)
+    api.register_plugin(MyValidator)
 
     runner = CliRunner()
-    result = runner.invoke(pyblish.cli.main, ["publish"])
+    result = runner.invoke(_cli.main, ["publish"])
     print(result.output)
 
     assert count["#"] == 111, count

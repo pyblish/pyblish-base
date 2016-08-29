@@ -4,7 +4,7 @@ This makes the Pyblish package into an executable, via cli.py
 
 """
 
-from . import cli
+from . import _cli as cli
 
 if __name__ == '__main__':
     cli.main(obj={}, prog_name="pyblish")

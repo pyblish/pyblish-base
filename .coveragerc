@@ -4,6 +4,6 @@ source = pyblish
 [report]
 include = *pyblish*
 omit = 
-    */vendor*
+    */_vendor*
     */tests*
     */run_*

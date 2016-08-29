@@ -4,7 +4,7 @@ import shutil
 import tempfile
 import contextlib
 
-from pyblish.vendor import click
+from pyblish._vendor import click
 
 from ._compat import iteritems, PY2
 
