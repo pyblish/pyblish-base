@@ -2,7 +2,7 @@
 # Local library
 from . import lib
 
-from pyblish import api, logic, plugin
+from pyblish import api, _logic, _plugin
 
 from nose.tools import (
     with_setup
@@ -45,11 +45,11 @@ def test_iterator():
 
     assert count["#"] == 0, count
 
-    for Plugin, instance in logic.Iterator(plugins, context):
+    for Plugin, instance in _logic.Iterator(plugins, context):
         assert instance.name != "Inactive" if instance else True
         assert Plugin.__name__ != "MyValidatorA"
 
-        plugin.process(Plugin, context, instance)
+        _plugin.process(Plugin, context, instance)
 
     # Collector runs once, one Validator runs once
     assert count["#"] == 101, count

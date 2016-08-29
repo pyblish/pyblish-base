@@ -3,7 +3,11 @@
 import re
 import inspect
 import warnings
-from . import plugin, lib, logic
+from . import (
+    _plugin as plugin,
+    _lib as lib,
+    _logic as logic
+)
 
 # Aliases
 Selector = plugin.Collector

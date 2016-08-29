@@ -4,47 +4,46 @@ import shutil
 import tempfile
 import contextlib
 
-import pyblish
-import pyblish.cli
-import pyblish.plugin
-from pyblish.vendor import six
+# import pyblish
+from pyblish import api, _lib, _plugin
+from pyblish._vendor import six
 
 # Setup
 HOST = 'python'
 FAMILY = 'test.family'
 
-REGISTERED = pyblish.plugin.registered_paths()
-PACKAGEPATH = pyblish.lib.main_package_path()
+REGISTERED = _plugin.registered_paths()
+PACKAGEPATH = _lib.main_package_path()
 ENVIRONMENT = os.environ.get("PYBLISHPLUGINPATH", "")
 PLUGINPATH = os.path.join(PACKAGEPATH, '..', 'tests', 'plugins')
 
 
 def setup():
     """Disable default plugins and only use test plugins"""
-    pyblish.plugin.deregister_all_paths()
+    _plugin.deregister_all_paths()
 
 
 def setup_empty():
     """Disable all plug-ins"""
     setup()
-    pyblish.plugin.deregister_all_plugins()
-    pyblish.plugin.deregister_all_paths()
-    pyblish.plugin.deregister_all_hosts()
-    pyblish.plugin.deregister_all_callbacks()
+    _plugin.deregister_all_plugins()
+    _plugin.deregister_all_paths()
+    _plugin.deregister_all_hosts()
+    _plugin.deregister_all_callbacks()
 
 
 def teardown():
     """Restore previously REGISTERED paths"""
 
-    pyblish.plugin.deregister_all_paths()
+    _plugin.deregister_all_paths()
     for path in REGISTERED:
-        pyblish.plugin.register_plugin_path(path)
+        _plugin.register_plugin_path(path)
 
     os.environ["PYBLISHPLUGINPATH"] = ENVIRONMENT
-    pyblish.api.deregister_all_plugins()
-    pyblish.api.deregister_all_hosts()
-    pyblish.api.deregister_test()
-    pyblish.api.__init__()
+    api.deregister_all_plugins()
+    api.deregister_all_hosts()
+    api.deregister_test()
+    api.__init__()
 
 
 @contextlib.contextmanager

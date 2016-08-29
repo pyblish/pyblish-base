@@ -7,7 +7,7 @@ import traceback
 import functools
 
 from . import _registered_callbacks
-from .vendor import six
+from ._vendor import six
 
 
 def inrange(number, base, offset=0.5):

@@ -16,10 +16,10 @@ without breaking any of your tools.
 
 from __future__ import absolute_import
 
-from . import version
+from . import _version as version
 import getpass
 
-from .plugin import (
+from ._plugin import (
     Context,
     Instance,
 
@@ -81,14 +81,16 @@ from .plugin import (
     current_host,
 )
 
-from .lib import (
+from ._lib import (
     log,
-    time as __time,
     emit,
+    inrange,
+
+    time as __time,
     main_package_path as __main_package_path
 )
 
-from .logic import (
+from ._logic import (
     plugins_by_family,
     plugins_by_host,
     plugins_by_instance,
@@ -104,7 +106,7 @@ from .logic import (
     default_test as __default_test,
 )
 
-from .error import (
+from ._error import (
     PyblishError,
     SelectionError,
     ValidationError,
@@ -113,7 +115,7 @@ from .error import (
     NoInstancesError
 )
 
-from .compat import (
+from ._compat import (
     deregister_all,
     sort,
     Selector,
@@ -235,6 +237,7 @@ __all__ = [
     # Utilities
     "log",
     "emit",
+    "inrange",
 
     # Exceptions
     "PyblishError",

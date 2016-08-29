@@ -1,8 +1,7 @@
 import os
 
-from pyblish.vendor import mock
-import pyblish.api
-import pyblish.plugin
+from pyblish import api, util, _plugin
+from pyblish._vendor import mock
 from nose.tools import (
     with_setup,
     assert_true,
@@ -18,15 +17,15 @@ from . import lib
 def test_unique_id():
     """Plug-ins and instances have an id"""
 
-    class MyPlugin(pyblish.plugin.Collector):
+    class MyPlugin(_plugin.Collector):
         pass
 
-    class MyAction(pyblish.plugin.Action):
+    class MyAction(_plugin.Action):
         pass
 
     assert_true(hasattr(MyPlugin, "id"))
 
-    instance = pyblish.plugin.Instance("MyInstance")
+    instance = _plugin.Instance("MyInstance")
     assert_true(hasattr(instance, "id"))
 
     # IDs are persistent
@@ -34,15 +33,15 @@ def test_unique_id():
     assert_equals(MyAction.id, MyAction.id)
     assert_equals(MyPlugin.id, MyPlugin.id)
 
-    context = pyblish.plugin.Context()
+    context = _plugin.Context()
     assert_equals(context.id, context.id)
 
     # Even across discover()'s
     # Due to the fact that an ID is generated on module
     # load, which only happens once per process unless
     # module is forcefully reloaded by the user.
-    pyblish.api.register_plugin(MyPlugin)
-    plugins = list(p for p in pyblish.api.discover()
+    api.register_plugin(MyPlugin)
+    plugins = list(p for p in api.discover()
                    if p.id == MyPlugin.id)
     assert len(plugins) == 1, plugins
     assert plugins[0].__name__ == MyPlugin.__name__
@@ -51,18 +50,18 @@ def test_unique_id():
 def test_context_from_instance():
     """Instances provide access to their parent context"""
 
-    context = pyblish.plugin.Context()
+    context = _plugin.Context()
     instance = context.create_instance("MyInstance")
     assert_equals(context, instance.context)
 
 
 def test_legacy():
     """Legacy is determined by existing process_* methods"""
-    class LegacyPlugin(pyblish.plugin.Collector):
+    class LegacyPlugin(_plugin.Collector):
         def process_context(self, context):
             pass
 
-    class NotLegacyPlugin(pyblish.plugin.Collector):
+    class NotLegacyPlugin(_plugin.Collector):
         def process(self, context):
             pass
 
@@ -74,7 +73,7 @@ def test_legacy():
 
 def test_asset():
     """Using asset over instance works fine"""
-    context = pyblish.plugin.Context()
+    context = _plugin.Context()
 
     asseta = context.create_asset("MyAssetA", family="myFamily")
     assetb = context.create_asset("MyAssetB", family="myFamily")
@@ -95,7 +94,7 @@ def test_import_mechanism_duplication():
     with lib.tempdir() as temp:
         print("Writing temporarily to: %s" % temp)
         module = os.path.join(temp, "selector.py")
-        pyblish.api.register_plugin_path(temp)
+        api.register_plugin_path(temp)
 
         with open(module, "w") as f:
             f.write("""
@@ -110,7 +109,7 @@ class MySelector(pyblish.api.Selector):
             print(f.read())
 
         # MySelector should be accessible by now
-        plugins = [p.__name__ for p in pyblish.api.discover()]
+        plugins = [p.__name__ for p in api.discover()]
 
         assert "MySelector" in plugins, plugins
         assert "MyOtherSelector" not in plugins, plugins
@@ -132,7 +131,7 @@ class MyOtherSelector(pyblish.api.Selector):
             print(f.read())
 
         # MySelector should be gone in favour of MyOtherSelector
-        plugins = [p.__name__ for p in pyblish.api.discover()]
+        plugins = [p.__name__ for p in api.discover()]
 
         assert "MyOtherSelector" in plugins, plugins
         assert "MySelector" not in plugins, plugins
@@ -143,10 +142,10 @@ class MyOtherSelector(pyblish.api.Selector):
 def test_register_unsupported_hosts():
     """Cannot register a unsupported plug-in in an unsupported host"""
 
-    class Unsupported(pyblish.api.Plugin):
+    class Unsupported(api.Plugin):
         hosts = ["unsupported"]
 
-    pyblish.api.register_plugin(Unsupported)
+    api.register_plugin(Unsupported)
 
 
 @raises(TypeError)
@@ -154,10 +153,10 @@ def test_register_unsupported_hosts():
 def test_register_unsupported_version():
     """Cannot register a plug-in of an unsupported version"""
 
-    class Unsupported(pyblish.api.Plugin):
+    class Unsupported(api.Plugin):
         requires = (999, 999, 999)
 
-    pyblish.api.register_plugin(Unsupported)
+    api.register_plugin(Unsupported)
 
 
 @raises(TypeError)
@@ -165,11 +164,11 @@ def test_register_unsupported_version():
 def test_register_malformed():
     """Cannot register a malformed plug-in"""
 
-    class Unsupported(pyblish.api.Plugin):
+    class Unsupported(api.Plugin):
         families = True
         hosts = None
 
-    pyblish.api.register_plugin(Unsupported)
+    api.register_plugin(Unsupported)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -191,7 +190,7 @@ class NotDiscoverable(pyblish.api.Plugin):
 """
 
     with lib.tempdir() as d:
-        pyblish.api.register_plugin_path(d)
+        api.register_plugin_path(d)
 
         with open(os.path.join(d, "discoverable.py"), "w") as f:
             f.write(discoverable)
@@ -199,7 +198,7 @@ class NotDiscoverable(pyblish.api.Plugin):
         with open(os.path.join(d, "_undiscoverable.py"), "w") as f:
             f.write(notdiscoverable)
 
-        plugins = [p.__name__ for p in pyblish.api.discover()]
+        plugins = [p.__name__ for p in api.discover()]
         assert "Discoverable" in plugins
         assert "NotDiscoverable" not in plugins
 
@@ -208,7 +207,7 @@ class NotDiscoverable(pyblish.api.Plugin):
 def test_repair_context_backwardscompat():
     """Plug-ins with repair-context are reprogrammed appropriately"""
 
-    class ValidateInstances(pyblish.api.Validator):
+    class ValidateInstances(api.Validator):
         def repair_context(self, context):
             pass
 
@@ -222,14 +221,14 @@ def test_unique_logger():
 
     count = {"#": 0}
 
-    class MyPlugin(pyblish.api.Plugin):
+    class MyPlugin(api.Plugin):
         def process(self, context):
             self.log.debug("Hello world")
             count["#"] += 1
 
-    pyblish.api.register_plugin(MyPlugin)
+    api.register_plugin(MyPlugin)
 
-    context = pyblish.util.publish()
+    context = util.publish()
 
     assert_equals(count["#"], 1)
     print(context.data("results"))
@@ -239,64 +238,64 @@ def test_unique_logger():
     hello_world = records[0]
     assert_equals(hello_world.msg, "Hello world")
 
-    pyblish.api.deregister_plugin(MyPlugin)
+    api.deregister_plugin(MyPlugin)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_current_host():
-    """pyblish.api.current_host works"""
-    pyblish.plugin.register_host("myhost")
-    assert_equals(pyblish.plugin.current_host(), "myhost")
+    """api.current_host works"""
+    _plugin.register_host("myhost")
+    assert_equals(_plugin.current_host(), "myhost")
 
-    assert_raises(Exception, pyblish.plugin.deregister_host, "notExist")
+    assert_raises(Exception, _plugin.deregister_host, "notExist")
 
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_register_host():
     """Registering and deregistering hosts works fine"""
-    pyblish.plugin.register_host("myhost")
-    assert "myhost" in pyblish.plugin.registered_hosts()
-    pyblish.plugin.deregister_host("myhost")
-    assert "myhost" not in pyblish.plugin.registered_hosts()
+    _plugin.register_host("myhost")
+    assert "myhost" in _plugin.registered_hosts()
+    _plugin.deregister_host("myhost")
+    assert "myhost" not in _plugin.registered_hosts()
 
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_current_target():
-    """pyblish.api.current_target works"""
-    pyblish.plugin.register_target("mytarget")
-    assert_equals(pyblish.plugin.current_target(), "mytarget")
+    """api.current_target works"""
+    _plugin.register_target("mytarget")
+    assert_equals(_plugin.current_target(), "mytarget")
 
-    assert_raises(Exception, pyblish.plugin.deregister_target, "notExist")
+    assert_raises(Exception, _plugin.deregister_target, "notExist")
 
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_current_target_latest():
-    """pyblish.api.current_target works"""
-    pyblish.plugin.deregister_all_targets()
-    pyblish.plugin.register_target("mytarget1")
-    pyblish.plugin.register_target("mytarget2")
-    assert_equals(pyblish.plugin.current_target(), "mytarget2")
+    """api.current_target works"""
+    _plugin.deregister_all_targets()
+    _plugin.register_target("mytarget1")
+    _plugin.register_target("mytarget2")
+    assert_equals(_plugin.current_target(), "mytarget2")
 
-    pyblish.plugin.register_target("mytarget1")
-    assert_equals(pyblish.plugin.current_target(), "mytarget1")
+    _plugin.register_target("mytarget1")
+    assert_equals(_plugin.current_target(), "mytarget1")
 
-    assert len(pyblish.plugin.registered_targets()) == 2
+    assert len(_plugin.registered_targets()) == 2
 
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_register_target():
     """Registering and deregistering targets works fine"""
-    pyblish.plugin.register_target("mytarget")
-    assert "mytarget" in pyblish.plugin.registered_targets()
-    pyblish.plugin.deregister_target("mytarget")
-    assert "mytarget" not in pyblish.plugin.registered_targets()
+    _plugin.register_target("mytarget")
+    assert "mytarget" in _plugin.registered_targets()
+    _plugin.deregister_target("mytarget")
+    assert "mytarget" not in _plugin.registered_targets()
 
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_data_dict():
     """.data is a pure dictionary"""
 
-    context = pyblish.api.Context()
+    context = api.Context()
     instance = context.create_instance("MyInstance")
     assert isinstance(context.data, dict)
     assert isinstance(instance.data, dict)
@@ -320,18 +319,18 @@ def test_action():
     """Running an action is like running a plugin"""
     count = {"#": 0}
 
-    class MyAction(pyblish.plugin.Action):
+    class MyAction(_plugin.Action):
         def process(self, context):
             count["#"] += 1
 
-    class MyPlugin(pyblish.plugin.Plugin):
+    class MyPlugin(_plugin.Plugin):
         actions = [MyAction]
 
         def process(self, context):
             pass
 
-    context = pyblish.api.Context()
-    pyblish.plugin.process(
+    context = api.Context()
+    _plugin.process(
         plugin=MyPlugin,
         context=context,
         action=MyAction.id)
@@ -341,21 +340,21 @@ def test_action():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_actions():
-    class MyAction(pyblish.plugin.Action):
+    class MyAction(_plugin.Action):
         def process(self, context):
             context.data["key"] = "value"
 
-    context = pyblish.api.Context()
-    pyblish.plugin.process(MyAction, context)
+    context = api.Context()
+    _plugin.process(MyAction, context)
     assert "key" in context.data
 
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_action_error_checking():
-    class MyActionValid(pyblish.plugin.Action):
+    class MyActionValid(_plugin.Action):
         on = "all"
 
-    class MyActionInvalid(pyblish.plugin.Action):
+    class MyActionInvalid(_plugin.Action):
         on = "invalid"
 
     assert MyActionValid.__error__ is None
@@ -364,22 +363,25 @@ def test_action_error_checking():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_action_printing():
-    class MyAction(pyblish.plugin.Action):
+    class MyAction(_plugin.Action):
         pass
 
-    print(MyAction())
-    print(repr(MyAction()))
+    my_action = MyAction()
 
-    assert str(MyAction()) == "MyAction"
-    assert repr(MyAction()) == "pyblish.plugin.MyAction('MyAction')"
+    print(my_action)
+    print(repr(my_action))
+
+    assert str(my_action) == "MyAction"
+    assert repr(my_action) == "pyblish._plugin.MyAction('MyAction')", (
+        repr(my_action))
 
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_category_separator():
-    assert issubclass(pyblish.plugin.Category("Test"),
-                      pyblish.plugin.Action)
-    assert issubclass(pyblish.plugin.Separator,
-                      pyblish.plugin.Action)
+    assert issubclass(_plugin.Category("Test"),
+                      _plugin.Action)
+    assert issubclass(_plugin.Separator,
+                      _plugin.Action)
 
 
 def test_superclass_process_is_empty():
@@ -387,15 +389,15 @@ def test_superclass_process_is_empty():
     def e():
         """Doc"""
 
-    assert pyblish.api.Plugin.process.__code__.co_code == e.__code__.co_code
-    assert pyblish.api.Plugin.repair.__code__.co_code == e.__code__.co_code
+    assert api.Plugin.process.__code__.co_code == e.__code__.co_code
+    assert api.Plugin.repair.__code__.co_code == e.__code__.co_code
 
 
 def test_plugin_source_path():
     """Plugins discovered carry a source path"""
 
     import sys
-    plugin = pyblish.plugin.discover()[0]
+    plugin = _plugin.discover()[0]
     module = sys.modules[plugin.__module__]
     assert hasattr(module, "__file__")
 
@@ -414,34 +416,34 @@ def test_register_callback():
     def other_callback(data=None):
         pass
 
-    pyblish.plugin.register_callback("mySignal", my_callback)
+    _plugin.register_callback("mySignal", my_callback)
 
     msg = "Registering a callback failed"
     data = {"mySignal": [my_callback]}
-    assert "mySignal" in pyblish.plugin.registered_callbacks() == data, msg
+    assert "mySignal" in _plugin.registered_callbacks() == data, msg
 
-    pyblish.plugin.deregister_callback("mySignal", my_callback)
+    _plugin.deregister_callback("mySignal", my_callback)
 
     assert_raises(
         ValueError,
-        pyblish.plugin.deregister_callback,
+        _plugin.deregister_callback,
         "mySignal", my_callback)
 
     assert_raises(
         KeyError,
-        pyblish.plugin.deregister_callback,
+        _plugin.deregister_callback,
         "notExist", my_callback)
 
     msg = "Deregistering a callback failed"
     data = {"mySignal": []}
-    assert pyblish.plugin.registered_callbacks() == data, msg
+    assert _plugin.registered_callbacks() == data, msg
 
-    pyblish.plugin.register_callback("mySignal", my_callback)
-    pyblish.plugin.register_callback("otherSignal", other_callback)
-    pyblish.plugin.deregister_all_callbacks()
+    _plugin.register_callback("mySignal", my_callback)
+    _plugin.register_callback("otherSignal", other_callback)
+    _plugin.deregister_all_callbacks()
 
     msg = "Deregistering all callbacks failed"
-    assert pyblish.plugin.registered_callbacks() == {}, msg
+    assert _plugin.registered_callbacks() == {}, msg
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -451,10 +453,10 @@ def test_emit_signal_wrongly():
     def other_callback(an_argument=None):
         print("Ping from 'other_callback' with %s" % an_argument)
 
-    pyblish.plugin.register_callback("otherSignal", other_callback)
+    _plugin.register_callback("otherSignal", other_callback)
 
     with lib.captured_stderr() as stderr:
-        pyblish.lib.emit("otherSignal", not_an_argument="")
+        api.emit("otherSignal", not_an_argument="")
         output = stderr.getvalue().strip()
         print("Output: %s" % stderr.getvalue())
         assert output.startswith("Traceback")
@@ -464,52 +466,52 @@ def test_emit_signal_wrongly():
 @with_setup(lib.setup_empty, lib.teardown)
 def test_registering_invalid_callback():
     """Can't register non-callables"""
-    pyblish.plugin.register_callback("invalid", None)
+    _plugin.register_callback("invalid", None)
 
 
 @raises(KeyError)
 def test_deregistering_nonexisting_callback():
     """Can't deregister a callback that doesn't exist"""
-    pyblish.plugin.deregister_callback("invalid", lambda: "")
+    _plugin.deregister_callback("invalid", lambda: "")
 
 
 @raises(TypeError)
 def test_register_noncallable_plugin():
     """Registered plug-ins must be callable"""
-    pyblish.plugin.register_plugin("NotValid")
+    _plugin.register_plugin("NotValid")
 
 
 @raises(TypeError)
 def test_register_old_plugin():
     """Can't register plug-ins incompatible with the version of Pyblish"""
-    class MyPlugin(pyblish.plugin.Collector):
+    class MyPlugin(_plugin.Collector):
         requires = "pyblish==0"
 
-    pyblish.plugin.register_plugin(MyPlugin)
+    _plugin.register_plugin(MyPlugin)
 
 
-@mock.patch("pyblish.plugin.__explicit_process")
+@mock.patch("pyblish._plugin.__explicit_process")
 def test_implicit_explicit_branching(func):
     """Explicit plug-ins are processed by the appropriate function"""
 
     # There are two mocks for this (see below); due to
     # @mock.patch.multiple being a dick.
 
-    class Explicit(pyblish.plugin.ContextPlugin):
+    class Explicit(_plugin.ContextPlugin):
         pass
 
-    pyblish.util.publish(plugins=[Explicit])
+    util.publish(plugins=[Explicit])
     assert func.call_count == 1, func.call_count
 
 
-@mock.patch("pyblish.plugin.__implicit_process")
+@mock.patch("pyblish._plugin.__implicit_process")
 def test_implicit_branching(func):
     """Implicit plug-ins are processed by the appropriate function"""
 
-    class Implicit(pyblish.plugin.Plugin):
+    class Implicit(_plugin.Plugin):
         pass
 
-    pyblish.util.publish(plugins=[Implicit])
+    util.publish(plugins=[Implicit])
     assert func.call_count == 1, func.call_count
 
 
@@ -518,8 +520,8 @@ def test_explicit_plugin():
 
     count = {"#": 0}
 
-    class Collector(pyblish.plugin.ContextPlugin):
-        order = pyblish.plugin.CollectorOrder
+    class Collector(_plugin.ContextPlugin):
+        order = _plugin.CollectorOrder
 
         def process(self, context):
             self.log.info("Collecting from ContextPlugin")
@@ -527,30 +529,30 @@ def test_explicit_plugin():
             i.data["family"] = "myFamily"
             count["#"] += 1
 
-    class Validator(pyblish.plugin.InstancePlugin):
-        order = pyblish.plugin.ValidatorOrder
+    class Validator(_plugin.InstancePlugin):
+        order = _plugin.ValidatorOrder
         families = ["myFamily"]
 
         def process(self, instance):
             assert instance.data["name"] == "MyInstance", "fail"
             count["#"] += 10
 
-    class ValidatorFailure(pyblish.plugin.InstancePlugin):
-        order = pyblish.plugin.ValidatorOrder
+    class ValidatorFailure(_plugin.InstancePlugin):
+        order = _plugin.ValidatorOrder
         families = ["myFamily"]
 
         def process(self, instance):
             count["#"] += 100
             assert "notexist" in instance.data, "fail"
 
-    class Extractor(pyblish.plugin.InstancePlugin):
-        order = pyblish.plugin.ExtractorOrder
+    class Extractor(_plugin.InstancePlugin):
+        order = _plugin.ExtractorOrder
         families = ["myFamily"]
 
         def process(self, instance):
             count["#"] += 1000
 
-    pyblish.util.publish(
+    util.publish(
         plugins=[
             Collector,
             Validator,
@@ -567,12 +569,12 @@ def test_context_plugin_wrong_arguments():
 
     count = {"#": 0}
 
-    class Collector(pyblish.plugin.InstancePlugin):
+    class Collector(_plugin.InstancePlugin):
         def process(self, context, instance):
             print("I won't run")
             count["#"] += 1
 
-    pyblish.util.publish(plugins=[Collector])
+    util.publish(plugins=[Collector])
     assert count["#"] == 0
 
 
@@ -581,18 +583,18 @@ def test_explicit_action():
 
     count = {"#": 0}
 
-    class MyAction(pyblish.plugin.Action):
+    class MyAction(_plugin.Action):
         def process(self, context):
             count["#"] += 1
 
-    class MyPlugin(pyblish.plugin.ContextPlugin):
+    class MyPlugin(_plugin.ContextPlugin):
         actions = [MyAction]
 
         def process(self, context):
             pass
 
-    context = pyblish.api.Context()
-    pyblish.plugin.process(
+    context = api.Context()
+    _plugin.process(
         plugin=MyPlugin,
         context=context,
         action=MyAction.id)
@@ -601,13 +603,13 @@ def test_explicit_action():
 def test_explicit_results():
     """Explicit plug-ins contain results"""
 
-    class Collector(pyblish.plugin.ContextPlugin):
-        order = pyblish.plugin.CollectorOrder
+    class Collector(_plugin.ContextPlugin):
+        order = _plugin.CollectorOrder
 
         def process(self, context):
             self.log.info("logged")
 
-    context = pyblish.util.publish(plugins=[Collector])
+    context = util.publish(plugins=[Collector])
     assert "results" in context.data
 
     result = context.data["results"][0]
@@ -625,14 +627,14 @@ def test_cooperative_collection():
 
     count = {"#": 0}
 
-    class CollectorA(pyblish.api.Collector):
+    class CollectorA(api.Collector):
         order = 0.0
 
         def process(self, context):
             context.create_instance("myInstance")
             count["#"] += 1
 
-    class CollectorB(pyblish.api.Collector):
+    class CollectorB(api.Collector):
         order = 0.1
 
         def process(self, context):
@@ -641,10 +643,10 @@ def test_cooperative_collection():
             # This should run
             count["#"] += 10
 
-    pyblish.api.register_plugin(CollectorA)
-    pyblish.api.register_plugin(CollectorB)
+    api.register_plugin(CollectorA)
+    api.register_plugin(CollectorB)
 
-    pyblish.util.publish()
+    util.publish()
 
     assert count["#"] == 11, count
 
@@ -654,27 +656,27 @@ def test_actions_and_explicit_plugins():
 
     count = {"#": 0}
 
-    class MyAction(pyblish.api.Action):
+    class MyAction(api.Action):
         def process(self, context, plugin):
             count["#"] += 1
             raise Exception("Errored")
 
-    class MyValidator(pyblish.api.InstancePlugin):
-        order = pyblish.api.ValidatorOrder
+    class MyValidator(api.InstancePlugin):
+        order = api.ValidatorOrder
 
         actions = [
-            pyblish.api.Category("Scene"),
+            api.Category("Scene"),
             MyAction
         ]
 
         def process(self, instance):
             count["#"] += 10
 
-    context = pyblish.api.Context()
-    result = pyblish.plugin.process(MyValidator,
-                                    context,
-                                    instance=None,
-                                    action=MyAction.id)
+    context = api.Context()
+    result = _plugin.process(MyValidator,
+                             context,
+                             instance=None,
+                             action=MyAction.id)
     assert count["#"] == 1
     assert str(result["error"]) == "Errored", result
 
@@ -684,12 +686,12 @@ def test_argumentless_plugin():
     """Plug-ins with neither instance nor context should still run"""
     count = {"#": 0}
 
-    class MyPlugin(pyblish.api.Validator):
+    class MyPlugin(api.Validator):
         def process(self):
             count["#"] += 1
 
-    pyblish.api.register_plugin(MyPlugin)
-    pyblish.util.publish()
+    api.register_plugin(MyPlugin)
+    util.publish()
 
     assert count["#"] == 1
 
@@ -697,17 +699,17 @@ def test_argumentless_plugin():
 @with_setup(lib.setup_empty, lib.teardown)
 def test_argumentless_explitic_plugin():
     """Explicit plug-ins, without arguments, should fail"""
-    class MyPlugin(pyblish.api.InstancePlugin):
+    class MyPlugin(api.InstancePlugin):
         def process(self):
             pass
 
-    raises(TypeError, pyblish.api.register_plugin, MyPlugin)
+    raises(TypeError, api.register_plugin, MyPlugin)
 
-    class MyPlugin(pyblish.api.ContextPlugin):
+    class MyPlugin(api.ContextPlugin):
         def process(self):
             pass
 
-    raises(TypeError, pyblish.api.register_plugin, MyPlugin)
+    raises(TypeError, api.register_plugin, MyPlugin)
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -718,17 +720,17 @@ def test_changes_to_registered_plugins_are_not_persistent():
 
     """
 
-    class MyPlugin(pyblish.api.ContextPlugin):
+    class MyPlugin(api.ContextPlugin):
         active = False
 
-    pyblish.api.register_plugin(MyPlugin)
+    api.register_plugin(MyPlugin)
 
-    registered = pyblish.api.registered_plugins()[0]
+    registered = api.registered_plugins()[0]
     assert registered.id == MyPlugin.id
     assert registered.active is False
 
     registered.active = True
     assert registered.active is True
 
-    registered = pyblish.api.registered_plugins()[0]
+    registered = api.registered_plugins()[0]
     assert registered.active is False

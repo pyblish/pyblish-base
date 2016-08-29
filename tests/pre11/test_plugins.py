@@ -4,7 +4,7 @@ import os
 import random
 
 # Local library
-import pyblish.plugin
+from pyblish import api, _plugin, _logic
 
 from .lib import (
     setup,
@@ -23,7 +23,7 @@ from nose.tools import (
 @with_setup(setup, teardown)
 def test_print_plugin():
     """Printing plugin returns name of class"""
-    plugins = pyblish.plugin.discover('validators')
+    plugins = _plugin.discover('validators')
     plugin = plugins[0]
     assert plugin.__name__ in repr(plugin())
     assert plugin.__name__ == str(plugin())
@@ -32,7 +32,7 @@ def test_print_plugin():
 @with_setup(setup, teardown)
 def test_name_override():
     """Instances return either a data-member of name or its native name"""
-    inst = pyblish.plugin.Instance(name='my_name')
+    inst = _plugin.Instance(name='my_name')
     assert inst.data('name') == 'my_name'
 
     inst.set_data('name', value='overridden_name')
@@ -42,10 +42,10 @@ def test_name_override():
 @with_setup(setup_duplicate, teardown)
 def test_no_duplicate_plugins():
     """Discovering plugins results in a single occurence of each plugin"""
-    plugin_paths = pyblish.plugin.plugin_paths()
+    plugin_paths = _plugin.plugin_paths()
     assert_equals(len(plugin_paths), 2)
 
-    plugins = pyblish.plugin.discover(type='selectors')
+    plugins = _plugin.discover(type='selectors')
 
     # There are two plugins available, but one of them is
     # hidden under the duplicate module name. As a result,
@@ -56,18 +56,18 @@ def test_no_duplicate_plugins():
 
 def test_entities_prints_nicely():
     """Entities Context and Instance prints nicely"""
-    ctx = pyblish.plugin.Context()
+    ctx = _plugin.Context()
     inst = ctx.create_instance(name='Test')
     assert 'Instance' in repr(inst)
-    assert 'pyblish.plugin' in repr(inst)
+    assert '_plugin' in repr(inst)
 
 
 def test_deregister_path():
     path = "/server/plugins"
-    pyblish.plugin.register_plugin_path(path)
-    assert path in pyblish.plugin.registered_paths()
-    pyblish.plugin.deregister_plugin_path(path)
-    assert path not in pyblish.plugin.registered_paths()
+    _plugin.register_plugin_path(path)
+    assert path in _plugin.registered_paths()
+    _plugin.deregister_plugin_path(path)
+    assert path not in _plugin.registered_paths()
 
 
 def test_environment_paths():
@@ -78,13 +78,13 @@ def test_environment_paths():
 
     try:
         os.environ[key] = path
-        assert path in pyblish.plugin.plugin_paths()
+        assert path in _plugin.plugin_paths()
     finally:
         os.environ[key] = existing or ''
 
 
 def test_instances_by_plugin_invariant():
-    ctx = pyblish.plugin.Context()
+    ctx = _plugin.Context()
     for i in range(10):
         inst = ctx.create_instance(name="Instance%i" % i)
         inst.set_data("family", "A")
@@ -93,14 +93,14 @@ def test_instances_by_plugin_invariant():
             # Every other instance is of another family
             inst.set_data("family", "B")
 
-    class MyPlugin(pyblish.plugin.Validator):
+    class MyPlugin(_plugin.Validator):
         hosts = ["python"]
         families = ["A"]
 
         def process(self, instance):
             pass
 
-    compatible = pyblish.logic.instances_by_plugin(ctx, MyPlugin)
+    compatible = _logic.instances_by_plugin(ctx, MyPlugin)
 
     # Test invariant
     #
@@ -124,22 +124,22 @@ def test_instances_by_plugin_invariant():
 def test_plugins_by_family_wildcard():
     """Plug-ins with wildcard family is included in every query"""
     Plugin1 = type("Plugin1",
-                   (pyblish.api.Validator,),
+                   (api.Validator,),
                    {"families": ["myFamily"]})
     Plugin2 = type("Plugin2",
-                   (pyblish.api.Validator,),
+                   (api.Validator,),
                    {"families": ["*"]})
 
-    assert Plugin2 in pyblish.api.plugins_by_family(
+    assert Plugin2 in api.plugins_by_family(
         [Plugin1, Plugin2], "myFamily")
 
 
 @with_setup(setup, teardown)
 def test_plugins_sorted():
     """Plug-ins are returned sorted by their `order` attribute"""
-    plugins = pyblish.api.discover()
+    plugins = api.discover()
     random.shuffle(plugins)  # Randomise their order
-    pyblish.api.sort_plugins(plugins)
+    api.sort_plugins(plugins)
 
     order = 0
     for plugin in plugins:
@@ -153,19 +153,19 @@ def test_plugins_sorted():
 def test_inmemory_plugins():
     """In-memory plug-ins works fine"""
 
-    class InMemoryPlugin(pyblish.api.Selector):
+    class InMemoryPlugin(api.Selector):
         hosts = ["*"]
         families = ["*"]
 
         def process_context(self, context):
             context.set_data("workingFine", True)
 
-    pyblish.api.register_plugin(InMemoryPlugin)
+    api.register_plugin(InMemoryPlugin)
 
-    context = pyblish.api.Context()
-    for result in pyblish.logic.process(
-            func=pyblish.plugin.process,
-            plugins=pyblish.api.discover,
+    context = api.Context()
+    for result in _logic.process(
+            func=_plugin.process,
+            plugins=api.discover,
             context=context):
         assert_true(result["plugin"].id == InMemoryPlugin.id)
 
@@ -176,28 +176,28 @@ def test_inmemory_plugins():
 def test_inmemory_query():
     """Asking for registered plug-ins works well"""
 
-    InMemoryPlugin = type("InMemoryPlugin", (pyblish.api.Selector,), {})
-    pyblish.api.register_plugin(InMemoryPlugin)
-    assert pyblish.api.registered_plugins()[0].id == InMemoryPlugin.id
+    InMemoryPlugin = type("InMemoryPlugin", (api.Selector,), {})
+    api.register_plugin(InMemoryPlugin)
+    assert api.registered_plugins()[0].id == InMemoryPlugin.id
 
 
 @with_setup(setup_empty, teardown)
 def test_plugin_families_defaults():
     """Plug-ins without specific families default to wildcard"""
 
-    class SelectInstances(pyblish.api.Selector):
+    class SelectInstances(api.Selector):
         def process(self, instance):
             pass
 
-    instance = pyblish.api.Instance("MyInstance")
+    instance = api.Instance("MyInstance")
     instance.set_data("family", "SomeFamily")
 
-    assert_equals(pyblish.api.instances_by_plugin(
+    assert_equals(api.instances_by_plugin(
         [instance], SelectInstances)[0], instance)
 
-    class ValidateInstances(pyblish.api.Validator):
+    class ValidateInstances(api.Validator):
         def process(self, instance):
             pass
 
-    assert_equals(pyblish.api.instances_by_plugin(
+    assert_equals(api.instances_by_plugin(
         [instance], ValidateInstances)[0], instance)

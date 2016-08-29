@@ -33,8 +33,8 @@ from . import (
     _registered_targets,
 )
 
-from . import lib
-from .vendor import iscompatible, six
+from . import _lib as lib
+from ._vendor import iscompatible, six
 
 log = logging.getLogger("pyblish.plugin")
 

@@ -7,7 +7,7 @@ path = os.path.dirname(__file__)
 sys.path.insert(0, path)
 
 import nose
-from pyblish.vendor import mock
+from pyblish._vendor import mock
 
 warnings.warn = mock.MagicMock()
 

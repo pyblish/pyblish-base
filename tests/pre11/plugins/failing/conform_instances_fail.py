@@ -2,7 +2,7 @@
 
 
 import pyblish.api
-from pyblish.vendor import mock
+from pyblish._vendor import mock
 
 api = mock.MagicMock()
 

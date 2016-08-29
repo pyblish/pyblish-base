@@ -7,7 +7,7 @@ import logging
 import warnings
 
 # Local library
-from . import api, logic, plugin, lib
+from . import api, _logic, _plugin
 
 log = logging.getLogger("pyblish.util")
 
@@ -26,7 +26,7 @@ def publish(context=None, plugins=None):
             defaults to results of discover()
 
     Usage:
-        >> context = plugin.Context()
+        >> context = _plugin.Context()
         >> publish(context)     # Pass..
         >> context = publish()  # ..or receive a new
 
@@ -38,14 +38,14 @@ def publish(context=None, plugins=None):
 
     # Do not consider inactive plug-ins
     plugins = list(p for p in plugins if p.active)
-    collectors = list(p for p in plugins if lib.inrange(
+    collectors = list(p for p in plugins if api.inrange(
         number=p.order,
         base=api.CollectorOrder)
     )
 
     # First pass, collection
-    for Plugin, instance in logic.Iterator(collectors, context):
-        plugin.process(Plugin, context, instance)
+    for Plugin, instance in _logic.Iterator(collectors, context):
+        _plugin.process(Plugin, context, instance)
 
     # Exclude collectors from further processing
     plugins = list(p for p in plugins if p not in collectors)
@@ -54,7 +54,7 @@ def publish(context=None, plugins=None):
     # least one compatible instance.
     for Plugin in list(plugins):
         if Plugin.__instanceEnabled__:
-            if not logic.instances_by_plugin(context, Plugin):
+            if not _logic.instances_by_plugin(context, Plugin):
                 plugins.remove(Plugin)
 
     # Mutable state, used in Iterator
@@ -64,9 +64,9 @@ def publish(context=None, plugins=None):
     }
 
     # Second pass, the remainder
-    for Plugin, instance in logic.Iterator(plugins, context, state):
+    for Plugin, instance in _logic.Iterator(plugins, context, state):
         try:
-            result = plugin.process(Plugin, context, instance)
+            result = _plugin.process(Plugin, context, instance)
 
         except StopIteration:  # End of items
             raise
@@ -157,7 +157,7 @@ def integrate(context=None, plugins=None):
 def _convenience(order, context=None, plugins=None):
     plugins = list(
         p for p in (api.discover() if plugins is None else plugins)
-        if lib.inrange(p.order, order)
+        if api.inrange(p.order, order)
     )
 
     return publish(context, plugins)

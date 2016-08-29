@@ -1,7 +1,6 @@
 from . import lib
 
-import pyblish.lib
-import pyblish.compat
+from pyblish import _compat
 from nose.tools import (
     with_setup
 )
@@ -10,5 +9,5 @@ from nose.tools import (
 @with_setup(lib.setup, lib.teardown)
 def test_compat():
     """Using compatibility functions works"""
-    pyblish.compat.sort([])
-    pyblish.compat.deregister_all()
+    _compat.sort([])
+    _compat.deregister_all()

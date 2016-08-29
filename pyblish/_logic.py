@@ -4,8 +4,8 @@ import sys
 import logging
 import traceback
 
-from . import _registered_test, _registered_gui, lib
-from .plugin import Validator
+from . import _registered_test, _registered_gui, _lib as lib
+from ._plugin import Validator
 
 
 log = logging.getLogger("pyblish.logic")
