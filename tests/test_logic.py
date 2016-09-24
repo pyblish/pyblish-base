@@ -1,3 +1,5 @@
+import os
+import contextlib
 
 # Local library
 from . import lib
@@ -7,6 +9,15 @@ from pyblish import api, logic, plugin
 from nose.tools import (
     with_setup
 )
+
+
+@contextlib.contextmanager
+def no_guis():
+    os.environ.pop("PYBLISHGUI", None)
+    for gui in logic.registered_guis():
+        logic.deregister_gui(gui)
+
+    yield
 
 
 @with_setup(lib.setup, lib.teardown)
@@ -53,3 +64,14 @@ def test_iterator():
 
     # Collector runs once, one Validator runs once
     assert count["#"] == 101, count
+
+
+def test_register_gui():
+    """Registering at run-time takes precedence over those from environment"""
+    
+    with no_guis():
+        os.environ["PYBLISHGUI"] = "second,third"
+        logic.register_gui("first")
+
+        print(logic.registered_guis())
+        assert logic.registered_guis() == ["first", "second", "third"]
