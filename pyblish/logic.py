@@ -1,5 +1,6 @@
 """Shared processing logic"""
 
+import os
 import sys
 import logging
 import traceback
@@ -121,14 +122,16 @@ def register_gui(package):
 
 def registered_guis():
     """Return registered GUIs"""
-    return list(_registered_gui)
+    from_environment = os.environ.get("PYBLISHGUI", "")
+    from_environment = list(gui for gui in from_environment.split(",") if gui)
+    return _registered_gui[:] + from_environment
 
 
 def deregister_gui(package):
     try:
         _registered_gui.remove(package)
-    except IndexError:
-        raise IndexError("%s has not been registered." % package)
+    except ValueError:
+        raise ValueError("\"%s\" has not been registered." % package)
 
 
 def plugins_by_family(plugins, family):
