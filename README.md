@@ -59,6 +59,7 @@ $ export PYTHONPATH=$(pwd)/pyblish-base
 Refer to the [getting started guide](http://learn.pyblish.com) for a gentle introduction to the framework and [the forums](http://forums.pyblish.com) for tips and tricks.
 
 - [Learn Pyblish By Example](http://learn.pyblish.com)
+- [Pyblish Starter - an example pipeline](http://pyblish.com/pyblish-starter)
 - [Forums](http://forums.pyblish.com)
 
 [travis-image]: https://travis-ci.org/pyblish/pyblish-base.svg?branch=master
