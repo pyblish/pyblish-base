@@ -1,5 +1,7 @@
 import os
 import sys
+import new
+import weakref
 import logging
 import datetime
 import warnings
@@ -227,7 +229,7 @@ def main_package_path():
 
 
 def emit(signal, **kwargs):
-    """Trigger registered callbacks
+    """Trigger registered handlers
 
     Keyword arguments are passed from caller to callee.
 
@@ -236,18 +238,25 @@ def emit(signal, **kwargs):
 
     Example:
         >>> import sys
-        >>> from . import plugin
-        >>> plugin.register_callback(
-        ...   "mysignal", lambda data: sys.stdout.write(str(data)))
+        >>> def myhandler(data):
+        ...     sys.stdout.write(str(data))
+        ...
+        >>> register_handler("mysignal", myhandler)
         ...
         >>> emit("mysignal", data={"something": "cool"})
         {'something': 'cool'}
 
     """
 
-    for callback in _registered_handlers.get(signal, []):
+    for handler in _registered_handlers.get(signal, {}).values():
         try:
-            callback(**kwargs)
+            handler(**kwargs)
+
+        except ReferenceError:
+            # Ignore end-of-life references
+            print("not calling %s" % signal)
+            pass
+
         except Exception:
             file = six.StringIO()
             traceback.print_exc(file=file)
@@ -260,6 +269,78 @@ def emit(signal, **kwargs):
             # handling so there is likely a better way to solve this.
             #
             # TODO(marcus): Make it prettier
+
+
+def on(signal, handler):
+    return register_handler(signal, handler)
+
+
+def register_handler(signal, handler):
+    """Register a new handler
+
+    Arguments:
+        signal (string): Name of signal to register the handler with.
+        handler (func): Function to execute when a signal is emitted.
+
+    Raises:
+        ValueError if `handler` is not callable.
+
+    """
+
+    if not hasattr(handler, "__call__"):
+        raise ValueError("%s must be callable" % handler)
+
+    if signal not in _registered_handlers:
+        # Need to store in a dictionary so as to
+        # enable removal via deregister_handler,
+        # since the actual function is not comparable
+        # to its weak reference equivalent.
+
+        _registered_handlers[signal] = weakref.WeakValueDictionary()
+
+    name = handler.__name__
+    handlers = _registered_handlers[signal]
+
+    if name in handlers:
+        raise ValueError(
+            "Callback by this name already registered: \"%s\"" % name
+        )
+
+    # Use weak reference such that connected handlers
+    # can safely be garbage collected without interference
+    # from observers.
+    handlers[name] = handler
+
+
+def deregister_handler(signal, handler):
+    """Deregister a handler
+
+    Arguments:
+        signal (string): Name of signal to deregister the handler with.
+        handler (func): Function to execute when a signal is emitted.
+
+    Raises:
+        KeyError on missing signal or handler
+
+    """
+
+    _registered_handlers[signal].pop(handler.__name__)
+
+    # Erase empty member
+    if not _registered_handlers[signal]:
+        _registered_handlers.pop(signal)
+
+
+def deregister_all_handlers():
+    """Deregisters all handler"""
+
+    _registered_handlers.clear()
+
+
+def registered_handlers():
+    """Returns registered handlers"""
+
+    return _registered_handlers.keys()
 
 
 def deprecated(func):
@@ -279,3 +360,71 @@ def deprecated(func):
                 lineno=func.func_code.co_firstlineno + 1)
         return func(*args, **kwargs)
     return wrapper
+
+
+class WeakRef(object):
+    """Alternative weak reference with support for instancemethods
+
+    Usage:
+        >>> import weakref
+        >>> class MyClass(object):
+        ...   def func(self):
+        ...     pass
+        ...
+        >>> inst = MyClass()
+        >>> ref = weakref.ref(inst.func)
+        >>> assert ref() is None
+        True
+        >>> ref = WeakRef(inst.func)
+        >>> assert ref() is None
+        False
+
+    """
+
+    def __init__(self, method):
+        try:
+            if method.im_self is not None:
+                # Bound method
+                self._obj = weakref.ref(method.im_self)
+            else:
+                # Unbound method
+                self._obj = None
+
+            self._func = method.im_func
+            self._class = method.im_class
+
+        except AttributeError:
+            # Not a method
+            self._obj = None
+            self._class = None
+            self._func = method
+
+    def __call__(self):
+        if self.is_dead():
+            return None
+
+        if self._obj is None:
+            # We don't have an instance: return just the function
+            return self._func
+
+        # We have an instance: return a bound method
+        return new.instancemethod(self._func, self._obj(), self._class)
+
+    def is_dead(self):
+        """Is the reference dead?
+
+        Returns True if the referenced callable was a bound method and
+        the instance no longer exists. Otherwise, return False.
+
+        """
+
+        return self._obj is not None and self._obj() is None
+
+    def __eq__(self, other):
+        try:
+            return type(self) is type(other) and self() == other()
+        except:
+            return False
+
+    def __ne__(self, other):
+        return not self == other

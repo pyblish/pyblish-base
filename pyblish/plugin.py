@@ -14,12 +14,12 @@ with "validate" and ends with ".py"
 import os
 import sys
 import time
+import uuid
 import types
 import logging
 import inspect
 import warnings
 import contextlib
-import uuid
 
 # Local library
 from . import (
@@ -836,59 +836,6 @@ def current_host():
     """
 
     return _registered_hosts[-1] if _registered_hosts else "unknown"
-
-
-def on(signal, handler):
-    """Convenience function for register_handler"""
-    register_handler(signal, handler)
-
-
-def register_handler(signal, handler):
-    """Register a new handler
-
-    Arguments:
-        signal (string): Name of signal to register the handler with.
-        handler (func): Function to execute when a signal is emitted.
-
-    Raises:
-        ValueError if `handler` is not callable.
-
-    """
-
-    if not hasattr(handler, "__call__"):
-        raise ValueError("%s is not callable" % handler)
-
-    if signal in _registered_handlers:
-        _registered_handlers[signal].append(handler)
-    else:
-        _registered_handlers[signal] = [handler]
-
-
-def deregister_handler(signal, handler):
-    """Deregister a handler
-
-    Arguments:
-        signal (string): Name of signal to deregister the handler with.
-        handler (func): Function to execute when a signal is emitted.
-
-    Raises:
-        KeyError on missing signal
-        ValueError on missing handler
-    """
-
-    _registered_handlers[signal].remove(handler)
-
-
-def deregister_all_handlers():
-    """Deregisters all handler"""
-
-    _registered_handlers.clear()
-
-
-def registered_handlers():
-    """Returns registered handlers"""
-
-    return _registered_handlers
 
 
 def register_plugin(plugin):

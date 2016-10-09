@@ -69,11 +69,6 @@ from .plugin import (
     deregister_all_services,
     registered_services,
 
-    register_handler,
-    deregister_handler,
-    deregister_all_handlers,
-    registered_handlers,
-
     sort as sort_plugins,
 
     registered_paths,
@@ -85,8 +80,14 @@ from .lib import (
     log,
     time as __time,
     emit,
-    main_package_path as __main_package_path
+    main_package_path as __main_package_path,
+
+    register_handler,
+    deregister_handler,
+    deregister_all_handlers,
+    registered_handlers,
 )
+
 
 from .logic import (
     plugins_by_family,
