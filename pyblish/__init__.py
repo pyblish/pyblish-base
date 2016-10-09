@@ -10,7 +10,7 @@ from .version import version, version_info, __version__
 
 
 _registered_paths = list()
-_registered_callbacks = dict()
+_registered_handlers = dict()
 _registered_plugins = dict()
 _registered_services = dict()
 _registered_test = dict()
@@ -24,7 +24,7 @@ __all__ = [
     "version_info",
     "__version__",
     "_registered_paths",
-    "_registered_callbacks",
+    "_registered_handlers",
     "_registered_plugins",
     "_registered_services",
     "_registered_test",

@@ -25,7 +25,7 @@ import uuid
 from . import (
     __version__,
     version_info,
-    _registered_callbacks,
+    _registered_handlers,
     _registered_services,
     _registered_plugins,
     _registered_hosts,
@@ -838,52 +838,57 @@ def current_host():
     return _registered_hosts[-1] if _registered_hosts else "unknown"
 
 
-def register_callback(signal, callback):
-    """Register a new callback
+def on(signal, handler):
+    """Convenience function for register_handler"""
+    register_handler(signal, handler)
+
+
+def register_handler(signal, handler):
+    """Register a new handler
 
     Arguments:
-        signal (string): Name of signal to register the callback with.
-        callback (func): Function to execute when a signal is emitted.
+        signal (string): Name of signal to register the handler with.
+        handler (func): Function to execute when a signal is emitted.
 
     Raises:
-        ValueError if `callback` is not callable.
+        ValueError if `handler` is not callable.
 
     """
 
-    if not hasattr(callback, "__call__"):
-        raise ValueError("%s is not callable" % callback)
+    if not hasattr(handler, "__call__"):
+        raise ValueError("%s is not callable" % handler)
 
-    if signal in _registered_callbacks:
-        _registered_callbacks[signal].append(callback)
+    if signal in _registered_handlers:
+        _registered_handlers[signal].append(handler)
     else:
-        _registered_callbacks[signal] = [callback]
+        _registered_handlers[signal] = [handler]
 
 
-def deregister_callback(signal, callback):
-    """Deregister a callback
+def deregister_handler(signal, handler):
+    """Deregister a handler
 
     Arguments:
-        signal (string): Name of signal to deregister the callback with.
-        callback (func): Function to execute when a signal is emitted.
+        signal (string): Name of signal to deregister the handler with.
+        handler (func): Function to execute when a signal is emitted.
 
     Raises:
         KeyError on missing signal
-        ValueError on missing callback
+        ValueError on missing handler
     """
 
-    _registered_callbacks[signal].remove(callback)
+    _registered_handlers[signal].remove(handler)
 
 
-def deregister_all_callbacks():
-    """Deregisters all callback"""
+def deregister_all_handlers():
+    """Deregisters all handler"""
 
-    _registered_callbacks.clear()
+    _registered_handlers.clear()
 
 
-def registered_callbacks():
-    """Returns registered callbacks"""
+def registered_handlers():
+    """Returns registered handlers"""
 
-    return _registered_callbacks
+    return _registered_handlers
 
 
 def register_plugin(plugin):

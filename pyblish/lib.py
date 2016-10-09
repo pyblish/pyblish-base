@@ -6,7 +6,7 @@ import warnings
 import traceback
 import functools
 
-from . import _registered_callbacks
+from . import _registered_handlers
 from .vendor import six
 
 
@@ -245,7 +245,7 @@ def emit(signal, **kwargs):
 
     """
 
-    for callback in _registered_callbacks.get(signal, []):
+    for callback in _registered_handlers.get(signal, []):
         try:
             callback(**kwargs)
         except Exception:
