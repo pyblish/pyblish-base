@@ -8,7 +8,6 @@ from nose.tools import (
     assert_true,
     assert_equals,
     assert_raises,
-    assert_in,
     raises,
 )
 
