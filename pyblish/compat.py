@@ -265,8 +265,7 @@ process.next_instance = None
 
 logic.process = process
 
-# Backwards compatibility
-lib.register_callback = lib.register_handler
-lib.deregister_callback = lib.deregister_handler
-lib.registered_callbacks = lib.registered_handlers
-lib.deregister_all_callbacks = lib.deregister_all_handlers
+register_callback = lib.register_handler
+deregister_callback = lib.deregister_handler
+registered_callbacks = lib.registered_handlers
+deregister_all_callbacks = lib.deregister_all_handlers

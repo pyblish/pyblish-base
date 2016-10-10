@@ -1,6 +1,6 @@
 import os
 import sys
-import new
+import types
 import weakref
 import logging
 import datetime
@@ -249,13 +249,13 @@ def emit(signal, **kwargs):
     """
 
     for handler in _registered_handlers.get(signal, {}).values():
+
         try:
-            handler(**kwargs)
+            handler()(**kwargs)
 
         except ReferenceError:
             # Ignore end-of-life references
-            print("not calling %s" % signal)
-            pass
+            _registered_handlers[signal].pop(handler)
 
         except Exception:
             file = six.StringIO()
@@ -269,10 +269,6 @@ def emit(signal, **kwargs):
             # handling so there is likely a better way to solve this.
             #
             # TODO(marcus): Make it prettier
-
-
-def on(signal, handler):
-    return register_handler(signal, handler)
 
 
 def register_handler(signal, handler):
@@ -296,20 +292,24 @@ def register_handler(signal, handler):
         # since the actual function is not comparable
         # to its weak reference equivalent.
 
-        _registered_handlers[signal] = weakref.WeakValueDictionary()
+        _registered_handlers[signal] = {}
 
     name = handler.__name__
     handlers = _registered_handlers[signal]
 
     if name in handlers:
         raise ValueError(
-            "Callback by this name already registered: \"%s\"" % name
+            "Callback \"%s\" already registered." % name
         )
 
     # Use weak reference such that connected handlers
     # can safely be garbage collected without interference
     # from observers.
-    handlers[name] = handler
+    handlers[name] = WeakRef(handler)
+
+
+# Alias
+on = register_handler
 
 
 def deregister_handler(signal, handler):
@@ -340,7 +340,7 @@ def deregister_all_handlers():
 def registered_handlers():
     """Returns registered handlers"""
 
-    return _registered_handlers.keys()
+    return list(_registered_handlers.keys())
 
 
 def deprecated(func):
@@ -362,69 +362,164 @@ def deprecated(func):
     return wrapper
 
 
-class WeakRef(object):
-    """Alternative weak reference with support for instancemethods
+if six.PY2:
+    class WeakRef(object):
+        """Alternative weak reference with support for instancemethods
 
-    Usage:
-        >>> import weakref
-        >>> class MyClass(object):
-        ...   def func(self):
-        ...     pass
-        ...
-        >>> inst = MyClass()
-        >>> ref = weakref.ref(inst.func)
-        >>> assert ref() is None
-        True
-        >>> ref = WeakRef(inst.func)
-        >>> assert ref() is None
-        False
-
-    """
-
-    def __init__(self, method):
-        try:
-            if method.im_self is not None:
-                # Bound method
-                self._obj = weakref.ref(method.im_self)
-            else:
-                # Unbound method
-                self._obj = None
-
-            self._func = method.im_func
-            self._class = method.im_class
-
-        except AttributeError:
-            # Not a method
-            self._obj = None
-            self._class = None
-            self._func = method
-
-    def __call__(self):
-        if self.is_dead():
-            return None
-
-        if self._obj is None:
-            # We don't have an instance: return just the function
-            return self._func
-
-        # We have an instance: return a bound method
-        return new.instancemethod(self._func, self._obj(), self._class)
-
-    def is_dead(self):
-        """Is the reference dead?
-
-        Returns True if the referenced callable was a bound method and
-        the instance no longer exists. Otherwise, return False.
+        Usage:
+            >>> import weakref
+            >>> class MyClass(object):
+            ...   def func(self):
+            ...     pass
+            ...
+            >>> inst = MyClass()
+            >>> ref = weakref.ref(inst.func)
+            >>> ref() is None
+            True
+            >>> ref = WeakRef(inst.func)
+            >>> ref() is None
+            False
 
         """
 
-        return self._obj is not None and self._obj() is None
+        def __init__(self, func):
+            try:
+                if func.__self__ is not None:
+                    self._instance = weakref.ref(func.__self__)
+                else:
+                    # Unbound method
+                    self._instance = None
 
-    def __eq__(self, other):
-        try:
-            return type(self) is type(other) and self() == other()
-        except:
-            return False
+                self._func = weakref.ref(func.__func__)
+                self._class = weakref.ref(func.__class__)
 
-    def __ne__(self, other):
-        return not self == other
+            except AttributeError:
+                # Not a method
+                self._instance = None
+                self._class = None
+                self._func = weakref.ref(func)
+
+        def __call__(self):
+            if self.is_dead():
+                return None
+
+            if self._instance is None:
+                return self._func()
+
+            return types.MethodType(self._func(),
+                                    self._instance(),
+                                    self._class())
+
+        def is_dead(self):
+            """Is the reference dead?
+
+            Returns True if the referenced callable was a bound method and
+            the instance no longer exists. Otherwise, return False.
+
+            Usage:
+                >>> class Object(object):
+                ...   def func(self):
+                ...     pass
+                ...
+                >>> o = Object()
+                >>> weak_func = WeakRef(o.func)
+                >>> weak_func.is_dead()
+                False
+                >>> del(o)
+                >>> weak_func.is_dead()
+                True
+
+            """
+
+            return self._instance is not None and self._instance() is None
+
+        def __eq__(self, other):
+            """Compare weak references against each other
+
+            Example:
+                >>> def func_a():
+                ...   pass
+                ...
+                >>> def func_b():
+                ...   pass
+                ...
+                >>> weak_a1 = WeakRef(func_a)
+                >>> weak_a2 = WeakRef(func_a)
+                >>> weak_b = WeakRef(func_b)
+                >>> weak_a1 == weak_a2
+                True
+                >>> weak_b == weak_a1
+                False
+
+            """
+
+            try:
+                return type(self) is type(other) and self() == other()
+            except:
+                return False
+
+        def __ne__(self, other):
+            return not self == other
+
+else:
+    class WeakRef:
+        def __init__(self, func):
+            try:
+                func.__self__
+                self._func = weakref.WeakMethod(func)
+            except AttributeError:
+                self._func = weakref.ref(func)
+
+        def __call__(self):
+            return self._func()
+
+        def is_dead(self):
+            """Is the reference dead?
+
+            Returns True if the referenced callable was a bound method and
+            the instance no longer exists. Otherwise, return False.
+
+            Usage:
+                >>> class Object(object):
+                ...   def func(self):
+                ...     pass
+                ...
+                >>> o = Object()
+                >>> weak_func = WeakRef(o.func)
+                >>> weak_func.is_dead()
+                False
+                >>> del(o)
+                >>> weak_func.is_dead()
+                True
+
+            """
+
+            return self._func() is None
+
+        def __eq__(self, other):
+            """Compare weak references against each other
+
+            Example:
+                >>> def func_a():
+                ...   pass
+                ...
+                >>> def func_b():
+                ...   pass
+                ...
+                >>> weak_a1 = WeakRef(func_a)
+                >>> weak_a2 = WeakRef(func_a)
+                >>> weak_b = WeakRef(func_b)
+                >>> weak_a1 == weak_a2
+                True
+                >>> weak_b == weak_a1
+                False
+
+            """
+
+            try:
+                return type(self) is type(other) and self() == other()
+            except:
+                return False
+
+        def __ne__(self, other):
+            return not self == other

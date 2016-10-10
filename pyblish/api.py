@@ -77,6 +77,7 @@ from .plugin import (
 )
 
 from .lib import (
+    on,
     log,
     time as __time,
     emit,
@@ -203,6 +204,8 @@ __all__ = [
     "deregister_service",
     "deregister_all_services",
     "registered_services",
+
+    "on",
 
     "register_handler",
     "deregister_handler",

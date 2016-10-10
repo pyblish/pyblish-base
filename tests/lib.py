@@ -30,7 +30,7 @@ def setup_empty():
     pyblish.api.deregister_all_plugins()
     pyblish.api.deregister_all_paths()
     pyblish.api.deregister_all_hosts()
-    pyblish.api.deregister_all_callbacks()
+    pyblish.api.deregister_all_handlers()
 
 
 def teardown():
