@@ -2,7 +2,6 @@ import pyblish.api
 import pyblish.util
 from nose.tools import (
     with_setup,
-    assert_in,
     assert_raises,
     assert_equals,
 )
@@ -137,7 +136,7 @@ def test_register_handler():
 
     pyblish.api.on("mySignal", my_handler)
 
-    assert_in("mySignal", pyblish.api.registered_handlers())
+    assert "mySignal" in pyblish.api.registered_handlers()
 
     pyblish.api.deregister_handler("mySignal", my_handler)
 
