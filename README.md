@@ -20,11 +20,11 @@ Test-driven content creation for collaborative, creative projects.
 
 Pyblish is a modular framework, consisting of many sub-projects. This project contains the primary API upon which all other projects build.
 
-You may use this project as-is, or in conjunction with surrounding projects - such as [pyblish-maya][] for integration with Autodesk Maya, [pyblish-qml][] for a visual front-end and [pyblish-magenta][] for a starting point your publishing pipeline.
+You may use this project as-is, or in conjunction with surrounding projects - such as [pyblish-maya][] for integration with Autodesk Maya, [pyblish-qml][] for a visual front-end and [pyblish-starter][] for a starting point your publishing pipeline.
 
 [pyblish-maya]: https://github.com/pyblish/pyblish-maya
 [pyblish-qml]: https://github.com/pyblish/pyblish-qml
-[pyblish-magenta]: https://github.com/pyblish/pyblish-magenta
+[pyblish-starter]: http://pyblish.com/pyblish-starter
 
 - [Browse All Projects](https://github.com/pyblish)
 
