@@ -54,7 +54,8 @@ def publish(context=None, plugins=None):
     # least one compatible instance.
     for Plugin in list(plugins):
         if Plugin.__instanceEnabled__:
-            if not logic.instances_by_plugin(context, Plugin):
+            if (not logic.instances_by_plugin(context, Plugin) and
+                "*" not in Plugin.families):
                 plugins.remove(Plugin)
 
     # Mutable state, used in Iterator
