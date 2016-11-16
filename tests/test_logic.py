@@ -107,23 +107,12 @@ def test_subset_match():
 
 
 def test_subset_exact():
-    """Plugin.match = api.Exact works as expected
-
-    Notice the 'default' family in the plug-in. Instances are automatically
-    imbued with this family on creation, as value to their `data["family"]` key.
-
-    When using multiple families, it is common not to bother modifying `family`,
-    and in the future this member needn't be there at all and may/should be
-    removed. But till then, for complete clarity, it might be worth removing this
-    explicitly during the creation of instances if instead choosing to use the
-    `families` key.
-
-    """
+    """Plugin.match = api.Exact works as expected"""
 
     count = {"#": 0}
 
     class MyPlugin(api.InstancePlugin):
-        families = ["default", "a", "b"]
+        families = ["a", "b"]
         match = api.Exact
 
         def process(self, instance):
@@ -134,7 +123,16 @@ def test_subset_exact():
     context.create_instance("not_included_1", families=["a"])
     context.create_instance("not_included_1", families=["x"])
     context.create_instance("not_included_3", families=["a", "b", "c"])
-    context.create_instance("included_1", families=["a", "b"])
+    instance = context.create_instance("included_1", families=["a", "b"])
+
+    # Discard the solo-family member, which defaults to `default`.
+    #
+    # When using multiple families, it is common not to bother modifying `family`,
+    # and in the future this member needn't be there at all and may/should be
+    # removed. But till then, for complete clarity, it might be worth removing
+    # this explicitly during the creation of instances if instead choosing to
+    # use the `families` key.
+    instance.data.pop("family")
 
     util.publish(context, plugins=[MyPlugin])
 
