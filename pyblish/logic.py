@@ -241,7 +241,7 @@ def instances_by_plugin(instances, plugin):
     algorithm = {
         Intersection: lambda a, b: set(a).intersection(b),
         Subset: lambda a, b: set(a).issubset(b),
-        Exact: lambda a, b: a == b
+        Exact: lambda a, b: set(a) == set(b)
     }.get(plugin.match)
 
     compatible = list()
