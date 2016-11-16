@@ -40,6 +40,11 @@ log = logging.getLogger("pyblish.plugin")
 
 __metaclass__ = type  # Make all classes new-style
 
+# Matching algorithms
+Intersection = 1 << 0
+Subset = 1 << 1
+Exact = 1 << 2
+
 
 class Provider():
     """Dependency provider
@@ -212,6 +217,11 @@ class Plugin():
             will not be loaded. 1.0.8 was when :attr:`Plugin.requires`
             was first introduced.
         actions: Actions associated to this plug-in
+        id: Unique ID as str
+        match: Family matching algorithm - Intersection, Subset or Exact
+            Intersection -> set(a).intersection(b)
+            Subset       -> set(a).issubset(b)
+            Exact        -> a == b
 
     """
 
@@ -225,6 +235,7 @@ class Plugin():
     requires = "pyblish>=1"
     actions = []
     id = None  # Defined by metaclass
+    match = Intersection # Default matching algorithm
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -1363,6 +1374,15 @@ def plugin_is_valid(plugin):
 
     if hasattr(plugin, "__invalidSignature__"):
         log.debug("Invalid signature")
+        return False
+
+    if plugin.match not in (Intersection, Subset, Exact):
+        log.debug("'%s' not a supported family "
+                  "matching algorithm." % plugin.match)
+        log.debug("Options are "
+                  "pyblish.api.Intersection, "
+                  "pyblish.api.Subset and"
+                  "pyblish.api.Exact")
         return False
 
     return True

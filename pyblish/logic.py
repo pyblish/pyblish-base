@@ -6,7 +6,14 @@ import logging
 import traceback
 
 from . import _registered_test, _registered_gui, lib
-from .plugin import Validator
+from .plugin import (
+    Validator,
+
+    # Matchin algorithms
+    Intersection,
+    Subset,
+    Exact
+)
 
 
 log = logging.getLogger("pyblish.logic")
@@ -134,27 +141,6 @@ def deregister_gui(package):
         raise ValueError("\"%s\" has not been registered." % package)
 
 
-def plugins_by_family(plugins, family):
-    """Return compatible plugins `plugins` to family `family`
-
-    Arguments:
-        plugins (list): List of plugins
-        family (str): Family with which to compare against
-
-    Returns:
-        List of compatible plugins.
-
-    """
-
-    compatible = list()
-
-    for plugin in plugins:
-        if any(x in plugin.families for x in (family, "*")):
-            compatible.append(plugin)
-
-    return compatible
-
-
 def plugins_by_families(plugins, families):
     """Same as :func:`plugins_by_family` except it takes multiple families
 
@@ -176,6 +162,21 @@ def plugins_by_families(plugins, families):
     return compatible
 
 
+def plugins_by_family(plugins, family):
+    """Convenience function to :func:`plugins_by_families`
+
+    Arguments:
+        plugins (list): List of plugins
+        family (str): Family with which to compare against
+
+    Returns:
+        List of compatible plugins.
+
+    """
+
+    return plugins_by_families(plugins, [family])
+
+
 def plugins_by_instance(plugins, instance):
     """Conveinence function for :func:`plugins_by_family`
 
@@ -188,7 +189,10 @@ def plugins_by_instance(plugins, instance):
 
     """
 
-    return plugins_by_family(plugins, instance.data["family"])
+    family = instance.data["family"]
+    families = instance.data.get("families", [])
+
+    return plugins_by_families(plugins, [family] + families)
 
 
 def plugins_by_host(plugins, host):
@@ -216,6 +220,12 @@ def plugins_by_host(plugins, host):
 def instances_by_plugin(instances, plugin):
     """Return compatible instances `instances` to plugin `plugin`
 
+    Return instances as they correspond to a plug-in, given
+    an algorithm. The algorithm is determined by the `Plugin.match`
+
+    When `match == Subset`, families of an instance must be a
+    subset of families supported by a plug-in.
+
     Arguments:
         instances (list): List of instances
         plugin (Plugin): Plugin with which to compare against
@@ -228,15 +238,27 @@ def instances_by_plugin(instances, plugin):
 
     """
 
+    algorithm = {
+        Intersection: lambda a, b: set(a).intersection(b),
+        Subset: lambda a, b: set(a).issubset(b),
+        Exact: lambda a, b: a == b
+    }.get(plugin.match)
+
     compatible = list()
 
     for instance in instances:
-        family = instance.data["family"]
 
-        if any(x in plugin.families for x in (family, "*")):
+        if "*" in plugin.families:
             compatible.append(instance)
+            continue
 
-        elif set(plugin.families) & set(instance.data.get("families", [])):
+        assert algorithm, ("Plug-in did not provide "
+                           "valid matching algorithm: %s" % plugin.match)
+
+        families = [instance.data["family"]]
+        families += instance.data.get("families", [])
+
+        if algorithm(plugin.families, families):
             compatible.append(instance)
 
     return compatible
