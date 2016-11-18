@@ -27,6 +27,11 @@ from .plugin import (
     Category,
     Separator,
 
+    # Matching algorithms
+    Subset,
+    Intersection,
+    Exact,
+
     Asset,
     Plugin,
     Validator,

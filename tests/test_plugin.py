@@ -2,6 +2,7 @@ import os
 
 from pyblish.vendor import mock
 import pyblish.api
+import pyblish.util
 import pyblish.plugin
 from nose.tools import (
     with_setup,
@@ -712,7 +713,7 @@ def test_argumentless_explitic_plugin():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_changes_to_registered_plugins_are_not_persistent():
-    """Changes to registerd plug-ins do not persist
+    """Changes to registered plug-ins do not persist
 
     This is the expected behaviour of file-based plug-ins.
 

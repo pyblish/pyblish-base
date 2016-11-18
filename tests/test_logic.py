@@ -4,10 +4,11 @@ import contextlib
 # Local library
 from . import lib
 
-from pyblish import api, logic, plugin
+from pyblish import api, logic, plugin, util
 
 from nose.tools import (
-    with_setup
+    with_setup,
+    assert_equals,
 )
 
 
@@ -75,3 +76,67 @@ def test_register_gui():
 
         print(logic.registered_guis())
         assert logic.registered_guis() == ["first", "second", "third"]
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_subset_match():
+    """Plugin.match = api.Subset works as expected"""
+
+    count = {"#": 0}
+
+    class MyPlugin(api.InstancePlugin):
+        families = ["a", "b"]
+        match = api.Subset
+
+        def process(self, instance):
+            count["#"] += 1
+
+    context = api.Context()
+
+    context.create_instance("not_included_1", families=["a"])
+    context.create_instance("not_included_1", families=["x"])
+    context.create_instance("included_1", families=["a", "b"])
+    context.create_instance("included_2", families=["a", "b", "c"])
+
+    util.publish(context, plugins=[MyPlugin])
+
+    assert_equals(count["#"], 2)
+
+    instances = logic.instances_by_plugin(context, MyPlugin)
+    assert_equals(list(i.name for i in instances), ["included_1", "included_2"])
+
+
+def test_subset_exact():
+    """Plugin.match = api.Exact works as expected"""
+
+    count = {"#": 0}
+
+    class MyPlugin(api.InstancePlugin):
+        families = ["a", "b"]
+        match = api.Exact
+
+        def process(self, instance):
+            count["#"] += 1
+
+    context = api.Context()
+
+    context.create_instance("not_included_1", families=["a"])
+    context.create_instance("not_included_1", families=["x"])
+    context.create_instance("not_included_3", families=["a", "b", "c"])
+    instance = context.create_instance("included_1", families=["a", "b"])
+
+    # Discard the solo-family member, which defaults to `default`.
+    #
+    # When using multiple families, it is common not to bother modifying `family`,
+    # and in the future this member needn't be there at all and may/should be
+    # removed. But till then, for complete clarity, it might be worth removing
+    # this explicitly during the creation of instances if instead choosing to
+    # use the `families` key.
+    instance.data.pop("family")
+
+    util.publish(context, plugins=[MyPlugin])
+
+    assert_equals(count["#"], 1)
+
+    instances = logic.instances_by_plugin(context, MyPlugin)
+    assert_equals(list(i.name for i in instances), ["included_1"])
