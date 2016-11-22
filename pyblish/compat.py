@@ -264,3 +264,8 @@ process.next_plugin = None
 process.next_instance = None
 
 logic.process = process
+
+register_callback = lib.register_handler
+deregister_callback = lib.deregister_handler
+registered_callbacks = lib.registered_handlers
+deregister_all_callbacks = lib.deregister_all_handlers

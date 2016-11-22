@@ -14,18 +14,18 @@ with "validate" and ends with ".py"
 import os
 import sys
 import time
+import uuid
 import types
 import logging
 import inspect
 import warnings
 import contextlib
-import uuid
 
 # Local library
 from . import (
     __version__,
     version_info,
-    _registered_callbacks,
+    _registered_handlers,
     _registered_services,
     _registered_plugins,
     _registered_hosts,
@@ -847,54 +847,6 @@ def current_host():
     """
 
     return _registered_hosts[-1] if _registered_hosts else "unknown"
-
-
-def register_callback(signal, callback):
-    """Register a new callback
-
-    Arguments:
-        signal (string): Name of signal to register the callback with.
-        callback (func): Function to execute when a signal is emitted.
-
-    Raises:
-        ValueError if `callback` is not callable.
-
-    """
-
-    if not hasattr(callback, "__call__"):
-        raise ValueError("%s is not callable" % callback)
-
-    if signal in _registered_callbacks:
-        _registered_callbacks[signal].append(callback)
-    else:
-        _registered_callbacks[signal] = [callback]
-
-
-def deregister_callback(signal, callback):
-    """Deregister a callback
-
-    Arguments:
-        signal (string): Name of signal to deregister the callback with.
-        callback (func): Function to execute when a signal is emitted.
-
-    Raises:
-        KeyError on missing signal
-        ValueError on missing callback
-    """
-
-    _registered_callbacks[signal].remove(callback)
-
-
-def deregister_all_callbacks():
-    """Deregisters all callback"""
-
-    _registered_callbacks.clear()
-
-
-def registered_callbacks():
-    """Returns registered callbacks"""
-
-    return _registered_callbacks
 
 
 def register_plugin(plugin):

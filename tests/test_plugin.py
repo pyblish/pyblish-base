@@ -405,73 +405,17 @@ def test_plugin_source_path():
     assert inspect.getfile(plugin) == module.__file__
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_register_callback():
-    """Callback registration/deregistration works well"""
-
-    def my_callback():
-        pass
-
-    def other_callback(data=None):
-        pass
-
-    pyblish.plugin.register_callback("mySignal", my_callback)
-
-    msg = "Registering a callback failed"
-    data = {"mySignal": [my_callback]}
-    assert "mySignal" in pyblish.plugin.registered_callbacks() == data, msg
-
-    pyblish.plugin.deregister_callback("mySignal", my_callback)
-
-    assert_raises(
-        ValueError,
-        pyblish.plugin.deregister_callback,
-        "mySignal", my_callback)
-
-    assert_raises(
-        KeyError,
-        pyblish.plugin.deregister_callback,
-        "notExist", my_callback)
-
-    msg = "Deregistering a callback failed"
-    data = {"mySignal": []}
-    assert pyblish.plugin.registered_callbacks() == data, msg
-
-    pyblish.plugin.register_callback("mySignal", my_callback)
-    pyblish.plugin.register_callback("otherSignal", other_callback)
-    pyblish.plugin.deregister_all_callbacks()
-
-    msg = "Deregistering all callbacks failed"
-    assert pyblish.plugin.registered_callbacks() == {}, msg
-
-
-@with_setup(lib.setup_empty, lib.teardown)
-def test_emit_signal_wrongly():
-    """Exception from callback prints traceback"""
-
-    def other_callback(an_argument=None):
-        print("Ping from 'other_callback' with %s" % an_argument)
-
-    pyblish.plugin.register_callback("otherSignal", other_callback)
-
-    with lib.captured_stderr() as stderr:
-        pyblish.lib.emit("otherSignal", not_an_argument="")
-        output = stderr.getvalue().strip()
-        print("Output: %s" % stderr.getvalue())
-        assert output.startswith("Traceback")
-
-
 @raises(ValueError)
 @with_setup(lib.setup_empty, lib.teardown)
-def test_registering_invalid_callback():
+def test_registering_invalid_handler():
     """Can't register non-callables"""
-    pyblish.plugin.register_callback("invalid", None)
+    pyblish.api.register_handler("invalid", None)
 
 
 @raises(KeyError)
-def test_deregistering_nonexisting_callback():
-    """Can't deregister a callback that doesn't exist"""
-    pyblish.plugin.deregister_callback("invalid", lambda: "")
+def test_deregistering_nonexisting_handler():
+    """Can't deregister a handler that doesn't exist"""
+    pyblish.api.deregister_handler("invalid", lambda: "")
 
 
 @raises(TypeError)

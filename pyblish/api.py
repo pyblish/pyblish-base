@@ -74,11 +74,6 @@ from .plugin import (
     deregister_all_services,
     registered_services,
 
-    register_callback,
-    deregister_callback,
-    deregister_all_callbacks,
-    registered_callbacks,
-
     sort as sort_plugins,
 
     registered_paths,
@@ -87,11 +82,18 @@ from .plugin import (
 )
 
 from .lib import (
+    on,
     log,
     time as __time,
     emit,
-    main_package_path as __main_package_path
+    main_package_path as __main_package_path,
+
+    register_handler,
+    deregister_handler,
+    deregister_all_handlers,
+    registered_handlers,
 )
+
 
 from .logic import (
     plugins_by_family,
@@ -124,6 +126,11 @@ from .compat import (
     Selector,
     Conformer,
     format_filename,
+
+    register_callback,
+    deregister_callback,
+    deregister_all_callbacks,
+    registered_callbacks,
 )
 
 
@@ -149,6 +156,7 @@ def __init__():
 
     # Register default test
     register_test(__default_test)
+
 
 __init__()
 
@@ -202,10 +210,12 @@ __all__ = [
     "deregister_all_services",
     "registered_services",
 
-    "register_callback",
-    "deregister_callback",
-    "deregister_all_callbacks",
-    "registered_callbacks",
+    "on",
+
+    "register_handler",
+    "deregister_handler",
+    "deregister_all_handlers",
+    "registered_handlers",
 
     "register_plugin_path",
     "deregister_plugin_path",
@@ -252,4 +262,9 @@ __all__ = [
     # Compatibility
     "deregister_all",
     "sort",
+
+    "register_callback",
+    "deregister_callback",
+    "deregister_all_callbacks",
+    "registered_callbacks",
 ]
