@@ -4,7 +4,6 @@ from .. import lib
 
 import pyblish.plugin
 import pyblish.logic
-from pyblish import api
 
 from nose.tools import (
     assert_equals,
@@ -406,26 +405,5 @@ def test_plugins_by_families():
     class ClassC(pyblish.api.Collector):
         families = ["c"]
 
-    class ClassD(pyblish.api.Collector):
-        families = ["a", "b"]
-        match = api.Intersection
-
-    class ClassE(pyblish.api.Collector):
-        families = ["a", "b"]
-        match = api.Subset
-
-    class ClassF(pyblish.api.Collector):
-        families = ["a", "b"]
-        match = api.Exact
-
     assert pyblish.logic.plugins_by_families(
-        [ClassA, ClassB, ClassC], ["a", "z"]) == [ClassA]
-
-    assert pyblish.logic.plugins_by_families(
-        [ClassD, ClassE, ClassF], ["a"]) == [ClassD]
-
-    assert pyblish.logic.plugins_by_families(
-        [ClassD, ClassE, ClassF], ["a", "b"]) == [ClassD, ClassE, ClassF]
-
-    assert pyblish.logic.plugins_by_families(
-        [ClassD, ClassE, ClassF], ["a", "b", "c"]) == [ClassD, ClassE]
+        [ClassA, ClassB, ClassC], ["a"]) == [ClassA]

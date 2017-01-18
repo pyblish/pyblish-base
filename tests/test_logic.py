@@ -140,3 +140,41 @@ def test_subset_exact():
 
     instances = logic.instances_by_plugin(context, MyPlugin)
     assert_equals(list(i.name for i in instances), ["included_1"])
+
+
+def test_plugins_by_families():
+    """The right plug-ins are returned from plugins_by_families"""
+
+    class ClassA(api.Collector):
+        families = ["a"]
+
+    class ClassB(api.Collector):
+        families = ["b"]
+
+    class ClassC(api.Collector):
+        families = ["c"]
+
+    class ClassD(api.Collector):
+        families = ["a", "b"]
+        match = api.Intersection
+
+    class ClassE(api.Collector):
+        families = ["a", "b"]
+        match = api.Subset
+
+    class ClassF(api.Collector):
+        families = ["a", "b"]
+        match = api.Exact
+
+    assert logic.plugins_by_families(
+        [ClassA, ClassB, ClassC], ["a", "z"]) == [ClassA]
+
+    assert logic.plugins_by_families(
+        [ClassD, ClassE, ClassF], ["a"]) == [ClassD]
+
+    assert logic.plugins_by_families(
+        [ClassD, ClassE, ClassF], ["a", "b"]) == [ClassD, ClassE, ClassF]
+
+    assert logic.plugins_by_families(
+        [ClassD, ClassE, ClassF], ["a", "b", "c"]) == [ClassD, ClassE]
+    
