@@ -153,10 +153,26 @@ def plugins_by_families(plugins, families):
 
     """
 
+    algorithms = {
+        Intersection: lambda a, b: set(a).intersection(b),
+        Subset: lambda a, b: set(a).issubset(b),
+        Exact: lambda a, b: set(a) == set(b)
+    }
+
     compatible = list()
 
     for plugin in plugins:
-        if any(x in plugin.families for x in families + ["*"]):
+
+        if "*" in plugin.families:
+            compatible.append(plugin)
+            continue
+
+        algorithm = algorithms.get(plugin.match)
+
+        assert algorithm, ("Plug-in did not provide "
+                           "valid matching algorithm: %s" % plugin.match)
+
+        if algorithm(plugin.families, families):
             compatible.append(plugin)
 
     return compatible
