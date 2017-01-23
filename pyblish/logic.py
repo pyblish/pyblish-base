@@ -15,6 +15,11 @@ from .plugin import (
     Exact
 )
 
+_algorithms = {
+    Intersection: lambda a, b: set(a).intersection(b),
+    Subset: lambda a, b: set(a).issubset(b),
+    Exact: lambda a, b: set(a) == set(b)
+}
 
 log = logging.getLogger("pyblish.logic")
 
@@ -153,12 +158,6 @@ def plugins_by_families(plugins, families):
 
     """
 
-    algorithms = {
-        Intersection: lambda a, b: set(a).intersection(b),
-        Subset: lambda a, b: set(a).issubset(b),
-        Exact: lambda a, b: set(a) == set(b)
-    }
-
     compatible = list()
 
     for plugin in plugins:
@@ -167,7 +166,7 @@ def plugins_by_families(plugins, families):
             compatible.append(plugin)
             continue
 
-        algorithm = algorithms.get(plugin.match)
+        algorithm = _algorithms.get(plugin.match)
 
         assert algorithm, ("Plug-in did not provide "
                            "valid matching algorithm: %s" % plugin.match)
@@ -255,11 +254,7 @@ def instances_by_plugin(instances, plugin):
 
     """
 
-    algorithm = {
-        Intersection: lambda a, b: set(a).intersection(b),
-        Subset: lambda a, b: set(a).issubset(b),
-        Exact: lambda a, b: set(a) == set(b)
-    }.get(plugin.match)
+    algorithm = _algorithms.get(plugin.match)
 
     compatible = list()
 
