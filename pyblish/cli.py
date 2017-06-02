@@ -20,9 +20,11 @@ import os
 import time
 import json
 import logging
+import sys
 
 from . import api, lib, util, __version__
 from .vendor import click
+from .vendor.Qt import QtWidgets
 
 _ctx = None
 _help = {
@@ -42,7 +44,10 @@ _help = {
         "version": "Print the current version of Pyblish",
         "plugins": "List all available plugins",
         "data": "Initialise context with data. This takes "
-                "two arguments, key and value."
+                "two arguments, key and value.",
+        "register-gui": "Register a gui with its module name to use. For "
+                        "example register pyblish-qml with \"pyblish_qml\".",
+        "register-host": "Register a host"
     },
     "publish": {
         "delay": "Add an artificial delay to each plugin. "
@@ -51,7 +56,8 @@ _help = {
         "file": "Load file in host registered to it's suffix",
         "instance": "Only publish specified instance. "
                     "The default behaviour is to publish "
-                    "all instances. This may be called multiple times."
+                    "all instances. This may be called multiple times.",
+        "gui": "Show a registered gui."
     }
 }
 
@@ -107,6 +113,21 @@ def _format_time(start, finish):
     return message.rjust(SCREEN_WIDTH)
 
 
+def _discover_gui():
+    """Return the most desirable of the currently registered GUIs"""
+
+    # Prefer last registered
+    guis = reversed(api.registered_guis())
+
+    for gui in guis:
+        try:
+            gui = __import__(gui)
+        except (ImportError, AttributeError):
+            continue
+        else:
+            return gui
+
+
 @click.group(invoke_without_command=True)
 @click.option("--verbose", is_flag=True, help=_help["main"]["verbose"])
 @click.option("--version", is_flag=True, help=_help["main"]["version"])
@@ -136,6 +157,16 @@ def _format_time(start, finish):
               type=click.Choice(LOG_LEVEL.keys()),
               default="error",
               help=_help["main"]["logging-level"])
+@click.option("-rg",
+              "--register-gui",
+              "register_guis",
+              multiple=True,
+              help=_help["main"]["register-gui"])
+@click.option("-rh",
+              "--register-host",
+              "register_hosts",
+              multiple=True,
+              help=_help["main"]["register-host"])
 @click.pass_context
 def main(ctx,
          verbose,
@@ -147,7 +178,9 @@ def main(ctx,
          plugin_paths,
          add_plugin_paths,
          data,
-         logging_level):
+         logging_level,
+         register_guis,
+         register_hosts):
     """Pyblish command-line interface
 
     Use the appropriate sub-command to initiate a publish.
@@ -235,6 +268,14 @@ def main(ctx,
                 path=path, typ=_typ))
             _paths.append(path)
 
+    # Register guis
+    for gui in register_guis:
+        api.register_gui(gui)
+
+    # Register hosts
+    for host in register_hosts:
+        api.register_host(host)
+
     # Pass data to sub-commands
     ctx.obj["verbose"] = verbose
     ctx.obj["plugin_paths"] = plugin_paths
@@ -252,11 +293,14 @@ def main(ctx,
               default=None,
               type=float,
               help=_help["publish"]["delay"])
+@click.option("--gui", is_flag=True,
+              help=_help["publish"]["gui"])
 @click.pass_context
 def publish(ctx,
             path,
             instances,
-            delay):
+            delay,
+            gui):
     """Publish instances of path.
 
     \b
@@ -285,22 +329,35 @@ def publish(ctx,
         context.data["currentFile"] = path
 
     # Begin processing
-    plugins = api.discover(paths=ctx.obj["plugin_paths"])
-    context = util.publish(context=context, plugins=plugins)
+    if gui:
+        # Construct a QApplication to host gui
+        app = QtWidgets.QApplication(sys.argv)
 
-    if any(result["error"] for result in context.data.get("results", [])):
-        click.echo("There were errors.")
+        # Register plugins
+        for path in ctx.obj["plugin_paths"]:
+            api.register_plugin_path(path)
 
-        for result in context.data["results"]:
-            if result["error"] is not None:
-                click.echo(result["error"])
+        # Launch gui
+        _discover_gui().show()
 
-    _end = time.time()
+        sys.exit(app.exec_())
+    else:
+        plugins = api.discover(paths=ctx.obj["plugin_paths"])
+        context = util.publish(context=context, plugins=plugins)
 
-    if ctx.obj["verbose"]:
-        click.echo()
-        click.echo("-" * 80)
-        click.echo(_format_time(_start, _end))
+        if any(result["error"] for result in context.data.get("results", [])):
+            click.echo("There were errors.")
+
+            for result in context.data["results"]:
+                if result["error"] is not None:
+                    click.echo(result["error"])
+
+        _end = time.time()
+
+        if ctx.obj["verbose"]:
+            click.echo()
+            click.echo("-" * 80)
+            click.echo(_format_time(_start, _end))
 
 
 main.add_command(publish)
