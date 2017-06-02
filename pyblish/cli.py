@@ -17,9 +17,14 @@ Note:
 """
 
 import os
+import sys
 import time
 import json
+import shutil
 import logging
+import tempfile
+import subprocess
+import contextlib
 
 from . import api, lib, util, __version__
 from .vendor import click
@@ -60,6 +65,7 @@ def _setup_log(root="pyblish"):
     log = logging.getLogger(root)
     log.setLevel(logging.INFO)
     return log
+
 
 log = _setup_log()
 main_log = lib.setup_log(level=logging.ERROR)
@@ -105,6 +111,30 @@ def _format_time(start, finish):
     """Return right-aligned time-taken message"""
     message = "Time taken: %.2fs" % (finish - start)
     return message.rjust(SCREEN_WIDTH)
+
+
+@contextlib.contextmanager
+def _cli_plugin(data):
+    tempdir = tempfile.mkdtemp()
+    fname = os.path.join(tempdir, "cli_plugin.py")
+    with open(fname, "w") as f:
+        f.write("""\
+from pyblish import api
+
+class CliPlugin(api.ContextPlugin):
+    \"\"\"Added through command-line interface to modify context\"\"\"
+    order = api.CollectorOrder - 0.5
+    label = "CLI Plugin"
+
+    def process(self, context):
+        import json
+        context.data.update(json.loads("{data}"))
+""".format(data=json.dumps(data)))
+
+    try:
+        yield tempdir
+    finally:
+        shutil.rmtree(tempdir)
 
 
 @click.group(invoke_without_command=True)
@@ -303,4 +333,24 @@ def publish(ctx,
         click.echo(_format_time(_start, _end))
 
 
+@click.command()
+@click.argument("gui", default="pyblish_qml")
+@click.pass_context
+def gui(ctx, package):
+
+    environ = os.environ.copy()
+    context = ctx.obj["context"]
+
+    with _cli_plugin(data=context.data) as plugin_path:
+        environ["PYBLISHPLUGINPATH"] = os.pathsep.join(
+            ctx.obj["plugin_paths"] + [plugin_path]
+        )
+
+        subprocess.call(
+            [sys.executable, "-m", package],
+            env=environ
+        )
+
+
 main.add_command(publish)
+main.add_command(gui)
