@@ -334,7 +334,7 @@ def publish(ctx,
 
 
 @click.command()
-@click.argument("gui", default="pyblish_qml")
+@click.argument("package", default="pyblish_qml")
 @click.pass_context
 def gui(ctx, package):
 
