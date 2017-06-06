@@ -733,3 +733,14 @@ def test_changes_to_registered_plugins_are_not_persistent():
 
     registered = pyblish.api.registered_plugins()[0]
     assert registered.active is False
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_plugin_path_cant_be_unicode():
+    """Plugin path cant be unicode"""
+
+    with lib.tempdir() as temp:
+        with open(os.path.join(temp, "temp.py"), "w") as f:
+            f.write("")
+
+        pyblish.api.discover(paths=[unicode(temp)])
