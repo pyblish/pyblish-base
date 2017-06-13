@@ -120,7 +120,10 @@ def test_environment_host_registration():
 def test_show_gui():
     """Registering gui through cli"""
 
-    os.environ["PYTHONPATH"] += os.pathsep + os.path.dirname(__file__)
+    PYTHONPATH = os.environ.get("PYTHONPATH", "")
+    os.environ["PYTHONPATH"] = (
+        PYTHONPATH + os.pathsep + os.path.dirname(__file__)
+    )
 
     runner = CliRunner()
     result = runner.invoke(pyblish.cli.main, ["gui", "mock_gui"])
