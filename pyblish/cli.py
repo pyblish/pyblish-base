@@ -346,7 +346,7 @@ def gui(ctx, package):
             ctx.obj["plugin_paths"] + [plugin_path]
         )
 
-        subprocess.call(
+        print subprocess.check_output(
             [sys.executable, "-m", package],
             env=environ
         )
