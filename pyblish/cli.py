@@ -349,10 +349,13 @@ def gui(ctx, package):
         process = subprocess.Popen(
             [sys.executable, "-m", package],
             stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             env=environ
         )
         for line in iter(process.stdout.readline, ''):
             sys.stdout.write(line)
+        for line in iter(process.stderr.readline, ''):
+            sys.stderr.write(line)
         process.wait()
         sys.exit(process.returncode)
 
