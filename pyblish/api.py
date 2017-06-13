@@ -146,7 +146,7 @@ def __init__():
     register_host("python")
 
     # Register hosts from environment "PYBLISHHOSTS"
-    for host in os.environ.get("PYBLISHHOSTS", "").split(os.pathsep):
+    for host in os.environ.get("PYBLISH_HOSTS", "").split(os.pathsep):
         if host:
             register_host(host)
 
