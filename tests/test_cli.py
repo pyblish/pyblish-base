@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pyblish
 import pyblish.cli
@@ -118,6 +119,8 @@ def test_environment_host_registration():
 @with_setup(lib.setup, lib.teardown)
 def test_show_gui():
     """Registering gui through cli"""
+
+    os.environ["PYTHONPATH"] += os.pathsep + os.path.dirname(__file__)
 
     runner = CliRunner()
     result = runner.invoke(pyblish.cli.main, ["gui", "mock_gui"])
