@@ -77,6 +77,13 @@ def test_register_gui():
         print(logic.registered_guis())
         assert logic.registered_guis() == ["first", "second", "third"]
 
+    with no_guis():
+        os.environ["PYBLISH_GUI"] = "second,third"
+        logic.register_gui("first")
+
+        print(logic.registered_guis())
+        assert logic.registered_guis() == ["first", "second", "third"]
+
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_subset_match():
@@ -178,4 +185,3 @@ def test_plugins_by_families():
 
     assert logic.plugins_by_families(
         [ClassD, ClassE, ClassF], ["a", "b", "c"]) == [ClassD, ClassE]
-    
