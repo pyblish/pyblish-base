@@ -67,3 +67,49 @@ def test_publishing():
     print(result.output)
 
     assert count["#"] == 111, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_environment_host_registration():
+    """Host registration from PYBLISH_HOSTS works"""
+
+    count = {"#": 0}
+    hosts = ["test1", "test2"]
+
+    # Test single hosts
+    class SingleHostCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        host = hosts[0]
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.api.register_plugin(SingleHostCollector)
+
+    os.environ["PYBLISH_HOSTS"] = "test1"
+
+    runner = CliRunner()
+    result = runner.invoke(pyblish.cli.main, ["publish"])
+    print(result.output)
+
+    assert count["#"] == 1, count
+
+    # Test multiple hosts
+    pyblish.api.deregister_all_plugins()
+
+    class MultipleHostsCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        host = hosts
+
+        def process(self, context):
+            count["#"] += 10
+
+    pyblish.api.register_plugin(MultipleHostsCollector)
+
+    os.environ["PYBLISH_HOSTS"] = os.pathsep.join(hosts)
+
+    runner = CliRunner()
+    result = runner.invoke(pyblish.cli.main, ["publish"])
+    print(result.output)
+
+    assert count["#"] == 11, count
