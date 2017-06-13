@@ -113,3 +113,18 @@ def test_environment_host_registration():
     print(result.output)
 
     assert count["#"] == 11, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_show_gui():
+    """Registering gui through cli"""
+
+    runner = CliRunner()
+    result = runner.invoke(pyblish.cli.main, ["gui", "mock_gui"])
+    print(result.output.rstrip())
+    print(result.exit_code)
+
+    assert result.exit_code == 0
+
+    from .mock_gui.app import output
+    assert result.output.rstrip() == output
