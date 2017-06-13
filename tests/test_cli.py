@@ -133,4 +133,20 @@ def test_show_gui():
     assert result.exit_code == 0
 
     from .mock_gui.app import output
-    assert result.output.rstrip() == output
+    assert result.output.startswith(output)
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_passing_data_to_gui():
+    """Passing data to GUI works"""
+
+    PYTHONPATH = os.environ.get("PYTHONPATH", "")
+    os.environ["PYTHONPATH"] = (
+        PYTHONPATH + os.pathsep + os.path.dirname(__file__)
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(pyblish.cli.main, ["gui", "mock_gui"])
+    print(result.output.rstrip())
+
+    assert "DEBUG - {'current_dir': '.', 'currentDir': '.'}" in result.output
