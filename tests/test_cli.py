@@ -86,7 +86,7 @@ def test_environment_host_registration():
 
     pyblish.api.register_plugin(SingleHostCollector)
 
-    os.environ["PYBLISH_HOSTS"] = "test1"
+    os.environ["PYBLISH_HOSTS"] = hosts[0]
 
     runner = CliRunner()
     result = runner.invoke(pyblish.cli.main, ["publish"])
