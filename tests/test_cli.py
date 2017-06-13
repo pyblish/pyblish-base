@@ -128,7 +128,7 @@ def test_show_gui():
     runner = CliRunner()
     result = runner.invoke(pyblish.cli.main, ["gui", "mock_gui"])
     print(result.output.rstrip())
-    print(result.exit_code)
+    print("Exit code: " + str(result.exit_code))
 
     assert result.exit_code == 0
 
