@@ -118,7 +118,7 @@ def test_environment_host_registration():
 
 @with_setup(lib.setup, lib.teardown)
 def test_show_gui():
-    """Registering gui through cli"""
+    """Showing GUI through cli works"""
 
     PYTHONPATH = os.environ.get("PYTHONPATH", "")
     os.environ["PYTHONPATH"] = (
