@@ -346,10 +346,15 @@ def gui(ctx, package):
             ctx.obj["plugin_paths"] + [plugin_path]
         )
 
-        print subprocess.check_output(
+        process = subprocess.Popen(
             [sys.executable, "-m", package],
+            stdout=subprocess.PIPE,
             env=environ
         )
+        for line in iter(process.stdout.readline, ''):
+            sys.stdout.write(line)
+        process.wait()
+        sys.exit(process.returncode)
 
 
 main.add_command(publish)
