@@ -351,12 +351,22 @@ def gui(ctx, package):
             [sys.executable, "-m", package + ".__main__"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            env=environ
+            env=environ,
+            bufsize=1,
+            universal_newlines=True
         )
-        for line in iter(process.stdout.readline, ''):
-            sys.stdout.write(line)
-        for line in iter(process.stderr.readline, ''):
-            sys.stderr.write(line)
+        while True:
+            line = process.stdout.readline()
+            if line != '':
+                print(line.rstrip())
+            else:
+                break
+        while True:
+            line = process.stderr.readline()
+            if line != '':
+                print(line.rstrip())
+            else:
+                break
         process.wait()
         sys.exit(process.returncode)
 
