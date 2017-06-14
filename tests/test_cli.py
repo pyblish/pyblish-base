@@ -1,5 +1,6 @@
 import os
-import sys
+import json
+import re
 
 import pyblish
 import pyblish.cli
@@ -146,7 +147,11 @@ def test_passing_data_to_gui():
     )
 
     runner = CliRunner()
-    result = runner.invoke(pyblish.cli.main, ["gui", "mock_gui"])
-    print(result.output.rstrip())
+    result = runner.invoke(
+        pyblish.cli.main, ["--data", "testing", "plugin", "gui", "mock_gui"]
+    )
+    print(result.output)
 
-    assert "DEBUG - {'current_dir': '.', 'currentDir': '.'}" in result.output
+    m = re.search("{.+}", result.output)
+    data = json.loads(m.group(0).replace("'", "\""))
+    assert data["testing"] == "plugin"
