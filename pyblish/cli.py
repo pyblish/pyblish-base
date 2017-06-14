@@ -128,7 +128,7 @@ class CliPlugin(api.ContextPlugin):
 
     def process(self, context):
         import json
-        context.data.update(json.loads("{data}"))
+        context.data.update({data})
         self.log.debug(context.data)
 """.format(data=json.dumps(data)))
 
