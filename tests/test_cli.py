@@ -170,7 +170,6 @@ def test_show_gui():
     """Showing GUI through cli works"""
 
     with mock_gui() as path:
-        print path
         PYTHONPATH = os.environ.get("PYTHONPATH", "")
         os.environ["PYTHONPATH"] = (
             PYTHONPATH + os.pathsep + path
