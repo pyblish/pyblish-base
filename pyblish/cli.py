@@ -350,19 +350,13 @@ def gui(ctx, package):
         process = subprocess.Popen(
             [sys.executable, "-m", package + ".__main__"],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             env=environ,
             bufsize=1,
             universal_newlines=True
         )
         while True:
             line = process.stdout.readline()
-            if line != '':
-                print(line.rstrip())
-            else:
-                break
-        while True:
-            line = process.stderr.readline()
             if line != '':
                 print(line.rstrip())
             else:
