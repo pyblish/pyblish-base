@@ -134,14 +134,12 @@ def register_gui(package):
 
 def registered_guis():
     """Return registered GUIs"""
-    # Backwards compatibility for PYBLISHGUI
-    old_environment = os.environ.get("PYBLISHGUI", "")
-    old_environment = list(gui for gui in old_environment.split(",") if gui)
-
-    from_environment = os.environ.get("PYBLISH_GUI", "")
+    from_environment = os.environ.get(
+        "PYBLISH_GUI", os.environ.get("PYBLISHGUI", "")
+    )
     from_environment = list(gui for gui in from_environment.split(",") if gui)
 
-    return _registered_gui[:] + from_environment + old_environment
+    return _registered_gui[:] + from_environment
 
 
 def deregister_gui(package):
