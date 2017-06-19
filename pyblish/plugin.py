@@ -1260,6 +1260,17 @@ def discover(type=None, regex=None, paths=None):
             if not mod_ext == ".py":
                 continue
 
+            def replace_non_ascii(unicode_string):
+                result = u""
+                for i in range(0, len(unicode_string)):
+                    if ord(unicode_string[i]) < 128:
+                        result += unicode_string[i]
+                    else:
+                        result += "?"
+                return str(result)
+
+            mod_name = replace_non_ascii(os.path.join(path, mod_name))
+
             module = types.ModuleType(mod_name)
             module.__file__ = abspath
 

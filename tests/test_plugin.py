@@ -733,3 +733,110 @@ def test_changes_to_registered_plugins_are_not_persistent():
 
     registered = pyblish.api.registered_plugins()[0]
     assert registered.active is False
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_same_named_plugins():
+    """Having same named plugins works"""
+
+    with lib.tempdir() as temp:
+        first_module = os.path.join(temp, "first_plugin", "collect.py")
+        print("Writing temporarily to: %s" % first_module)
+        pyblish.api.register_plugin_path(os.path.dirname(first_module))
+
+        if not os.path.exists(os.path.dirname(first_module)):
+            os.makedirs(os.path.dirname(first_module))
+
+        with open(first_module, "w") as f:
+            f.write("""
+import os
+import pyblish.api
+
+class FirstCollect(pyblish.api.ContextPlugin):
+
+    order = pyblish.api.CollectorOrder
+
+    def process(self, context):
+        self.log.info(os)
+""")
+
+        second_module = os.path.join(temp, "second_plugin", "collect.py")
+        print("Writing temporarily to: %s" % second_module)
+        pyblish.api.register_plugin_path(os.path.dirname(second_module))
+
+        if not os.path.exists(os.path.dirname(second_module)):
+            os.makedirs(os.path.dirname(second_module))
+
+        with open(second_module, "w") as f:
+            f.write("""
+import pyblish.api
+
+class SecondCollect(pyblish.api.ContextPlugin):
+
+    order = pyblish.api.CollectorOrder
+
+    def process(self, context):
+        pass
+""")
+
+        context = pyblish.util.publish()
+
+        log_message = None
+        for result in context.data["results"]:
+            if result["records"]:
+                log_message = result["records"][0].message
+
+        assert log_message == str(os)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_namespace_is_path():
+    """The namespace of the module is the same as the path"""
+
+    with lib.tempdir() as temp:
+        module = os.path.join(temp, u"temp")
+        module_file = module + ".py"
+        print("Writing temporarily to: %s" % module_file)
+        pyblish.api.register_plugin_path(temp)
+
+        with open(module_file, "w") as f:
+            f.write("""
+import pyblish.api
+
+class Collect(pyblish.api.ContextPlugin):
+
+    def process(self, context):
+        pass
+""")
+
+        plugins = [p.__module__ for p in pyblish.api.discover()]
+        assert module in plugins, plugins
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_non_ascii_plugin_name():
+    """Having non-ascii plugin name works"""
+
+    with lib.tempdir() as temp:
+        module = os.path.join(temp, u"M\u00E5rten.py")
+        print("Writing temporarily to: %s" % module)
+        pyblish.api.register_plugin_path(temp)
+
+        with open(module, "w") as f:
+            f.write("""
+import pyblish.api
+
+class Collect(pyblish.api.ContextPlugin):
+
+    def process(self, context):
+        pass
+""")
+
+        # Check if the plugin is registered with discover
+        plugins = [p.__name__ for p in pyblish.api.discover()]
+        assert "Collect" in plugins, plugins
+
+        # Check the module namespace gets properly converted to ascii
+        msg = "Module namespace is not ascii."
+        for plugin in pyblish.api.discover():
+            assert all(ord(char) < 128 for char in plugin.__module__), msg
