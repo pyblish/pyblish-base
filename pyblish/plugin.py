@@ -12,6 +12,7 @@ with "validate" and ends with ".py"
 
 # Standard library
 import os
+import re
 import sys
 import time
 import types
@@ -1260,7 +1261,11 @@ def discover(type=None, regex=None, paths=None):
             if not mod_ext == ".py":
                 continue
 
-            module = types.ModuleType(mod_name)
+            # Remove all characters that isn't in a-z, A-Z and 0-9
+            # See #306 for details
+            safe_name = re.sub(r'([^\w])', "_", abspath)
+
+            module = types.ModuleType(safe_name)
             module.__file__ = abspath
 
             try:
@@ -1270,7 +1275,7 @@ def discover(type=None, regex=None, paths=None):
                 # Store reference to original module, to avoid
                 # garbage collection from collecting it's global
                 # imports, such as `import os`.
-                sys.modules[mod_name] = module
+                sys.modules[safe_name] = module
 
             except Exception as err:
                 log.debug("Skipped: \"%s\" (%s)", mod_name, err)
