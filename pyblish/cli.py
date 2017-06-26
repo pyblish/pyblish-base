@@ -348,7 +348,7 @@ def gui(ctx, package):
         )
 
         process = subprocess.Popen(
-            [sys.executable, "-m", package + ".__main__"],
+            [sys.executable, "-m", package],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             env=environ,

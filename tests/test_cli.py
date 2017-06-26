@@ -1,18 +1,27 @@
 import os
-import json
-import re
-import tempfile
-import contextlib
+import sys
 import shutil
+import tempfile
 
 import pyblish
 import pyblish.cli
 import pyblish.api
 from nose.tools import (
-    with_setup
+    with_setup,
+    assert_equals,
 )
 from pyblish.vendor.click.testing import CliRunner
 from . import lib
+
+self = sys.modules[__name__]
+
+
+def setup():
+    self.tempdir = tempfile.mkdtemp()
+
+
+def teardown():
+    shutil.rmtree(self.tempdir)
 
 
 def ctx():
@@ -23,51 +32,6 @@ def ctx():
 def context():
     """Return current context"""
     return ctx().obj["context"]
-
-
-mock_gui_main = """from .app import show
-
-
-if __name__ == '__main__':
-    show()
-"""
-mock_gui_app = """import pyblish.cli
-from pyblish.vendor.click.testing import CliRunner
-
-
-output = "Mock GUI shown."
-
-
-def show():
-
-    print(output)
-    runner = CliRunner()
-    result = runner.invoke(pyblish.cli.main, ["publish"])
-    print(result.output)
-"""
-
-
-@contextlib.contextmanager
-def mock_gui():
-    """Provide path to temporary mock gui"""
-    try:
-        tempdir = tempfile.mkdtemp()
-
-        module_path = os.path.join(tempdir, "mock_gui")
-        os.makedirs(module_path)
-
-        with open(os.path.join(module_path, "__init__.py"), "w") as f:
-            f.write("")
-
-        with open(os.path.join(module_path, "__main__.py"), "w") as f:
-            f.write(mock_gui_main)
-
-        with open(os.path.join(module_path, "app.py"), "w") as f:
-            f.write(mock_gui_app)
-
-        yield tempdir
-    finally:
-        shutil.rmtree(tempdir)
 
 
 def test_visualise_environment_paths():
@@ -169,40 +133,67 @@ def test_environment_host_registration():
 def test_show_gui():
     """Showing GUI through cli works"""
 
-    with mock_gui() as path:
-        PYTHONPATH = os.environ.get("PYTHONPATH", "")
-        os.environ["PYTHONPATH"] = (
-            PYTHONPATH + os.pathsep + path
-        )
+    with tempfile.NamedTemporaryFile(dir=self.tempdir,
+                                     delete=False,
+                                     suffix=".py") as f:
+        module_name = os.path.basename(f.name)[:-3]
+        f.write("""\
+def show():
+    print("Mock GUI shown successfully")
 
-        runner = CliRunner()
-        result = runner.invoke(pyblish.cli.main, ["gui", "mock_gui"])
-        print(result.output.rstrip())
-        print("Exit code: " + str(result.exit_code))
+if __name__ == '__main__':
+    show()
+""")
 
-        assert result.exit_code == 0
+    pythonpath = os.pathsep.join([
+        self.tempdir,
+        os.environ.get("PYTHONPATH", "")
+    ])
 
-        from .mock_gui.app import output
-        assert output in result.output
+    print(module_name)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        pyblish.cli.main, ["gui", module_name],
+        env={"PYTHONPATH": pythonpath}
+    )
+
+    assert_equals(result.output.rstrip(), "Mock GUI shown successfully")
+    assert_equals(result.exit_code, 0)
 
 
 @with_setup(lib.setup, lib.teardown)
 def test_passing_data_to_gui():
     """Passing data to GUI works"""
 
-    with mock_gui() as path:
-        PYTHONPATH = os.environ.get("PYTHONPATH", "")
-        os.environ["PYTHONPATH"] = (
-            PYTHONPATH + os.pathsep + path
-        )
+    with tempfile.NamedTemporaryFile(dir=self.tempdir,
+                                     delete=False,
+                                     suffix=".py") as f:
+        module_name = os.path.basename(f.name)[:-3]
+        f.write("""\
+from pyblish import util
 
-        runner = CliRunner()
-        result = runner.invoke(
-            pyblish.cli.main,
-            ["--data", "testing", "plugin", "gui", "mock_gui"]
-        )
-        print(result.output)
+def show():
+    context = util.publish()
+    print(context.data["passedFromTest"])
 
-        m = re.search("{.+}", result.output)
-        data = json.loads(m.group(0).replace("'", "\""))
-        assert data["testing"] == "plugin"
+if __name__ == '__main__':
+    show()
+""")
+
+    pythonpath = os.pathsep.join([
+        self.tempdir,
+        os.environ.get("PYTHONPATH", "")
+    ])
+
+    runner = CliRunner()
+    result = runner.invoke(
+        pyblish.cli.main, [
+            "--data", "passedFromTest", "Data passed successfully",
+            "gui", module_name
+        ],
+        env={"PYTHONPATH": pythonpath}
+    )
+
+    assert_equals(result.output.rstrip(), "Data passed successfully")
+    assert_equals(result.exit_code, 0)
