@@ -158,11 +158,10 @@ def append_logger(plugin):
 
     """
 
-    module = plugin.__module__
     name = plugin.__name__
 
     # Package name appended, for filtering of LogRecord instances
-    logname = "pyblish.%s.%s" % (module, name)
+    logname = "pyblish.%s" % name
     plugin.log = logging.getLogger(logname)
     plugin.log.setLevel(logging.DEBUG)
 
