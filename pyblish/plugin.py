@@ -235,7 +235,7 @@ class Plugin():
     requires = "pyblish>=1"
     actions = []
     id = None  # Defined by metaclass
-    match = Intersection # Default matching algorithm
+    match = Intersection  # Default matching algorithm
 
     def __str__(self):
         return self.label or type(self).__name__

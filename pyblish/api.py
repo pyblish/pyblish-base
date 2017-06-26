@@ -18,6 +18,7 @@ from __future__ import absolute_import
 
 from . import version
 import getpass
+import os
 
 from .plugin import (
     Context,
@@ -143,6 +144,11 @@ def __init__():
 
     # Register default host
     register_host("python")
+
+    # Register hosts from environment "PYBLISHHOSTS"
+    for host in os.environ.get("PYBLISH_HOSTS", "").split(os.pathsep):
+        if host:
+            register_host(host)
 
     # Register default path
     register_plugin_path("%s/plugins" % __main_package_path())

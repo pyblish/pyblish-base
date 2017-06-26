@@ -1,13 +1,27 @@
 import os
+import sys
+import shutil
+import tempfile
 
 import pyblish
 import pyblish.cli
 import pyblish.api
 from nose.tools import (
-    with_setup
+    with_setup,
+    assert_equals,
 )
 from pyblish.vendor.click.testing import CliRunner
 from . import lib
+
+self = sys.modules[__name__]
+
+
+def setup():
+    self.tempdir = tempfile.mkdtemp()
+
+
+def teardown():
+    shutil.rmtree(self.tempdir)
 
 
 def ctx():
@@ -67,3 +81,121 @@ def test_publishing():
     print(result.output)
 
     assert count["#"] == 111, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_environment_host_registration():
+    """Host registration from PYBLISH_HOSTS works"""
+
+    count = {"#": 0}
+    hosts = ["test1", "test2"]
+
+    # Test single hosts
+    class SingleHostCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        host = hosts[0]
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.api.register_plugin(SingleHostCollector)
+
+    os.environ["PYBLISH_HOSTS"] = hosts[0]
+
+    runner = CliRunner()
+    result = runner.invoke(pyblish.cli.main, ["publish"])
+    print(result.output)
+
+    assert count["#"] == 1, count
+
+    # Test multiple hosts
+    pyblish.api.deregister_all_plugins()
+
+    class MultipleHostsCollector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        host = hosts
+
+        def process(self, context):
+            count["#"] += 10
+
+    pyblish.api.register_plugin(MultipleHostsCollector)
+
+    os.environ["PYBLISH_HOSTS"] = os.pathsep.join(hosts)
+
+    runner = CliRunner()
+    result = runner.invoke(pyblish.cli.main, ["publish"])
+    print(result.output)
+
+    assert count["#"] == 11, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_show_gui():
+    """Showing GUI through cli works"""
+
+    with tempfile.NamedTemporaryFile(dir=self.tempdir,
+                                     delete=False,
+                                     suffix=".py") as f:
+        module_name = os.path.basename(f.name)[:-3]
+        f.write(b"""\
+def show():
+    print("Mock GUI shown successfully")
+
+if __name__ == '__main__':
+    show()
+""")
+
+    pythonpath = os.pathsep.join([
+        self.tempdir,
+        os.environ.get("PYTHONPATH", "")
+    ])
+
+    print(module_name)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        pyblish.cli.main, ["gui", module_name],
+        env={"PYTHONPATH": pythonpath}
+    )
+
+    assert_equals(result.output.splitlines()[-1].rstrip(),
+                  "Mock GUI shown successfully")
+    assert_equals(result.exit_code, 0)
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_passing_data_to_gui():
+    """Passing data to GUI works"""
+
+    with tempfile.NamedTemporaryFile(dir=self.tempdir,
+                                     delete=False,
+                                     suffix=".py") as f:
+        module_name = os.path.basename(f.name)[:-3]
+        f.write(b"""\
+from pyblish import util
+
+def show():
+    context = util.publish()
+    print(context.data["passedFromTest"])
+
+if __name__ == '__main__':
+    show()
+""")
+
+    pythonpath = os.pathsep.join([
+        self.tempdir,
+        os.environ.get("PYTHONPATH", "")
+    ])
+
+    runner = CliRunner()
+    result = runner.invoke(
+        pyblish.cli.main, [
+            "--data", "passedFromTest", "Data passed successfully",
+            "gui", module_name
+        ],
+        env={"PYTHONPATH": pythonpath}
+    )
+
+    assert_equals(result.output.splitlines()[-1].rstrip(),
+                  "Data passed successfully")
+    assert_equals(result.exit_code, 0)

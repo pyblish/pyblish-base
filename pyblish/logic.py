@@ -134,8 +134,11 @@ def register_gui(package):
 
 def registered_guis():
     """Return registered GUIs"""
-    from_environment = os.environ.get("PYBLISHGUI", "")
+    from_environment = os.environ.get(
+        "PYBLISH_GUI", os.environ.get("PYBLISHGUI", "")
+    )
     from_environment = list(gui for gui in from_environment.split(",") if gui)
+
     return _registered_gui[:] + from_environment
 
 

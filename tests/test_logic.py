@@ -69,9 +69,16 @@ def test_iterator():
 
 def test_register_gui():
     """Registering at run-time takes precedence over those from environment"""
-    
+
     with no_guis():
         os.environ["PYBLISHGUI"] = "second,third"
+        logic.register_gui("first")
+
+        print(logic.registered_guis())
+        assert logic.registered_guis() == ["first", "second", "third"]
+
+    with no_guis():
+        os.environ["PYBLISH_GUI"] = "second,third"
         logic.register_gui("first")
 
         print(logic.registered_guis())
@@ -103,7 +110,8 @@ def test_subset_match():
     assert_equals(count["#"], 2)
 
     instances = logic.instances_by_plugin(context, MyPlugin)
-    assert_equals(list(i.name for i in instances), ["included_1", "included_2"])
+    assert_equals(list(i.name for i in instances),
+                  ["included_1", "included_2"])
 
 
 def test_subset_exact():
@@ -127,11 +135,11 @@ def test_subset_exact():
 
     # Discard the solo-family member, which defaults to `default`.
     #
-    # When using multiple families, it is common not to bother modifying `family`,
-    # and in the future this member needn't be there at all and may/should be
-    # removed. But till then, for complete clarity, it might be worth removing
-    # this explicitly during the creation of instances if instead choosing to
-    # use the `families` key.
+    # When using multiple families, it is common not to bother modifying
+    # `family`, and in the future this member needn't be there at all and
+    # may/should be removed. But till then, for complete clarity, it might
+    # be worth removing this explicitly during the creation of instances
+    # if instead choosing to use the `families` key.
     instance.data.pop("family")
 
     util.publish(context, plugins=[MyPlugin])
@@ -177,4 +185,3 @@ def test_plugins_by_families():
 
     assert logic.plugins_by_families(
         [ClassD, ClassE, ClassF], ["a", "b", "c"]) == [ClassD, ClassE]
-    
