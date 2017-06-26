@@ -137,7 +137,7 @@ def test_show_gui():
                                      delete=False,
                                      suffix=".py") as f:
         module_name = os.path.basename(f.name)[:-3]
-        f.write("""\
+        f.write(b"""\
 def show():
     print("Mock GUI shown successfully")
 
@@ -158,7 +158,8 @@ if __name__ == '__main__':
         env={"PYTHONPATH": pythonpath}
     )
 
-    assert_equals(result.output.rstrip(), "Mock GUI shown successfully")
+    assert_equals(result.output.splitlines()[-1].rstrip(),
+                  "Mock GUI shown successfully")
     assert_equals(result.exit_code, 0)
 
 
@@ -170,7 +171,7 @@ def test_passing_data_to_gui():
                                      delete=False,
                                      suffix=".py") as f:
         module_name = os.path.basename(f.name)[:-3]
-        f.write("""\
+        f.write(b"""\
 from pyblish import util
 
 def show():
@@ -195,5 +196,6 @@ if __name__ == '__main__':
         env={"PYTHONPATH": pythonpath}
     )
 
-    assert_equals(result.output.rstrip(), "Data passed successfully")
+    assert_equals(result.output.splitlines()[-1].rstrip(),
+                  "Data passed successfully")
     assert_equals(result.exit_code, 0)
