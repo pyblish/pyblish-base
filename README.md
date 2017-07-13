@@ -69,7 +69,7 @@ Refer to the [getting started guide](http://learn.pyblish.com) for a gentle intr
 
 [cover-image]: https://coveralls.io/repos/pyblish/pyblish-base/badge.svg
 [cover-link]: https://coveralls.io/r/pyblish/pyblish-base
-[pypi-image]: https://badge.fury.io/py/pyblish.svg
+[pypi-image]: https://badge.fury.io/py/pyblish-base.svg
 [pypi-link]: http://badge.fury.io/py/pyblish
 [landscape-image]: https://landscape.io/github/pyblish/pyblish-base/master/landscape.png
 [landscape-repo]: https://landscape.io/github/pyblish/pyblish-base/master
