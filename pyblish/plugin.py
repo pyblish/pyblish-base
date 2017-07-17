@@ -1260,7 +1260,7 @@ def discover(type=None, regex=None, paths=None):
             if not mod_ext == ".py":
                 continue
 
-            module = types.ModuleType(mod_name)
+            module = types.ModuleType(str(mod_name))
             module.__file__ = abspath
 
             try:
