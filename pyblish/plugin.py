@@ -1260,11 +1260,7 @@ def discover(type=None, regex=None, paths=None):
             if not mod_ext == ".py":
                 continue
 
-            # Remove all characters that isn't in a-z, A-Z and 0-9
-            # See #306 for details
-            safe_name = re.sub(r'([^\w])', "_", abspath)
-
-            module = types.ModuleType(safe_name)
+            module = types.ModuleType(mod_name)
             module.__file__ = abspath
 
             try:
@@ -1274,7 +1270,7 @@ def discover(type=None, regex=None, paths=None):
                 # Store reference to original module, to avoid
                 # garbage collection from collecting it's global
                 # imports, such as `import os`.
-                sys.modules[safe_name] = module
+                sys.modules[abspath] = module
 
             except Exception as err:
                 log.debug("Skipped: \"%s\" (%s)", mod_name, err)
