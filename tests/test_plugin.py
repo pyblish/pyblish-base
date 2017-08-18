@@ -733,3 +733,65 @@ def test_changes_to_registered_plugins_are_not_persistent():
 
     registered = pyblish.api.registered_plugins()[0]
     assert registered.active is False
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_running_for_all_targets():
+    """Run for all targets when family is "*"."""
+
+    count = {"#": 0}
+
+    class plugin(pyblish.api.ContextPlugin):
+
+        target = ["*"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(plugins=[plugin])
+
+    assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_dont_run_non_matching_targets():
+    """Don't run plugins that haven't got a target registered."""
+
+    count = {"#": 0}
+
+    class plugin(pyblish.api.ContextPlugin):
+
+        target = ["studio"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(plugins=[plugin])
+
+    assert count["#"] == 0, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_only_run_plugins_that_match_registered_targets():
+    """Only run plugins that match the registered targets."""
+
+    count = {"#": 0}
+
+    class pluginStudio(pyblish.api.ContextPlugin):
+
+        target = ["studio"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    class pluginProject(pyblish.api.ContextPlugin):
+
+        target = ["project"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.api.register_target("studio")
+    pyblish.util.publish(plugins=[pluginStudio, pluginProject])
+
+    assert count["#"] == 1, "count is {0}".format(count)
