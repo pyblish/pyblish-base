@@ -12,7 +12,9 @@ from .plugin import (
     # Matchin algorithms
     Intersection,
     Subset,
-    Exact
+    Exact,
+
+    registered_targets
 )
 
 _algorithms = {
@@ -236,6 +238,37 @@ def plugins_by_host(plugins, host):
     return compatible
 
 
+def plugins_by_targets(plugins, targets):
+    """Reutrn compatible plugins `plugins` to targets `targets`
+
+    Arguments:
+        plugins (list): List of plugins
+        targets (list): List of targets with which to compare against
+
+    Returns:
+        List of compatible plugins.
+
+    """
+
+    compatible = list()
+
+    for plugin in plugins:
+
+        if "*" in plugin.targets:
+            compatible.append(plugin)
+            continue
+
+        algorithm = _algorithms.get(plugin.match)
+
+        assert algorithm, ("Plug-in did not provide "
+                           "valid matching algorithm: %s" % plugin.match)
+
+        if algorithm(plugin.targets, targets):
+            compatible.append(plugin)
+
+    return compatible
+
+
 def instances_by_plugin(instances, plugin):
     """Return compatible instances `instances` to plugin `plugin`
 
@@ -324,6 +357,8 @@ def Iterator(plugins, context, state=None):
         "nextOrder": None,
         "ordersWithError": set()
     }
+
+    plugins = plugins_by_targets(plugins, registered_targets())
 
     for plugin in plugins:
         if not plugin.active:
