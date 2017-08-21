@@ -238,7 +238,7 @@ def plugins_by_host(plugins, host):
     return compatible
 
 
-def plugins_by_targets(plugins):
+def plugins_by_targets(plugins, targets):
     """Reutrn compatible plugins `plugins` to targets `targets`
 
     Arguments:
@@ -263,7 +263,7 @@ def plugins_by_targets(plugins):
         assert algorithm, ("Plug-in did not provide "
                            "valid matching algorithm: %s" % plugin.match)
 
-        if algorithm(plugin.targets, registered_targets()):
+        if algorithm(plugin.targets, targets):
             compatible.append(plugin)
 
     return compatible
@@ -358,7 +358,7 @@ def Iterator(plugins, context, state=None):
         "ordersWithError": set()
     }
 
-    plugins = plugins_by_targets(plugins)
+    plugins = plugins_by_targets(plugins, registered_targets())
 
     for plugin in plugins:
         if not plugin.active:
