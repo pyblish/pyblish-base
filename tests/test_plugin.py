@@ -743,7 +743,7 @@ def test_running_for_all_targets():
 
     class plugin(pyblish.api.ContextPlugin):
 
-        target = ["*"]
+        targets = ["*"]
 
         def process(self, context):
             count["#"] += 1
@@ -761,7 +761,7 @@ def test_dont_run_non_matching_targets():
 
     class plugin(pyblish.api.ContextPlugin):
 
-        target = ["studio"]
+        targets = ["studio"]
 
         def process(self, context):
             count["#"] += 1
@@ -779,14 +779,14 @@ def test_only_run_plugins_that_match_registered_targets():
 
     class pluginStudio(pyblish.api.ContextPlugin):
 
-        target = ["studio"]
+        targets = ["studio"]
 
         def process(self, context):
             count["#"] += 1
 
     class pluginProject(pyblish.api.ContextPlugin):
 
-        target = ["project"]
+        targets = ["project"]
 
         def process(self, context):
             count["#"] += 1
