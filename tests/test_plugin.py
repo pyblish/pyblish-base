@@ -736,6 +736,23 @@ def test_changes_to_registered_plugins_are_not_persistent():
 
 
 @with_setup(lib.setup_empty, lib.teardown)
+def test_logging_solely_from_pyblish():
+    """Only logging calls with self.log should be recorded."""
+
+    class collect(pyblish.api.ContextPlugin):
+
+        def process(self, context):
+            import logging
+            log = logging.getLogger("temp_logger")
+            log.info("I should not be recorded!")
+
+    context = pyblish.util.publish(plugins=[collect])
+    for result in context.data["results"]:
+        for record in result["records"]:
+            assert record.name.startswith("pyblish")
+
+
+@with_setup(lib.setup_empty, lib.teardown)
 def test_running_for_all_targets():
     """Run for all targets when family is "*"."""
 
