@@ -243,7 +243,7 @@ def plugins_by_targets(plugins, targets):
 
     Arguments:
         plugins (list): List of plugins
-        families (list): Families with which to compare against
+        targets (list): List of targets with which to compare against
 
     Returns:
         List of compatible plugins.
