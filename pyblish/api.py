@@ -98,6 +98,7 @@ from .logic import (
     plugins_by_family,
     plugins_by_host,
     plugins_by_instance,
+    plugins_by_targets,
     instances_by_plugin,
     register_test,
     deregister_test,
