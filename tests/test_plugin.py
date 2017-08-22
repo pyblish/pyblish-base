@@ -754,13 +754,13 @@ def test_logging_solely_from_pyblish():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_running_for_all_targets():
-    """Run for all targets when family is "*"."""
+    """Run for all targets when family is "default"."""
 
     count = {"#": 0}
 
     class plugin(pyblish.api.ContextPlugin):
 
-        targets = ["*"]
+        targets = ["default"]
 
         def process(self, context):
             count["#"] += 1
