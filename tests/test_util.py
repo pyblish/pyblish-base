@@ -233,3 +233,112 @@ def test_environment_host_registration():
     util.collect(context)
 
     assert count["#"] == 11, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_publishing_targets():
+    """Publishing with targets works"""
+
+    count = {"#": 0}
+
+    class plugin(api.ContextPlugin):
+        targets = ["custom"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    api.register_plugin(plugin)
+
+    util.publish(targets=["custom"])
+
+    assert count["#"] == 1, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_per_session_targets():
+    """Register targets per session works"""
+
+    util.publish(targets=["custom"])
+
+    registered_targets = api.registered_targets()
+    assert registered_targets == [], registered_targets
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_publishing_collectors():
+    """Running collectors with targets works"""
+
+    count = {"#": 0}
+
+    class plugin(api.ContextPlugin):
+        order = api.CollectorOrder
+        targets = ["custom"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    api.register_plugin(plugin)
+
+    util.collect(targets=["custom"])
+
+    assert count["#"] == 1, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_publishing_validators():
+    """Running validators with targets works"""
+
+    count = {"#": 0}
+
+    class plugin(api.ContextPlugin):
+        order = api.ValidatorOrder
+        targets = ["custom"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    api.register_plugin(plugin)
+
+    util.validate(targets=["custom"])
+
+    assert count["#"] == 1, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_publishing_extractors():
+    """Running extractors with targets works"""
+
+    count = {"#": 0}
+
+    class plugin(api.ContextPlugin):
+        order = api.ExtractorOrder
+        targets = ["custom"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    api.register_plugin(plugin)
+
+    util.extract(targets=["custom"])
+
+    assert count["#"] == 1, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_publishing_integrators():
+    """Running integrators with targets works"""
+
+    count = {"#": 0}
+
+    class plugin(api.ContextPlugin):
+        order = api.IntegratorOrder
+        targets = ["custom"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    api.register_plugin(plugin)
+
+    util.integrate(targets=["custom"])
+
+    assert count["#"] == 1, count
