@@ -227,7 +227,7 @@ class Plugin():
 
     hosts = ["*"]
     families = ["*"]
-    targets = ["*"]
+    targets = ["default"]
     label = None
     active = True
     version = (0, 0, 0)

@@ -254,10 +254,6 @@ def plugins_by_targets(plugins, targets):
 
     for plugin in plugins:
 
-        if "*" in plugin.targets:
-            compatible.append(plugin)
-            continue
-
         algorithm = _algorithms.get(plugin.match)
 
         assert algorithm, ("Plug-in did not provide "
@@ -358,7 +354,8 @@ def Iterator(plugins, context, state=None):
         "ordersWithError": set()
     }
 
-    plugins = plugins_by_targets(plugins, registered_targets())
+    targets = registered_targets() + ["default"]
+    plugins = plugins_by_targets(plugins, targets)
 
     for plugin in plugins:
         if not plugin.active:
