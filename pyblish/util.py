@@ -12,7 +12,7 @@ from . import api, logic, plugin, lib
 log = logging.getLogger("pyblish.util")
 
 
-def publish(context=None, plugins=None):
+def publish(context=None, plugins=None, targets=[]):
     """Publish everything
 
     This function will process all available plugins of the
@@ -24,6 +24,7 @@ def publish(context=None, plugins=None):
             creating a new context
         plugins (list, optional): Plug-ins to include,
             defaults to results of discover()
+        targets (list, optional): Targets to include for publish session.
 
     Usage:
         >> context = plugin.Context()
@@ -35,6 +36,10 @@ def publish(context=None, plugins=None):
     # Must check against None, as objects be emptys
     context = api.Context() if context is None else context
     plugins = api.discover() if plugins is None else plugins
+
+    # Register targets
+    for target in targets:
+        api.register_target(target)
 
     # Do not consider inactive plug-ins
     plugins = list(p for p in plugins if p.active)
@@ -91,10 +96,14 @@ def publish(context=None, plugins=None):
 
     api.emit("published", context=context)
 
+    # Deregister targets
+    for target in targets:
+        api.deregister_target(target)
+
     return context
 
 
-def collect(context=None, plugins=None):
+def collect(context=None, plugins=None, targets=[]):
     """Convenience function for collection-only
 
      _________    . . . . .  .   . . . . . .   . . . . . . .
@@ -104,12 +113,12 @@ def collect(context=None, plugins=None):
 
     """
 
-    context = _convenience(api.CollectorOrder, context, plugins)
+    context = _convenience(api.CollectorOrder, context, plugins, targets)
     api.emit("collected", context=context)
     return context
 
 
-def validate(context=None, plugins=None):
+def validate(context=None, plugins=None, targets=[]):
     """Convenience function for validation-only
 
     . . . . . .    __________    . . . . . .   . . . . . . .
@@ -119,12 +128,12 @@ def validate(context=None, plugins=None):
 
     """
 
-    context = _convenience(api.ValidatorOrder, context, plugins)
+    context = _convenience(api.ValidatorOrder, context, plugins, targets)
     api.emit("validated", context=context)
     return context
 
 
-def extract(context=None, plugins=None):
+def extract(context=None, plugins=None, targets=[]):
     """Convenience function for extraction-only
 
     . . . . . .   . . . . .  .    _________    . . . . . . .
@@ -134,12 +143,12 @@ def extract(context=None, plugins=None):
 
     """
 
-    context = _convenience(api.ExtractorOrder, context, plugins)
+    context = _convenience(api.ExtractorOrder, context, plugins, targets)
     api.emit("extracted", context=context)
     return context
 
 
-def integrate(context=None, plugins=None):
+def integrate(context=None, plugins=None, targets=[]):
     """Convenience function for integration-only
 
     . . . . . .   . . . . .  .   . . . . . .    ___________
@@ -149,18 +158,18 @@ def integrate(context=None, plugins=None):
 
     """
 
-    context = _convenience(api.IntegratorOrder, context, plugins)
+    context = _convenience(api.IntegratorOrder, context, plugins, targets)
     api.emit("integrated", context=context)
     return context
 
 
-def _convenience(order, context=None, plugins=None):
+def _convenience(order, context=None, plugins=None, targets=[]):
     plugins = list(
         p for p in (api.discover() if plugins is None else plugins)
         if lib.inrange(p.order, order)
     )
 
-    return publish(context, plugins)
+    return publish(context, plugins, targets)
 
 
 # Backwards compatibility
