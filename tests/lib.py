@@ -31,6 +31,7 @@ def setup_empty():
     pyblish.plugin.deregister_all_paths()
     pyblish.plugin.deregister_all_hosts()
     pyblish.plugin.deregister_all_callbacks()
+    pyblish.plugin.deregister_all_targets()
 
 
 def teardown():
