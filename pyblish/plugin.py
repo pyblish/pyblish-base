@@ -227,6 +227,7 @@ class Plugin():
 
     hosts = ["*"]
     families = ["*"]
+    targets = ["default"]
     label = None
     active = True
     version = (0, 0, 0)
@@ -1356,6 +1357,10 @@ def plugin_is_valid(plugin):
 
     if not isinstance(plugin.families, list):
         log.debug(".families must be list of stirngs")
+        return False
+
+    if not isinstance(plugin.targets, list):
+        log.debug(".targets must be list of strings")
         return False
 
     if not isinstance(plugin.hosts, list):

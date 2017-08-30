@@ -733,3 +733,122 @@ def test_changes_to_registered_plugins_are_not_persistent():
 
     registered = pyblish.api.registered_plugins()[0]
     assert registered.active is False
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_logging_solely_from_pyblish():
+    """Only logging calls with self.log should be recorded."""
+
+    class collect(pyblish.api.ContextPlugin):
+
+        def process(self, context):
+            import logging
+            log = logging.getLogger("temp_logger")
+            log.info("I should not be recorded!")
+
+    context = pyblish.util.publish(plugins=[collect])
+    for result in context.data["results"]:
+        for record in result["records"]:
+            assert record.name.startswith("pyblish")
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_running_for_all_targets():
+    """Run for all targets when family is "default"."""
+
+    count = {"#": 0}
+
+    class plugin(pyblish.api.ContextPlugin):
+
+        targets = ["default"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(plugins=[plugin])
+
+    assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_dont_run_non_matching_targets():
+    """Don't run plugins that haven't got a target registered."""
+
+    count = {"#": 0}
+
+    class plugin(pyblish.api.ContextPlugin):
+
+        targets = ["studio"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(plugins=[plugin])
+
+    assert count["#"] == 0, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_only_run_plugins_that_match_registered_targets():
+    """Only run plugins that match the registered targets."""
+
+    count = {"#": 0}
+
+    class pluginStudio(pyblish.api.ContextPlugin):
+
+        targets = ["studio"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    class pluginProject(pyblish.api.ContextPlugin):
+
+        targets = ["project"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.api.register_target("studio")
+    pyblish.util.publish(plugins=[pluginStudio, pluginProject])
+
+    assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_targets_and_exact_matching():
+    """Run targets with exact matching."""
+
+    count = {"#": 0}
+
+    class pluginStudio(pyblish.api.ContextPlugin):
+
+        targets = ["default", "studio"]
+        match = pyblish.api.Exact
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.api.register_target("studio")
+    pyblish.util.publish(plugins=[pluginStudio])
+
+    assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_targets_and_subset_matching():
+    """Run targets with subset matching."""
+
+    count = {"#": 0}
+
+    class pluginStudio(pyblish.api.ContextPlugin):
+
+        targets = ["studio"]
+        match = pyblish.api.Subset
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.api.register_target("studio")
+    pyblish.util.publish(plugins=[pluginStudio])
+
+    assert count["#"] == 1, "count is {0}".format(count)
