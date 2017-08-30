@@ -1281,6 +1281,7 @@ def discover(type=None, regex=None, paths=None):
                     log.debug("Duplicate plug-in found: %s", plugin)
                     continue
 
+                plugin.__module__ = module.__file__
                 plugins[plugin.__name__] = plugin
 
     # Include plug-ins from registration.
