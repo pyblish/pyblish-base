@@ -157,11 +157,10 @@ def append_logger(plugin):
 
     """
 
-    module = plugin.__module__
     name = plugin.__name__
 
     # Package name appended, for filtering of LogRecord instances
-    logname = "pyblish.%s.%s" % (module, name)
+    logname = "pyblish.%s" % name
     plugin.log = logging.getLogger(logname)
     plugin.log.setLevel(logging.DEBUG)
 
@@ -424,17 +423,17 @@ def logger(handler):
 
     """
 
-    l = logging.getLogger()
-    old_level = l.level
+    logger = logging.getLogger()
+    old_level = logger.level
 
-    l.addHandler(handler)
-    l.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
 
     try:
         yield
     finally:
-        l.removeHandler(handler)
-        l.setLevel(old_level)
+        logger.removeHandler(handler)
+        logger.setLevel(old_level)
 
 
 def process(plugin, context, instance=None, action=None):
@@ -724,7 +723,7 @@ class Context(AbstractEntity):
 
         try:
             key = key.id
-        except:
+        except Exception:
             pass
 
         return key in [c.id for c in self]
@@ -815,7 +814,7 @@ class Instance(AbstractEntity):
         while parent.parent:
             try:
                 parent = parent.parent
-            except:
+            except Exception:
                 break
 
         assert isinstance(parent, Context), ("Parent was not a Context:"
@@ -1271,7 +1270,7 @@ def discover(type=None, regex=None, paths=None):
                 # Store reference to original module, to avoid
                 # garbage collection from collecting it's global
                 # imports, such as `import os`.
-                sys.modules[mod_name] = module
+                sys.modules[abspath] = module
 
             except Exception as err:
                 log.debug("Skipped: \"%s\" (%s)", mod_name, err)
@@ -1282,6 +1281,7 @@ def discover(type=None, regex=None, paths=None):
                     log.debug("Duplicate plug-in found: %s", plugin)
                     continue
 
+                plugin.__module__ = module.__file__
                 plugins[plugin.__name__] = plugin
 
     # Include plug-ins from registration.
