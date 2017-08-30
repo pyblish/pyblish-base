@@ -12,7 +12,6 @@ with "validate" and ends with ".py"
 
 # Standard library
 import os
-import re
 import sys
 import time
 import types
@@ -424,17 +423,17 @@ def logger(handler):
 
     """
 
-    l = logging.getLogger()
-    old_level = l.level
+    logger = logging.getLogger()
+    old_level = logger.level
 
-    l.addHandler(handler)
-    l.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
 
     try:
         yield
     finally:
-        l.removeHandler(handler)
-        l.setLevel(old_level)
+        logger.removeHandler(handler)
+        logger.setLevel(old_level)
 
 
 def process(plugin, context, instance=None, action=None):
@@ -724,7 +723,7 @@ class Context(AbstractEntity):
 
         try:
             key = key.id
-        except:
+        except Exception:
             pass
 
         return key in [c.id for c in self]
@@ -815,7 +814,7 @@ class Instance(AbstractEntity):
         while parent.parent:
             try:
                 parent = parent.parent
-            except:
+            except Exception:
                 break
 
         assert isinstance(parent, Context), ("Parent was not a Context:"

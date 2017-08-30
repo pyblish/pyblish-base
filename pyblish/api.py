@@ -157,6 +157,7 @@ def __init__():
     # Register default test
     register_test(__default_test)
 
+
 __init__()
 
 
@@ -165,6 +166,11 @@ __all__ = [
     "Context",
     "Instance",
     "Asset",
+
+    # Matching algorithms
+    "Subset",
+    "Intersection",
+    "Exact",
 
     "Plugin",
     "Action",
