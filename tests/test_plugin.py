@@ -852,3 +852,40 @@ def test_targets_and_subset_matching():
     pyblish.util.publish(plugins=[pluginStudio])
 
     assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_validate_publish_data_member_type():
+    """Validate publish data member type works."""
+
+    count = {"#": 0}
+
+    class collect(pyblish.api.ContextPlugin):
+
+        order = pyblish.api.CollectorOrder
+
+        def process(self, context):
+            instance = context.create_instance(name="A")
+            instance.data["publish"] = 1.0
+
+    class extract(pyblish.api.InstancePlugin):
+
+        order = pyblish.api.ExtractorOrder
+
+        def process(self, instance):
+            count["#"] += 1
+
+    pyblish.api.register_plugin(collect)
+    pyblish.api.register_plugin(extract)
+
+    # Register built-in validator
+    path = os.path.abspath(
+        os.path.join(os.path.dirname(pyblish.__file__), "plugins")
+    )
+    for plugin in pyblish.api.discover(paths=[path]):
+        if plugin.__name__ == "ValidatePublishDataType":
+            pyblish.api.register_plugin(plugin)
+
+    pyblish.util.publish()
+
+    assert count["#"] == 0, "count is {0}".format(count)
