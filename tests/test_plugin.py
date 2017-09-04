@@ -856,7 +856,7 @@ def test_targets_and_subset_matching():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_targets_and_publishing():
-    """Ony run plugins with requested targets."""
+    """Only run plugins with requested targets."""
 
     count = {"#": 0}
 
@@ -879,7 +879,7 @@ def test_targets_and_publishing():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_targets_and_publishing_with_default():
-    """Ony run plugins with requested targets including default."""
+    """Only run plugins with requested targets including default."""
 
     count = {"#": 0}
 
