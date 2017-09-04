@@ -10,4 +10,4 @@ class ValidatePublishDataType(pyblish.api.ContextPlugin):
     def process(self, context):
 
         for instance in context:
-            assert isinstance(instance.data["publish"], bool)
+            assert isinstance(instance.data.get("publish", True), bool)
