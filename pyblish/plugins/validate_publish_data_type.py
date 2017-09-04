@@ -10,4 +10,7 @@ class ValidatePublishDataType(pyblish.api.ContextPlugin):
     def process(self, context):
 
         for instance in context:
-            assert isinstance(instance.data.get("publish", True), bool)
+            msg = "\"publish\" data member on {0} is not a boolean.".format(
+                instance
+            )
+            assert isinstance(instance.data.get("publish", True), bool), msg
