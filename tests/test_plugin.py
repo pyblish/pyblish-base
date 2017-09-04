@@ -878,13 +878,12 @@ def test_validate_publish_data_member_type():
     pyblish.api.register_plugin(collect)
     pyblish.api.register_plugin(extract)
 
-    # Register built-in validator
+    # Register built-in plugins
     path = os.path.abspath(
         os.path.join(os.path.dirname(pyblish.__file__), "plugins")
     )
     for plugin in pyblish.api.discover(paths=[path]):
-        if plugin.__name__ == "ValidatePublishDataType":
-            pyblish.api.register_plugin(plugin)
+        pyblish.api.register_plugin(plugin)
 
     pyblish.util.publish()
 
