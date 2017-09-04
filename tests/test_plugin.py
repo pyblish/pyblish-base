@@ -860,21 +860,43 @@ def test_targets_and_publishing():
 
     count = {"#": 0}
 
-    class collectA(pyblish.api.ContextPlugin):
+    class pluginA(pyblish.api.ContextPlugin):
 
-        order = pyblish.api.CollectorOrder
         targets = ["customA"]
 
         def process(self, context):
             count["#"] += 1
 
-    class collectB(pyblish.api.ContextPlugin):
-
-        order = pyblish.api.CollectorOrder
+    class pluginB(pyblish.api.ContextPlugin):
 
         def process(self, context):
             count["#"] += 1
 
-    pyblish.util.publish(plugins=[collectA, collectB], targets=["customA"])
+    pyblish.util.publish(plugins=[pluginA, pluginB], targets=["customA"])
 
     assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_targets_and_publishing_with_default():
+    """Ony run plugins with requested targets including default."""
+
+    count = {"#": 0}
+
+    class pluginA(pyblish.api.ContextPlugin):
+
+        targets = ["customA"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    class pluginB(pyblish.api.ContextPlugin):
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(
+        plugins=[pluginA, pluginB], targets=["default", "customA"]
+    )
+
+    assert count["#"] == 2, "count is {0}".format(count)
