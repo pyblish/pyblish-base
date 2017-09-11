@@ -12,7 +12,7 @@ from . import api, logic, plugin, lib
 log = logging.getLogger("pyblish.util")
 
 
-def publish(context=None, plugins=None, targets=["default"]):
+def publish(context=None, plugins=None, targets=None):
     """Publish everything
 
     This function will process all available plugins of the
@@ -32,6 +32,10 @@ def publish(context=None, plugins=None, targets=["default"]):
         >> context = publish()  # ..or receive a new
 
     """
+
+    # Include "default" target when no targets are requested.
+    if targets is None:
+        targets = ["default"]
 
     # Must check against None, as objects be emptys
     context = api.Context() if context is None else context
