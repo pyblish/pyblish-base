@@ -852,3 +852,51 @@ def test_targets_and_subset_matching():
     pyblish.util.publish(plugins=[pluginStudio])
 
     assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_targets_and_publishing():
+    """Only run plugins with requested targets."""
+
+    count = {"#": 0}
+
+    class pluginA(pyblish.api.ContextPlugin):
+
+        targets = ["customA"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    class pluginB(pyblish.api.ContextPlugin):
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(plugins=[pluginA, pluginB], targets=["customA"])
+
+    assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_targets_and_publishing_with_default():
+    """Only run plugins with requested targets including default."""
+
+    count = {"#": 0}
+
+    class pluginA(pyblish.api.ContextPlugin):
+
+        targets = ["customA"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    class pluginB(pyblish.api.ContextPlugin):
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(
+        plugins=[pluginA, pluginB], targets=["default", "customA"]
+    )
+
+    assert count["#"] == 2, "count is {0}".format(count)

@@ -12,7 +12,7 @@ from . import api, logic, plugin, lib
 log = logging.getLogger("pyblish.util")
 
 
-def publish(context=None, plugins=None, targets=[]):
+def publish(context=None, plugins=None, targets=None):
     """Publish everything
 
     This function will process all available plugins of the
@@ -32,6 +32,10 @@ def publish(context=None, plugins=None, targets=[]):
         >> context = publish()  # ..or receive a new
 
     """
+
+    # Include "default" target when no targets are requested.
+    if targets is None:
+        targets = ["default"]
 
     # Must check against None, as objects be emptys
     context = api.Context() if context is None else context
@@ -103,7 +107,7 @@ def publish(context=None, plugins=None, targets=[]):
     return context
 
 
-def collect(context=None, plugins=None, targets=[]):
+def collect(context=None, plugins=None, targets=["default"]):
     """Convenience function for collection-only
 
      _________    . . . . .  .   . . . . . .   . . . . . . .
@@ -118,7 +122,7 @@ def collect(context=None, plugins=None, targets=[]):
     return context
 
 
-def validate(context=None, plugins=None, targets=[]):
+def validate(context=None, plugins=None, targets=["default"]):
     """Convenience function for validation-only
 
     . . . . . .    __________    . . . . . .   . . . . . . .
@@ -133,7 +137,7 @@ def validate(context=None, plugins=None, targets=[]):
     return context
 
 
-def extract(context=None, plugins=None, targets=[]):
+def extract(context=None, plugins=None, targets=["default"]):
     """Convenience function for extraction-only
 
     . . . . . .   . . . . .  .    _________    . . . . . . .
@@ -148,7 +152,7 @@ def extract(context=None, plugins=None, targets=[]):
     return context
 
 
-def integrate(context=None, plugins=None, targets=[]):
+def integrate(context=None, plugins=None, targets=["default"]):
     """Convenience function for integration-only
 
     . . . . . .   . . . . .  .   . . . . . .    ___________
@@ -163,7 +167,7 @@ def integrate(context=None, plugins=None, targets=[]):
     return context
 
 
-def _convenience(order, context=None, plugins=None, targets=[]):
+def _convenience(order, context=None, plugins=None, targets=["default"]):
     plugins = list(
         p for p in (api.discover() if plugins is None else plugins)
         if lib.inrange(p.order, order)
