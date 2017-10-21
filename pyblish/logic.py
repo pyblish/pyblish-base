@@ -381,4 +381,12 @@ def Iterator(plugins, context, state=None):
                 yield plugin, instance
 
         else:
+        
+            # When filtering to families at least a single instance with
+            # that family must be active in the current publish
+            if "*" not in plugin.families:
+                if not any(instance.data.get("publish") is not False 
+                           for instance in instances):
+                    continue
+                    
             yield plugin, None
