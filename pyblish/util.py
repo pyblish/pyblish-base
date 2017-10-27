@@ -54,7 +54,7 @@ def publish(context=None, plugins=None, targets=None):
 
     # First pass, collection
     for Plugin, instance in logic.Iterator(collectors, context):
-        plugin.process(Plugin, context, instance)
+        yield plugin.process(Plugin, context, instance)
 
     # Exclude collectors from further processing
     plugins = list(p for p in plugins if p not in collectors)
@@ -76,7 +76,7 @@ def publish(context=None, plugins=None, targets=None):
     for Plugin, instance in logic.Iterator(plugins, context, state):
         try:
             result = plugin.process(Plugin, context, instance)
-
+            yield result
         except StopIteration:  # End of items
             raise
 
@@ -104,7 +104,7 @@ def publish(context=None, plugins=None, targets=None):
     for target in targets:
         api.deregister_target(target)
 
-    return context
+    yield context
 
 
 def collect(context=None, plugins=None, targets=["default"]):
