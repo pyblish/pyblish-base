@@ -26,10 +26,57 @@ def publish(context=None, plugins=None, targets=None):
             defaults to results of discover()
         targets (list, optional): Targets to include for publish session.
 
+    Returns:
+        Context: The context processed by the plugins.
+
     Usage:
         >> context = plugin.Context()
         >> publish(context)     # Pass..
         >> context = publish()  # ..or receive a new
+
+    """
+
+    # Need to generate a Context object if None is passed. This is because,
+    # if None is passed the publish iterator won't process the context and not
+    # return anything.
+    context = api.Context() if context is None else context
+
+    # Since the Context object is a singleton, we can just run though the
+    # publish iterator without assigning any variables.
+    for _ in publish_iter(context, plugins, targets):
+        pass
+
+    return context
+
+
+def publish_iter(context=None, plugins=None, targets=None):
+    """Publish iterator
+
+    This function will process all available plugins of the
+    currently running host, publishing anything picked up
+    during collection.
+
+    Arguments:
+        context (Context, optional): Context, defaults to
+            creating a new context
+        plugins (list, optional): Plug-ins to include,
+            defaults to results of discover()
+        targets (list, optional): Targets to include for publish session.
+
+    Yields:
+        tuple of dict and Context: A tuple is returned with a dictionary and
+            the Context object. The dictionary contains all the result
+            information of a plugin process, and the Context is the Context
+            after the plugin has been processed.
+
+    Usage:
+        >> context = plugin.Context()
+        >> for result, context in util.publish_iter(context):
+               print result
+               print context
+        >> for result, context in util.publish_iter():
+               print result
+               print context
 
     """
 
@@ -54,7 +101,7 @@ def publish(context=None, plugins=None, targets=None):
 
     # First pass, collection
     for Plugin, instance in logic.Iterator(collectors, context):
-        yield plugin.process(Plugin, context, instance)
+        yield (plugin.process(Plugin, context, instance), context)
 
     # Exclude collectors from further processing
     plugins = list(p for p in plugins if p not in collectors)
@@ -76,7 +123,7 @@ def publish(context=None, plugins=None, targets=None):
     for Plugin, instance in logic.Iterator(plugins, context, state):
         try:
             result = plugin.process(Plugin, context, instance)
-            yield result
+            yield (result, context)
         except StopIteration:  # End of items
             raise
 
@@ -103,8 +150,6 @@ def publish(context=None, plugins=None, targets=None):
     # Deregister targets
     for target in targets:
         api.deregister_target(target)
-
-    yield context
 
 
 def collect(context=None, plugins=None, targets=["default"]):
