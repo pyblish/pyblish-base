@@ -80,6 +80,8 @@ def publish_iter(context=None, plugins=None, targets=None):
 
     """
 
+    percentage = 0.0
+
     # Include "default" target when no targets are requested.
     if targets is None:
         targets = ["default"]
@@ -100,8 +102,11 @@ def publish_iter(context=None, plugins=None, targets=None):
     )
 
     # First pass, collection
+    plugin_processed_count = 0
     for Plugin, instance in logic.Iterator(collectors, context):
-        yield (plugin.process(Plugin, context, instance), context)
+        plugin_processed_count += 1
+        percentage = float(plugin_processed_count) / len(plugins)
+        yield (percentage, plugin.process(Plugin, context, instance), context)
 
     # Exclude collectors from further processing
     plugins = list(p for p in plugins if p not in collectors)
@@ -120,16 +125,42 @@ def publish_iter(context=None, plugins=None, targets=None):
     }
 
     # Second pass, the remainder
+    plugin_processing = None
+    instances_processed_count = 0
+    total_plugins = len(plugins) + len(collectors)
     for Plugin, instance in logic.Iterator(plugins, context, state):
         try:
             result = plugin.process(Plugin, context, instance)
-            yield (result, context)
+
+            # Calculate percentage
+            instances_count = len(logic.instances_by_plugin(context, Plugin))
+
+            instances_processed_fraction = 0
+            if instances_count != 0:
+                instances_processed_fraction = (
+                    float(instances_processed_count) / instances_count
+                )
+
+            plugin_instance_processed = (
+                instances_processed_fraction + plugin_processed_count
+            )
+            percentage = plugin_instance_processed / total_plugins
+
+            # Yield results
+            yield (percentage, result, context)
+
+            # Increment for next iteration
+            instances_processed_count += 1
+            if plugin_processing != Plugin:
+                plugin_processed_count += 1
+                instances_processed_count = 0
+                plugin_processing = Plugin
         except StopIteration:  # End of items
             raise
 
-        except:  # This is unexpected, most likely a bug
+        except Exception as e:  # This is unexpected, most likely a bug
             log.error("An exception occurred.\n")
-            raise
+            raise e
 
         else:
             # Make note of the order at which the
