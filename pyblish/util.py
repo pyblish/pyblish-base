@@ -38,8 +38,6 @@ def publish(context=None, plugins=None, targets=None):
 
     context = api.Context() if context is None else context
 
-    # Since the Context object is a singleton, we can just run though the
-    # publish iterator without assigning any variables.
     for _ in publish_iter(context, plugins, targets):
         pass
 
