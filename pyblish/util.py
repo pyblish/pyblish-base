@@ -102,11 +102,12 @@ def publish_iter(context=None, plugins=None, targets=None):
     )
 
     # First pass, collection
-    plugin_processed_count = 0
+    tasks_processed_count = 0
     for Plugin, instance in logic.Iterator(collectors, context):
-        plugin_processed_count += 1
-        percentage = float(plugin_processed_count) / len(plugins)
-        yield (percentage, plugin.process(Plugin, context, instance), context)
+        result = plugin.process(Plugin, context, instance)
+        tasks_processed_count += 1
+        percentage = float(tasks_processed_count) / len(plugins)
+        yield (percentage, result, context)
 
     # Exclude collectors from further processing
     plugins = list(p for p in plugins if p not in collectors)
@@ -125,36 +126,16 @@ def publish_iter(context=None, plugins=None, targets=None):
     }
 
     # Second pass, the remainder
-    plugin_processing = None
-    instances_processed_count = 0
-    total_plugins = len(plugins) + len(collectors)
+    tasks = list(logic.Iterator(plugins, context, state))
     for Plugin, instance in logic.Iterator(plugins, context, state):
         try:
             result = plugin.process(Plugin, context, instance)
-
-            # Calculate percentage
-            instances_count = len(logic.instances_by_plugin(context, Plugin))
-
-            instances_processed_fraction = 0
-            if instances_count != 0:
-                instances_processed_fraction = (
-                    float(instances_processed_count) / instances_count
-                )
-
-            plugin_instance_processed = (
-                instances_processed_fraction + plugin_processed_count
+            tasks_processed_count += 1
+            percentage = (
+                float(tasks_processed_count) / (len(tasks) + len(collectors))
             )
-            percentage = plugin_instance_processed / total_plugins
-
-            # Yield results
             yield (percentage, result, context)
 
-            # Increment for next iteration
-            instances_processed_count += 1
-            if plugin_processing != Plugin:
-                plugin_processed_count += 1
-                instances_processed_count = 0
-                plugin_processing = Plugin
         except StopIteration:  # End of items
             raise
 
