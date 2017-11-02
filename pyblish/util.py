@@ -125,8 +125,6 @@ def publish_iter(context=None, plugins=None, targets=None):
             result["percentage"] = (
                 float(tasks_processed_count) / (len(tasks) + len(collectors))
             )
-            yield result
-
         except StopIteration:  # End of items
             raise
 
@@ -147,6 +145,8 @@ def publish_iter(context=None, plugins=None, targets=None):
         error = result["error"]
         if error is not None:
             print(error)
+
+        yield result
 
     api.emit("published", context=context)
 
