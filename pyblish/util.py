@@ -66,12 +66,10 @@ def publish_iter(context=None, plugins=None, targets=None):
 
     Usage:
         >> context = plugin.Context()
-        >> for result, context in util.publish_iter(context):
+        >> for result in util.publish_iter(context):
                print result
-               print context
-        >> for result, context in util.publish_iter():
+        >> for result in util.publish_iter():
                print result
-               print context
 
     """
 
