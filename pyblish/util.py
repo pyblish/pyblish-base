@@ -75,8 +75,6 @@ def publish_iter(context=None, plugins=None, targets=None):
 
     """
 
-    percentage = 0.0
-
     # Include "default" target when no targets are requested.
     if targets is None:
         targets = ["default"]
