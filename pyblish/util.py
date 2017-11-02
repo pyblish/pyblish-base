@@ -36,9 +36,6 @@ def publish(context=None, plugins=None, targets=None):
 
     """
 
-    # Need to generate a Context object if None is passed. This is because,
-    # if None is passed the publish iterator won't process the context and not
-    # return anything.
     context = api.Context() if context is None else context
 
     # Since the Context object is a singleton, we can just run though the
