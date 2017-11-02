@@ -103,8 +103,8 @@ def publish_iter(context=None, plugins=None, targets=None):
     for Plugin, instance in logic.Iterator(collectors, context):
         result = plugin.process(Plugin, context, instance)
         tasks_processed_count += 1
-        percentage = float(tasks_processed_count) / len(plugins)
-        yield (percentage, result, context)
+        result["percentage"] = float(tasks_processed_count) / len(plugins)
+        yield result
 
     # Exclude collectors from further processing
     plugins = list(p for p in plugins if p not in collectors)
@@ -128,10 +128,10 @@ def publish_iter(context=None, plugins=None, targets=None):
         try:
             result = plugin.process(Plugin, context, instance)
             tasks_processed_count += 1
-            percentage = (
+            result["percentage"] = (
                 float(tasks_processed_count) / (len(tasks) + len(collectors))
             )
-            yield (percentage, result, context)
+            yield result
 
         except StopIteration:  # End of items
             raise
