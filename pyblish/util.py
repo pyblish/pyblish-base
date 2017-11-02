@@ -136,9 +136,9 @@ def publish_iter(context=None, plugins=None, targets=None):
         except StopIteration:  # End of items
             raise
 
-        except Exception as e:  # This is unexpected, most likely a bug
+        except:  # This is unexpected, most likely a bug
             log.error("An exception occurred.\n")
-            raise e
+            raise
 
         else:
             # Make note of the order at which the
