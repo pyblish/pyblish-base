@@ -342,7 +342,13 @@ def gui(ctx, package):
     environ = os.environ.copy()
     context = ctx.obj["context"]
 
+    registered_guis = api.registered_guis()
+
     with _cli_plugin(data=context.data) as plugin_path:
+
+        if len(registered_guis) > 0:
+            package = registered_guis[0]
+
         environ["PYBLISHPLUGINPATH"] = os.pathsep.join(
             ctx.obj["plugin_paths"] + [plugin_path]
         )

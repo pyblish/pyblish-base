@@ -164,6 +164,41 @@ if __name__ == '__main__':
 
 
 @with_setup(lib.setup, lib.teardown)
+def test_uses_gui_from_env():
+    """Uses gui from environment var works"""
+
+    with tempfile.NamedTemporaryFile(dir=self.tempdir,
+                                     delete=False,
+                                     suffix=".py") as f:
+        module_name = os.path.basename(f.name)[:-3]
+        f.write(b"""\
+def show():
+    print("Mock GUI shown successfully")
+
+if __name__ == '__main__':
+    show()
+""")
+
+    pythonpath = os.pathsep.join([
+        self.tempdir,
+        os.environ.get("PYTHONPATH", "")
+    ])
+
+    runner = CliRunner()
+    result = runner.invoke(
+        pyblish.cli.main, ["gui"],
+        env={
+            "PYTHONPATH": pythonpath,
+            "PYBLISH_GUI": module_name
+        }
+    )
+
+    assert_equals(result.output.splitlines()[-1].rstrip(),
+                  "Mock GUI shown successfully")
+    assert_equals(result.exit_code, 0)
+
+
+@with_setup(lib.setup, lib.teardown)
 def test_passing_data_to_gui():
     """Passing data to GUI works"""
 
