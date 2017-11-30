@@ -1015,8 +1015,8 @@ def register_plugin_path(path):
         >>> plugins_B = r"server\pluginsB"
         >>> register_plugin_path(plugins_B) == os.path.normpath(plugins_B)
         True
-        >>> deregister_plugin_path("server/pluginsA")
-        >>> deregister_plugin_path("server/pluginsB")
+        >>> deregister_plugin_path(plugins_A)
+        >>> deregister_plugin_path(plugins_B)
 
     Returns:
         Actual path added, including any post-processing
