@@ -1027,12 +1027,14 @@ def register_plugin_path(path):
 def deregister_plugin_path(path):
     """Remove a pyblish._registered_paths path
 
-    Raises:
-        KeyError if `path` isn't registered
+    .. note:: Log warning if `path` isn't registered
 
     """
 
-    _registered_paths.remove(path)
+    try:
+        _registered_paths.remove(path)
+    except ValueError:
+        return log.warning("Path not in registered list: {0}".format(path))
 
 
 def deregister_all_paths():
