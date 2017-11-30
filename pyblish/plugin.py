@@ -1007,9 +1007,11 @@ def register_plugin_path(path):
 
     Example:
         >>> import os
-        >>> my_plugins = "server/plugins"
-        >>> register_plugin_path(my_plugins) == os.path.join("server", "plugins")
+        >>> # Linux
+        >>> register_plugin_path("server/plugins") == os.path.join("server", "plugins")
         True
+        >>> # Windows
+        >>> register_plugin_path(r"server\plugins") == os.path.join("server", "plugins")
 
     Returns:
         Actual path added, including any post-processing
