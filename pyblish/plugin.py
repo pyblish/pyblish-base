@@ -1009,7 +1009,7 @@ def register_plugin_path(path):
         >>> import os
         >>> my_plugins = "/server/plugins"
         >>> register_plugin_path(my_plugins)
-        '/server/plugins'
+        '\\server\\plugins'
 
     Returns:
         Actual path added, including any post-processing
