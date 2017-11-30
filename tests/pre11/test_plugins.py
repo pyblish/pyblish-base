@@ -65,9 +65,9 @@ def test_entities_prints_nicely():
 def test_deregister_path():
     path = "/server/plugins"
     pyblish.plugin.register_plugin_path(path)
-    assert os.path.normpath(path) in pyblish.plugin.registered_paths()
+    assert path in pyblish.plugin.registered_paths()
     pyblish.plugin.deregister_plugin_path(path)
-    assert os.path.normpath(path) not in pyblish.plugin.registered_paths()
+    assert path not in pyblish.plugin.registered_paths()
 
 
 def test_environment_paths():

@@ -1009,14 +1009,13 @@ def register_plugin_path(path):
         >>> import os
         >>> my_plugins = "/server/plugins"
         >>> register_plugin_path(my_plugins)
-        '\\\\server\\\\plugins'
+        '/server/plugins'
 
     Returns:
         Actual path added, including any post-processing
 
     """
 
-    path = os.path.normpath(path)
     if path in _registered_paths:
         return log.warning("Path already registered: {0}".format(path))
 
@@ -1028,13 +1027,14 @@ def register_plugin_path(path):
 def deregister_plugin_path(path):
     """Remove a pyblish._registered_paths path
 
-    Raises:
-        KeyError if `path` isn't registered
+    .. note:: Log warning if `path` isn't registered
 
     """
 
-    path = os.path.normpath(path)
-    _registered_paths.remove(path)
+    try:
+        _registered_paths.remove(path)
+    except ValueError:
+        return log.warning("Path not in registered list: {0}".format(path))
 
 
 def deregister_all_paths():
