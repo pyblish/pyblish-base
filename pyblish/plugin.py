@@ -1008,10 +1008,12 @@ def register_plugin_path(path):
     Example:
         >>> import os
         >>> # Linux
-        >>> register_plugin_path("server/pluginsA") == os.path.join("server", "pluginsA")
+        >>> plugins_A = "server/pluginsA"
+        >>> register_plugin_path(plugins_A) == os.path.normpath(plugins_A)
         True
         >>> # Windows
-        >>> register_plugin_path(r"server\pluginsB") == os.path.join("server", "pluginsB")
+        >>> plugins_B = r"server\pluginsB"
+        >>> register_plugin_path(plugins_B) == os.path.normpath(plugins_B)
         True
         >>> deregister_plugin_path("server/pluginsA")
         >>> deregister_plugin_path("server/pluginsB")
