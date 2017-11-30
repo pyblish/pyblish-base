@@ -1016,6 +1016,7 @@ def register_plugin_path(path):
 
     """
 
+    path = os.path.normpath(path)
     if path in _registered_paths:
         return log.warning("Path already registered: {0}".format(path))
 
@@ -1032,6 +1033,7 @@ def deregister_plugin_path(path):
 
     """
 
+    path = os.path.normpath(path)
     _registered_paths.remove(path)
 
 
