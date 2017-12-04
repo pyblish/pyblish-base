@@ -152,7 +152,7 @@ def __init__():
             register_host(host)
 
     # Register default path
-    register_plugin_path("%s/plugins" % __main_package_path())
+    register_plugin_path(os.path.join(__main_package_path(), "plugins"))
 
     # Register default test
     register_test(__default_test)
