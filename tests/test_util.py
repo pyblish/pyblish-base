@@ -342,3 +342,38 @@ def test_publishing_integrators():
     util.integrate(targets=["custom"])
 
     assert count["#"] == 1, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_progress_existence():
+    """Progress data member exists"""
+
+    class plugin(api.ContextPlugin):
+        pass
+
+    api.register_plugin(plugin)
+
+    result = next(util.publish_iter())
+
+    assert "progress" in result, result
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_publish_iter_increment_progress():
+    """Publish iteration increments progress"""
+
+    class pluginA(api.ContextPlugin):
+        pass
+
+    class pluginB(api.ContextPlugin):
+        pass
+
+    api.register_plugin(pluginA)
+    api.register_plugin(pluginB)
+
+    iterator = util.publish_iter()
+
+    pluginA_progress = next(iterator)["progress"]
+    pluginB_progress = next(iterator)["progress"]
+
+    assert pluginA_progress < pluginB_progress
