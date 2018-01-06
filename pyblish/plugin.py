@@ -810,6 +810,15 @@ class Instance(AbstractEntity):
         return self._name
 
     @property
+    def families(self):
+        """Return list of family and families"""
+        family = self._data.get("family")
+        families = [family] if family else []
+        families += self._data.get("families", [])
+
+        return families
+
+    @property
     def context(self):
         """Return top-level parent; the context"""
         parent = self.parent

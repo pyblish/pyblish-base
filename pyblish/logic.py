@@ -209,11 +209,8 @@ def plugins_by_instance(plugins, instance):
 
     """
 
-    family = instance.data.get("family")
-    families = instance.data.get("families", [])
-
     return plugins_by_families(
-        plugins, ([family] if family else []) + families)
+        plugins, instance.families)
 
 
 def plugins_by_host(plugins, host):
@@ -299,11 +296,7 @@ def instances_by_plugin(instances, plugin):
         assert algorithm, ("Plug-in did not provide "
                            "valid matching algorithm: %s" % plugin.match)
 
-        family = instance.data.get("family")
-        families = [family] if family else []
-        families += instance.data.get("families", [])
-
-        if algorithm(plugin.families, families):
+        if algorithm(plugin.families, instance.families):
             compatible.append(instance)
 
     return compatible
