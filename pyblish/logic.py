@@ -319,7 +319,7 @@ def _extract_traceback(exception):
         exc_type, exc_value, exc_traceback = sys.exc_info()
         exception.traceback = traceback.extract_tb(exc_traceback)[-1]
 
-    except:
+    except Exception:
         pass
 
     finally:
