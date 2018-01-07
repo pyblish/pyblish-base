@@ -209,8 +209,7 @@ def plugins_by_instance(plugins, instance):
 
     """
 
-    return plugins_by_families(
-        plugins, instance.families)
+    return plugins_by_families(plugins, instance.families)
 
 
 def plugins_by_host(plugins, host):
