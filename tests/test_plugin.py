@@ -57,6 +57,20 @@ def test_context_from_instance():
     assert_equals(context, instance.context)
 
 
+def test_families_from_instance():
+    """Instances provide access to their families"""
+
+    context = pyblish.plugin.Context()
+    instance = context.create_instance("MyInstance")
+    instance.data["family"] = "A"
+    families = list(instance.data["family"])
+    assert_equals(families, instance.families)
+
+    instance.data["families"] = ["B", "C"]
+    families.extend(instance.data["families"])
+    assert_equals(families, instance.families)
+
+
 def test_legacy():
     """Legacy is determined by existing process_* methods"""
     class LegacyPlugin(pyblish.plugin.Collector):
