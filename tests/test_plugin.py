@@ -63,11 +63,11 @@ def test_families_from_instance():
     context = pyblish.plugin.Context()
     instance = context.create_instance("MyInstance")
     instance.data["family"] = "A"
-    families = list(instance.data["family"])
+    families = [instance.data["family"]]
     assert_equals(families, instance.families)
 
     instance.data["families"] = ["B", "C"]
-    families.extend(instance.data["families"])
+    families += instance.data["families"]
     assert_equals(families, instance.families)
 
 
