@@ -1,4 +1,6 @@
 import os
+import logging
+import tempfile
 
 from pyblish.vendor import mock
 import pyblish.api
@@ -900,3 +902,32 @@ def test_targets_and_publishing_with_default():
     )
 
     assert count["#"] == 2, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_duplicate_plugin_names():
+    logging.basicConfig(level=logging.DEBUG)
+
+    plugins = []
+    with lib.tempdir() as temp:
+        plugin = """from pyblish import api
+class collectorA(api.ContextPlugin):
+    def process(self, context):
+        pass
+    """
+        path = os.path.join(temp, "pluginA.py")
+        with open(path, "w") as the_file:
+            the_file.write(plugin)
+
+        plugin_copy = """from pyblish import api
+class collectorA(api.InstancePlugin):
+    def process(self, context):
+        pass
+    """
+        path = os.path.join(temp, "pluginA_copy.py")
+        with open(path, "w") as the_file:
+            the_file.write(plugin_copy)
+
+        plugins.extend(pyblish.api.discover(paths=[temp]))
+
+    assert len(plugins) == 2, plugins
