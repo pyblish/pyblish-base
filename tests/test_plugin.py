@@ -910,23 +910,17 @@ def test_duplicate_plugin_names():
 
     plugins = []
     with lib.tempdir() as temp:
-        plugin = """from pyblish import api
-class collectorA(api.ContextPlugin):
-    def process(self, context):
-        pass
-    """
+        plugin = (
+            "from pyblish import api\nclass collectorA(api.ContextPlugin):"
+            "\n    def process(self, context):\n        pass"
+        )
         path = os.path.join(temp, "pluginA.py")
         with open(path, "w") as the_file:
             the_file.write(plugin)
 
-        plugin_copy = """from pyblish import api
-class collectorA(api.InstancePlugin):
-    def process(self, context):
-        pass
-    """
         path = os.path.join(temp, "pluginA_copy.py")
         with open(path, "w") as the_file:
-            the_file.write(plugin_copy)
+            the_file.write(plugin)
 
         plugins.extend(pyblish.api.discover(paths=[temp]))
 
