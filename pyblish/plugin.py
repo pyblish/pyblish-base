@@ -1280,10 +1280,8 @@ def discover(type=None, regex=None, paths=None):
             for plugin in plugins_from_module(module):
                 # Check for duplicate plugin names. This is to preserve
                 # backwards compatility.
-                allow_duplicates = eval(
-                    os.environ.get(
-                        "PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES", "False"
-                    )
+                allow_duplicates = bool(
+                    os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
                 )
                 if not allow_duplicates and plugin.__name__ in plugin_names:
                     log.debug("Duplicate plug-in found: %s", plugin)
@@ -1299,10 +1297,8 @@ def discover(type=None, regex=None, paths=None):
     for plugin in registered_plugins():
         # Check for duplicate plugin names. This is to preserve
         # backwards compatility.
-        allow_duplicates = eval(
-            os.environ.get(
-                "PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES", "False"
-            )
+        allow_duplicates = bool(
+            os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
         )
         if not allow_duplicates and plugin.__name__ in plugin_names:
             log.debug("Duplicate plug-in found: %s", plugin)
