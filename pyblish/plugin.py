@@ -45,6 +45,12 @@ Intersection = 1 << 0
 Subset = 1 << 1
 Exact = 1 << 2
 
+# Check for duplicate plugin names. This is to preserve
+# backwards compatility.
+PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES = bool(
+    os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
+)
+
 
 class Provider():
     """Dependency provider
@@ -1285,12 +1291,8 @@ def discover(type=None, regex=None, paths=None):
                 continue
 
             for plugin in plugins_from_module(module):
-                # Check for duplicate plugin names. This is to preserve
-                # backwards compatility.
-                allow_duplicates = bool(
-                    os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
-                )
-                if not allow_duplicates and plugin.__name__ in plugin_names:
+                if (not PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES and
+                   plugin.__name__ in plugin_names):
                     log.debug("Duplicate plug-in found: %s", plugin)
                     continue
                 plugin_names.append(plugin.__name__)
@@ -1302,12 +1304,8 @@ def discover(type=None, regex=None, paths=None):
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
     for plugin in registered_plugins():
-        # Check for duplicate plugin names. This is to preserve
-        # backwards compatility.
-        allow_duplicates = bool(
-            os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
-        )
-        if not allow_duplicates and plugin.__name__ in plugin_names:
+        if (not PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES and
+           plugin.__name__ in plugin_names):
             log.debug("Duplicate plug-in found: %s", plugin)
             continue
         plugin_names.append(plugin.__name__)
