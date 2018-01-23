@@ -1285,11 +1285,10 @@ def discover(type=None, regex=None, paths=None):
                         "PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES", "False"
                     )
                 )
-                if not allow_duplicates:
-                    if plugin.__name__ in plugin_names:
-                        log.debug("Duplicate plug-in found: %s", plugin)
-                        continue
-                    plugin_names.append(plugin.__name__)
+                if not allow_duplicates and plugin.__name__ in plugin_names:
+                    log.debug("Duplicate plug-in found: %s", plugin)
+                    continue
+                plugin_names.append(plugin.__name__)
 
                 plugin.__module__ = module.__file__
                 key = "{0}.{1}".format(plugin.__module__, plugin.__name__)
@@ -1305,11 +1304,10 @@ def discover(type=None, regex=None, paths=None):
                 "PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES", "False"
             )
         )
-        if not allow_duplicates:
-            if plugin.__name__ in plugin_names:
-                log.debug("Duplicate plug-in found: %s", plugin)
-                continue
-            plugin_names.append(plugin.__name__)
+        if not allow_duplicates and plugin.__name__ in plugin_names:
+            log.debug("Duplicate plug-in found: %s", plugin)
+            continue
+        plugin_names.append(plugin.__name__)
 
         plugins[plugin.__name__] = plugin
 
