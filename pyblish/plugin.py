@@ -1239,6 +1239,7 @@ def discover(type=None, regex=None, paths=None):
                       "has been deprecated and does nothing")
 
     plugins = dict()
+    plugin_names = []
 
     # Include plug-ins from registered paths
     for path in paths or plugin_paths():
@@ -1277,6 +1278,19 @@ def discover(type=None, regex=None, paths=None):
                 continue
 
             for plugin in plugins_from_module(module):
+                # Check for duplicate plugin names. This is to preserve
+                # backwards compatility.
+                allow_duplicates = eval(
+                    os.environ.get(
+                        "PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES", "False"
+                    )
+                )
+                if not allow_duplicates:
+                    if plugin.__name__ in plugin_names:
+                        log.debug("Duplicate plug-in found: %s", plugin)
+                        continue
+                    plugin_names.append(plugin.__name__)
+
                 plugin.__module__ = module.__file__
                 key = "{0}.{1}".format(plugin.__module__, plugin.__name__)
                 plugins[key] = plugin
@@ -1284,6 +1298,19 @@ def discover(type=None, regex=None, paths=None):
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
     for plugin in registered_plugins():
+        # Check for duplicate plugin names. This is to preserve
+        # backwards compatility.
+        allow_duplicates = eval(
+            os.environ.get(
+                "PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES", "False"
+            )
+        )
+        if not allow_duplicates:
+            if plugin.__name__ in plugin_names:
+                log.debug("Duplicate plug-in found: %s", plugin)
+                continue
+            plugin_names.append(plugin.__name__)
+
         plugins[plugin.__name__] = plugin
 
     plugins = list(plugins.values())

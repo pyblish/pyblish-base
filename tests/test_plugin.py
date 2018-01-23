@@ -908,6 +908,8 @@ def test_targets_and_publishing_with_default():
 def test_duplicate_plugin_names():
     logging.basicConfig(level=logging.DEBUG)
 
+    os.environ["PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES"] = "True"
+
     plugins = []
     with lib.tempdir() as temp:
         plugin = (
