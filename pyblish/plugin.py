@@ -45,6 +45,12 @@ Intersection = 1 << 0
 Subset = 1 << 1
 Exact = 1 << 2
 
+# Check for duplicate plugin names. This is to preserve
+# backwards compatility.
+PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES = bool(
+    os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
+)
+
 
 class Provider():
     """Dependency provider
@@ -1247,12 +1253,6 @@ def discover(type=None, regex=None, paths=None):
 
     plugins = dict()
     plugin_names = []
-
-    # Check for duplicate plugin names. This is to preserve
-    # backwards compatility.
-    PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES = bool(
-        os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
-    )
 
     # Include plug-ins from registered paths
     for path in paths or plugin_paths():
