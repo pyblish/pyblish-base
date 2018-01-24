@@ -1,4 +1,5 @@
 import os
+import logging
 
 from pyblish.vendor import mock
 import pyblish.api
@@ -900,3 +901,34 @@ def test_targets_and_publishing_with_default():
     )
 
     assert count["#"] == 2, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_duplicate_plugin_names():
+    logging.basicConfig(level=logging.DEBUG)
+
+    pyblish.plugin.ALLOW_DUPLICATES = True
+
+    plugins = []
+    with lib.tempdir() as temp:
+        plugin = (
+            "from pyblish import api\nclass collectorA(api.ContextPlugin):"
+            "\n    def process(self, context):\n        pass"
+        )
+        path = os.path.join(temp, "pluginA.py")
+        with open(path, "w") as the_file:
+            the_file.write(plugin)
+
+        path = os.path.join(temp, "pluginA_copy.py")
+        with open(path, "w") as the_file:
+            the_file.write(plugin)
+
+        plugins.extend(pyblish.api.discover(paths=[temp]))
+
+    assert len(plugins) == 2, plugins
+    
+    # Restore state, for subsequent tests
+    # NOTE: This assumes the test succeeds. If it fails, then
+    # subsequent tests can fail because of it.
+    pyblish.plugin.ALLOW_DUPLICATES = True
+

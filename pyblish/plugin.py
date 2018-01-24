@@ -45,6 +45,12 @@ Intersection = 1 << 0
 Subset = 1 << 1
 Exact = 1 << 2
 
+# Check for duplicate plugin names. This is to preserve
+# backwards compatility.
+ALLOW_DUPLICATES = bool(
+    os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
+)
+
 
 class Provider():
     """Dependency provider
@@ -1246,6 +1252,7 @@ def discover(type=None, regex=None, paths=None):
                       "has been deprecated and does nothing")
 
     plugins = dict()
+    plugin_names = []
 
     # Include plug-ins from registered paths
     for path in paths or plugin_paths():
@@ -1284,19 +1291,25 @@ def discover(type=None, regex=None, paths=None):
                 continue
 
             for plugin in plugins_from_module(module):
-                if plugin.__name__ in plugins:
+                if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
                     log.debug("Duplicate plug-in found: %s", plugin)
                     continue
 
+                plugin_names.append(plugin.__name__)
+
                 plugin.__module__ = module.__file__
-                plugins[plugin.__name__] = plugin
+                key = "{0}.{1}".format(plugin.__module__, plugin.__name__)
+                plugins[key] = plugin
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
     for plugin in registered_plugins():
-        if plugin.__name__ in plugins:
+        if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
             log.debug("Duplicate plug-in found: %s", plugin)
             continue
+
+        plugin_names.append(plugin.__name__)
+
         plugins[plugin.__name__] = plugin
 
     plugins = list(plugins.values())
