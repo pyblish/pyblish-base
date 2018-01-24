@@ -1304,7 +1304,7 @@ def discover(type=None, regex=None, paths=None):
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
     for plugin in registered_plugins():
-        if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names):
+        if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
             log.debug("Duplicate plug-in found: %s", plugin)
             continue
 
