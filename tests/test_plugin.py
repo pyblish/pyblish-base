@@ -926,9 +926,8 @@ def test_duplicate_plugin_names():
         plugins.extend(pyblish.api.discover(paths=[temp]))
 
     assert len(plugins) == 2, plugins
-    
+
     # Restore state, for subsequent tests
     # NOTE: This assumes the test succeeds. If it fails, then
     # subsequent tests can fail because of it.
-    pyblish.plugin.ALLOW_DUPLICATES = True
-
+    pyblish.plugin.ALLOW_DUPLICATES = False
