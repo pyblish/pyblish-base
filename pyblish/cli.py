@@ -48,7 +48,6 @@ _help = {
         "plugins": "List all available plugins",
         "data": "Initialise context with data. This takes "
                 "two arguments, key and value.",
-    "targets": "Use only plugins which have similar targets"
     },
     "publish": {
         "delay": "Add an artificial delay to each plugin. "
@@ -57,7 +56,9 @@ _help = {
         "file": "Load file in host registered to it's suffix",
         "instance": "Only publish specified instance. "
                     "The default behaviour is to publish "
-                    "all instances. This may be called multiple times."
+                    "all instances. This may be called multiple times.",
+        "targets": "Use only plugins which have similar targets. Provide a "
+                   "string of targets separated by a `;`"
     }
 }
 
@@ -286,7 +287,7 @@ def main(ctx,
 @click.option("-t",
               "--targets",
               multiple=True,
-              help=_help["main"]["targets"])
+              help=_help["publish"]["targets"])
 @click.pass_context
 def publish(ctx,
             path,
@@ -298,11 +299,8 @@ def publish(ctx,
     \b
     Arguments:
         path: Optional path, either absolute or relative,
-            at which to initialise a publish. Defaults to
-            the current working directory.
-
-        targets: Optional target list, when set use only plugins which
-                 match the target
+              at which to initialise a publish. Defaults to
+              the current working directory.
 
     \b
     Usage:
