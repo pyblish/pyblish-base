@@ -47,7 +47,8 @@ _help = {
         "version": "Print the current version of Pyblish",
         "plugins": "List all available plugins",
         "data": "Initialise context with data. This takes "
-                "two arguments, key and value."
+                "two arguments, key and value.",
+    "targets": "Use only plugins which have similar targets"
     },
     "publish": {
         "delay": "Add an artificial delay to each plugin. "
@@ -225,7 +226,6 @@ def main(ctx,
     ctx.obj["plugin_paths"] = plugin_paths
 
     available_plugins = api.discover(paths=plugin_paths)
-
     if plugins:
         click.echo(_format_plugins(available_plugins))
 
@@ -283,11 +283,16 @@ def main(ctx,
               default=None,
               type=float,
               help=_help["publish"]["delay"])
+@click.option("-t",
+              "--targets",
+              multiple=True,
+              help=_help["main"]["targets"])
 @click.pass_context
 def publish(ctx,
             path,
             instances,
-            delay):
+            delay,
+            targets):
     """Publish instances of path.
 
     \b
@@ -295,6 +300,9 @@ def publish(ctx,
         path: Optional path, either absolute or relative,
             at which to initialise a publish. Defaults to
             the current working directory.
+
+        targets: Optional target list, when set use only plugins which
+                 match the target
 
     \b
     Usage:
@@ -317,7 +325,7 @@ def publish(ctx,
 
     # Begin processing
     plugins = api.discover(paths=ctx.obj["plugin_paths"])
-    context = util.publish(context=context, plugins=plugins)
+    context = util.publish(context=context, plugins=plugins, targets=targets)
 
     if any(result["error"] for result in context.data.get("results", [])):
         click.echo("There were errors.")
@@ -348,7 +356,6 @@ def gui(ctx, package):
         package = registered_guis[0]
 
     with _cli_plugin(data=context.data) as plugin_path:
-
         environ["PYBLISHPLUGINPATH"] = os.pathsep.join(
             ctx.obj["plugin_paths"] + [plugin_path]
         )
@@ -363,9 +370,7 @@ def gui(ctx, package):
         )
         while True:
             line = process.stdout.readline()
-            if line != '':
-                print(line.rstrip())
-            else:
+            if line == '':
                 break
         process.wait()
         sys.exit(process.returncode)

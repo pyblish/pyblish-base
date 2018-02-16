@@ -151,6 +151,11 @@ def __init__():
         if host:
             register_host(host)
 
+    # Register targets for current session
+    for t in os.environ.get("PYBLISH_TARGETS", "").split(os.pathsep):
+        if t:
+            register_target(t)
+
     # Register default path
     register_plugin_path(os.path.join(__main_package_path(), "plugins"))
 
