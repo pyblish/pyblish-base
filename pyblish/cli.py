@@ -368,7 +368,9 @@ def gui(ctx, package):
         )
         while True:
             line = process.stdout.readline()
-            if line == '':
+            if line != '':
+                print(line.rstrip())
+            else:
                 break
         process.wait()
         sys.exit(process.returncode)
