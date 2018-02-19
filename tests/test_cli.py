@@ -234,3 +234,55 @@ if __name__ == '__main__':
     assert_equals(result.output.splitlines()[-1].rstrip(),
                   "Data passed successfully")
     assert_equals(result.exit_code, 0)
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_set_targets():
+
+    with tempfile.NamedTemporaryFile(dir=self.tempdir,
+                                     delete=False,
+                                     suffix=".py") as f:
+        module_name = os.path.basename(f.name)[:-3]
+        f.write(b"""\
+    from pyblish import api
+    
+    print("A")
+    def show():
+        registered = api.registered_targets()
+        print(registered)
+
+    if __name__ == '__main__':
+        show()
+    """)
+
+    os.environ["PYBLISH_HOSTS"] = "shell"
+    pythonpath = os.pathsep.join([
+        self.tempdir,
+        os.environ.get("PYTHONPATH", "")
+    ])
+
+    # Create plugin with target
+    count = {"#": 0}
+
+    class Collector(pyblish.api.ContextPlugin):
+        order = pyblish.api.CollectorOrder
+        targets = ["imagesequence"]
+
+        def process(self, context):
+            self.log.warning("Running")
+            count["#"] += 1
+            context.create_instance("MyInstance")
+
+    pyblish.api.register_plugin(Collector)
+
+    runner = CliRunner()
+    result = runner.invoke(pyblish.cli.main,
+                           ["publish",
+                            "--targets",
+                            "imagesequence",
+                            module_name],
+                           env={"PYTHONPATH": pythonpath})
+
+    assert_equals(result.output.splitlines()[-1].rstrip(),
+                  "imagesequence")
+    assert_equals(result.exit_code, 0)
