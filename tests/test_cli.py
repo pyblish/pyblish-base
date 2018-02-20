@@ -275,3 +275,39 @@ def test_set_targets():
 
     print(result.output)
     assert count["#"] == 1, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_set_targets_gui():
+    """Setting targets with gui"""
+
+    with tempfile.NamedTemporaryFile(dir=self.tempdir,
+                                     delete=False,
+                                     suffix=".py") as f:
+        module_name = os.path.basename(f.name)[:-3]
+        f.write(b"""\
+from pyblish import api
+
+def show():
+    targets = api.registered_targets()
+    print(targets[0])
+
+if __name__ == '__main__':
+    show()
+""")
+
+    pythonpath = os.pathsep.join([
+        self.tempdir,
+        os.environ.get("PYTHONPATH", "")
+    ])
+
+    # api.__init__ checks the PYBLISH_TARGETS variable
+    runner = CliRunner()
+    results = runner.invoke(pyblish.cli.main,
+                            ["gui", module_name],
+                            env={"PYTHONPATH": pythonpath,
+                                 "PYBLISH_TARGETS": "imagesequence"})
+
+    result = results.output.splitlines()[-1].rstrip()
+    assert_equals(result, "imagesequence")
+    assert_equals(results.exit_code, 0)
