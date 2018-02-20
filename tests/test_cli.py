@@ -252,7 +252,7 @@ def test_set_targets():
         targets = ["imagesequence"]
 
         def process(self, context):
-            self.log.warning("Running {}".format(self.targets))
+            self.log.warning("Running {0}".format(self.targets))
             count["#"] += 1
             context.create_instance("MyInstance")
 
@@ -261,7 +261,7 @@ def test_set_targets():
         targets = ["model"]
 
         def process(self, context):
-            self.log.warning("Running {}".format(self.targets))
+            self.log.warning("Running {0}".format(self.targets))
             count["#"] += 2
             context.create_instance("MyInstance")
 
