@@ -1,4 +1,4 @@
-"""Conveinence functions for general publishing"""
+"""Convenience functions for general publishing"""
 
 from __future__ import absolute_import
 
