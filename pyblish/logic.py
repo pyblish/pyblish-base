@@ -348,6 +348,12 @@ def Iterator(plugins, context, state=None):
 
     """
 
+    # Run ContextPlugin only if instance of family is present when not "*"
+    # This is to preserve backwards compatility.
+    PYBLISH_CONTEXTPLUGIN_ON_FAMILY = bool(
+        os.getenv("PYBLISH_CONTEXTPLUGIN_ON_FAMILY")
+    )
+
     test = registered_test()
     state = state or {
         "nextOrder": None,
@@ -381,12 +387,13 @@ def Iterator(plugins, context, state=None):
                 yield plugin, instance
 
         else:
-        
-            # When filtering to families at least a single instance with
-            # that family must be active in the current publish
-            if "*" not in plugin.families:
-                if not any(instance.data.get("publish") is not False 
-                           for instance in instances):
-                    continue
-                    
+
+            if PYBLISH_CONTEXTPLUGIN_ON_FAMILY:
+                # When filtering to families at least a single instance with
+                # that family must be active in the current publish
+                if "*" not in plugin.families:
+                    if not any(instance.data.get("publish") is not False
+                               for instance in instances):
+                        continue
+
             yield plugin, None
