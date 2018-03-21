@@ -67,6 +67,66 @@ def test_iterator():
     assert count["#"] == 101, count
 
 
+@with_setup(lib.setup, lib.teardown)
+def test_contextplugin_on_family_iterator():
+    """Iterator skips ContextPlugin filtered to family
+
+    This functionality is only enabled when PYBLISH_CONTEXTPLUGIN_ON_FAMILY
+    environment variable is set to a True value to preserve backwards
+    compatibility.
+
+    """
+
+    count = {"#": 0}
+
+    class MyCollector(api.ContextPlugin):
+        order = api.CollectorOrder
+
+        def process(self, context):
+            instance = context.create_instance("A1")
+            instance.data['families'] = ["A"]
+            instance = context.create_instance("A2")
+            instance.data['families'] = ["A"]
+            instance = context.create_instance("C1")
+            instance.data['families'] = ["C"]
+
+            count["#"] += 1
+
+    class ValidateA(api.ContextPlugin):
+        families = ["A"]
+        order = api.CollectorOrder
+
+        def process(self, context):
+            count["#"] += 10
+
+    class ValidateB(api.ContextPlugin):
+        families = ["B"]
+        order = api.CollectorOrder
+
+        def process(self, context):
+            count["#"] += 100
+
+    class ValidateAC(api.ContextPlugin):
+        families = ["A", "C"]
+        order = api.CollectorOrder
+
+        def process(self, context):
+            count["#"] += 1000
+
+    context = api.Context()
+    plugins = [MyCollector, ValidateA, ValidateB, ValidateAC]
+
+    assert count["#"] == 0, count
+
+    with lib.env_override({"PYBLISH_CONTEXTPLUGIN_ON_FAMILY": "True"}):
+        for Plugin, instance in logic.Iterator(plugins, context):
+            assert Plugin.__name__ != "ValidateB"
+            plugin.process(Plugin, context, instance)
+
+    # Collector runs once, one Validator runs once
+    assert count["#"] == 1011, count
+
+
 def test_register_gui():
     """Registering at run-time takes precedence over those from environment"""
 
