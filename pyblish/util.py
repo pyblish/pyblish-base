@@ -1,4 +1,4 @@
-"""Conveinence functions for general publishing"""
+"""Convenience functions for general publishing"""
 
 from __future__ import absolute_import
 
@@ -11,8 +11,23 @@ from . import api, logic, plugin, lib
 
 log = logging.getLogger("pyblish.util")
 
+__all__ = [
+    "publish",
+    "collect",
+    "validate",
+    "extract",
+    "integrate",
 
-def publish(context=None, plugins=None, targets=[]):
+    # Iterator counterparts
+    "publish_iter",
+    "collect_iter",
+    "validate_iter",
+    "extract_iter",
+    "integrate_iter",
+]
+
+
+def publish(context=None, plugins=None, targets=None):
     """Publish everything
 
     This function will process all available plugins of the
@@ -26,12 +41,55 @@ def publish(context=None, plugins=None, targets=[]):
             defaults to results of discover()
         targets (list, optional): Targets to include for publish session.
 
+    Returns:
+        Context: The context processed by the plugins.
+
     Usage:
         >> context = plugin.Context()
         >> publish(context)     # Pass..
         >> context = publish()  # ..or receive a new
 
     """
+
+    context = context if context is not None else api.Context()
+
+    for _ in publish_iter(context, plugins, targets):
+        pass
+
+    return context
+
+
+def publish_iter(context=None, plugins=None, targets=None):
+    """Publish iterator
+
+    This function will process all available plugins of the
+    currently running host, publishing anything picked up
+    during collection.
+
+    Arguments:
+        context (Context, optional): Context, defaults to
+            creating a new context
+        plugins (list, optional): Plug-ins to include,
+            defaults to results of discover()
+        targets (list, optional): Targets to include for publish session.
+
+    Yields:
+        tuple of dict and Context: A tuple is returned with a dictionary and
+            the Context object. The dictionary contains all the result
+            information of a plugin process, and the Context is the Context
+            after the plugin has been processed.
+
+    Usage:
+        >> context = plugin.Context()
+        >> for result in util.publish_iter(context):
+               print result
+        >> for result in util.publish_iter():
+               print result
+
+    """
+
+    # Include "default" target when no targets are requested.
+    targets = targets or ["default"]
 
     # Must check against None, as objects be emptys
     context = api.Context() if context is None else context
@@ -48,9 +106,23 @@ def publish(context=None, plugins=None, targets=[]):
         base=api.CollectorOrder)
     )
 
+    # Compute an approximation of all future tasks
+    # NOTE: It's an approximation, because tasks are
+    # dynamically determined at run-time by contents of
+    # the context and families of contained instances;
+    # each of which may differ between task.
+    task_count = len(list(logic.Iterator(plugins, context)))
+
     # First pass, collection
+    tasks_processed_count = 1
     for Plugin, instance in logic.Iterator(collectors, context):
-        plugin.process(Plugin, context, instance)
+        result = plugin.process(Plugin, context, instance)
+
+        # Inject additional member for results here.
+        result["progress"] = float(tasks_processed_count) / task_count
+
+        tasks_processed_count += 1
+        yield result
 
     # Exclude collectors from further processing
     plugins = list(p for p in plugins if p not in collectors)
@@ -72,12 +144,16 @@ def publish(context=None, plugins=None, targets=[]):
     for Plugin, instance in logic.Iterator(plugins, context, state):
         try:
             result = plugin.process(Plugin, context, instance)
+            result["progress"] = (
+                float(tasks_processed_count) / task_count
+            )
 
+            tasks_processed_count += 1
         except StopIteration:  # End of items
             raise
 
-        except:  # This is unexpected, most likely a bug
-            log.error("An exception occurred.\n")
+        except Exception:  # This is unexpected, most likely a bug
+            log.error("An expected exception occurred.\n")
             raise
 
         else:
@@ -94,16 +170,16 @@ def publish(context=None, plugins=None, targets=[]):
         if error is not None:
             print(error)
 
+        yield result
+
     api.emit("published", context=context)
 
     # Deregister targets
     for target in targets:
         api.deregister_target(target)
 
-    return context
 
-
-def collect(context=None, plugins=None, targets=[]):
+def collect(context=None, plugins=None, targets=None):
     """Convenience function for collection-only
 
      _________    . . . . .  .   . . . . . .   . . . . . . .
@@ -113,12 +189,14 @@ def collect(context=None, plugins=None, targets=[]):
 
     """
 
-    context = _convenience(api.CollectorOrder, context, plugins, targets)
-    api.emit("collected", context=context)
+    context = context if context is not None else api.Context()
+    for result in collect_iter(context, plugins, targets):
+        pass
+
     return context
 
 
-def validate(context=None, plugins=None, targets=[]):
+def validate(context=None, plugins=None, targets=None):
     """Convenience function for validation-only
 
     . . . . . .    __________    . . . . . .   . . . . . . .
@@ -128,12 +206,14 @@ def validate(context=None, plugins=None, targets=[]):
 
     """
 
-    context = _convenience(api.ValidatorOrder, context, plugins, targets)
-    api.emit("validated", context=context)
+    context = context if context is not None else api.Context()
+    for result in validate_iter(context, plugins, targets):
+        pass
+
     return context
 
 
-def extract(context=None, plugins=None, targets=[]):
+def extract(context=None, plugins=None, targets=None):
     """Convenience function for extraction-only
 
     . . . . . .   . . . . .  .    _________    . . . . . . .
@@ -143,12 +223,14 @@ def extract(context=None, plugins=None, targets=[]):
 
     """
 
-    context = _convenience(api.ExtractorOrder, context, plugins, targets)
-    api.emit("extracted", context=context)
+    context = context if context is not None else api.Context()
+    for result in extract_iter(context, plugins, targets):
+        pass
+
     return context
 
 
-def integrate(context=None, plugins=None, targets=[]):
+def integrate(context=None, plugins=None, targets=None):
     """Convenience function for integration-only
 
     . . . . . .   . . . . .  .   . . . . . .    ___________
@@ -158,18 +240,65 @@ def integrate(context=None, plugins=None, targets=[]):
 
     """
 
-    context = _convenience(api.IntegratorOrder, context, plugins, targets)
-    api.emit("integrated", context=context)
+    context = context if context is not None else api.Context()
+    for result in integrate_iter(context, plugins, targets):
+        pass
+
     return context
 
 
-def _convenience(order, context=None, plugins=None, targets=[]):
+def collect_iter(context=None, plugins=None, targets=None):
+    for result in _convenience_iter(api.CollectorOrder,
+                                    context, plugins, targets):
+        yield result
+
+    api.emit("collected", context=context)
+
+
+def validate_iter(context=None, plugins=None, targets=None):
+    for result in _convenience_iter(api.ValidatorOrder,
+                                    context, plugins, targets):
+        yield result
+
+    api.emit("validated", context=context)
+
+
+def extract_iter(context=None, plugins=None, targets=None):
+    for result in _convenience_iter(api.ExtractorOrder,
+                                    context, plugins, targets):
+        yield result
+
+    api.emit("extracted", context=context)
+
+
+def integrate_iter(context=None, plugins=None, targets=None):
+    for result in _convenience_iter(api.IntegratorOrder,
+                                    context, plugins, targets):
+        yield result
+
+    api.emit("integrated", context=context)
+
+
+def _convenience(order, context=None, plugins=None, targets=None):
+    context = context if context is not None else api.Context()
+
+    for result in _convenience_iter(order, context, plugins, targets):
+        pass
+
+    return context
+
+
+def _convenience_iter(order, context=None, plugins=None, targets=None):
+    targets = targets or ["default"]
+    plugins = plugins or api.discover()
     plugins = list(
-        p for p in (api.discover() if plugins is None else plugins)
-        if lib.inrange(p.order, order)
+        Plugin
+        for Plugin in plugins
+        if lib.inrange(Plugin.order, order)
     )
 
-    return publish(context, plugins, targets)
+    for result in publish_iter(context, plugins, targets):
+        yield result
 
 
 # Backwards compatibility

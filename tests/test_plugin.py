@@ -1,4 +1,5 @@
 import os
+import logging
 
 from pyblish.vendor import mock
 import pyblish.api
@@ -852,6 +853,84 @@ def test_targets_and_subset_matching():
     pyblish.util.publish(plugins=[pluginStudio])
 
     assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_targets_and_publishing():
+    """Only run plugins with requested targets."""
+
+    count = {"#": 0}
+
+    class pluginA(pyblish.api.ContextPlugin):
+
+        targets = ["customA"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    class pluginB(pyblish.api.ContextPlugin):
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(plugins=[pluginA, pluginB], targets=["customA"])
+
+    assert count["#"] == 1, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_targets_and_publishing_with_default():
+    """Only run plugins with requested targets including default."""
+
+    count = {"#": 0}
+
+    class pluginA(pyblish.api.ContextPlugin):
+
+        targets = ["customA"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    class pluginB(pyblish.api.ContextPlugin):
+
+        def process(self, context):
+            count["#"] += 1
+
+    pyblish.util.publish(
+        plugins=[pluginA, pluginB], targets=["default", "customA"]
+    )
+
+    assert count["#"] == 2, "count is {0}".format(count)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_duplicate_plugin_names():
+    logging.basicConfig(level=logging.DEBUG)
+
+    pyblish.plugin.ALLOW_DUPLICATES = True
+
+    plugins = []
+    with lib.tempdir() as temp:
+        plugin = (
+            "from pyblish import api\nclass collectorA(api.ContextPlugin):"
+            "\n    def process(self, context):\n        pass"
+        )
+        path = os.path.join(temp, "pluginA.py")
+        with open(path, "w") as the_file:
+            the_file.write(plugin)
+
+        path = os.path.join(temp, "pluginA_copy.py")
+        with open(path, "w") as the_file:
+            the_file.write(plugin)
+
+        plugins.extend(pyblish.api.discover(paths=[temp]))
+
+    assert len(plugins) == 2, plugins
+
+    # Restore state, for subsequent tests
+    # NOTE: This assumes the test succeeds. If it fails, then
+    # subsequent tests can fail because of it.
+    pyblish.plugin.ALLOW_DUPLICATES = False
 
 
 @with_setup(lib.setup_empty, lib.teardown)

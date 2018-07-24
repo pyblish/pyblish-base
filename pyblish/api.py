@@ -148,11 +148,20 @@ def __init__():
 
     # Register hosts from environment "PYBLISHHOSTS"
     for host in os.environ.get("PYBLISH_HOSTS", "").split(os.pathsep):
-        if host:
-            register_host(host)
+        if not host:
+            continue
+
+        register_host(host)
+
+    # Register targets for current session
+    for target in os.environ.get("PYBLISH_TARGETS", "").split(os.pathsep):
+        if not target:
+            continue
+
+        register_target(target)
 
     # Register default path
-    register_plugin_path("%s/plugins" % __main_package_path())
+    register_plugin_path(os.path.join(__main_package_path(), "plugins"))
 
     # Register default test
     register_test(__default_test)
