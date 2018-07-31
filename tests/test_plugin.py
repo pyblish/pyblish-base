@@ -937,6 +937,8 @@ def test_duplicate_plugin_names():
 def test_validate_publish_data_member_type():
     """Validate publish data member type works."""
 
+    pyblish.plugin.STRICT_DATATYPES = True
+
     cxt = pyblish.api.Context()
     instance = cxt.create_instance(name="A")
     try:
@@ -948,3 +950,8 @@ def test_validate_publish_data_member_type():
         instance
     )
     assert isinstance(instance.data.get("publish", True), bool), msg
+
+    # Restore state, for subsequent tests
+    # NOTE: This assumes the test succeeds. If it fails, then
+    # subsequent tests can fail because of it.
+    pyblish.plugin.STRICT_DATATYPES = False
