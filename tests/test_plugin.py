@@ -937,33 +937,14 @@ def test_duplicate_plugin_names():
 def test_validate_publish_data_member_type():
     """Validate publish data member type works."""
 
-    count = {"#": 0}
+    cxt = pyblish.api.Context()
+    instance = cxt.create_instance(name="A")
+    try:
+        instance.data["publish"] = 1.0
+    except AssertionError:
+        instance.data["publish"] = True
 
-    class collect(pyblish.api.ContextPlugin):
-
-        order = pyblish.api.CollectorOrder
-
-        def process(self, context):
-            instance = context.create_instance(name="A")
-            instance.data["publish"] = 1.0
-
-    class extract(pyblish.api.InstancePlugin):
-
-        order = pyblish.api.ExtractorOrder
-
-        def process(self, instance):
-            count["#"] += 1
-
-    pyblish.api.register_plugin(collect)
-    pyblish.api.register_plugin(extract)
-
-    # Register built-in plugins
-    path = os.path.abspath(
-        os.path.join(os.path.dirname(pyblish.__file__), "plugins")
+    msg = "\"publish\" data member on \"{0}\" is not a boolean.".format(
+        instance
     )
-    for plugin in pyblish.api.discover(paths=[path]):
-        pyblish.api.register_plugin(plugin)
-
-    pyblish.util.publish()
-
-    assert count["#"] == 0, "count is {0}".format(count)
+    assert isinstance(instance.data.get("publish", True), bool), msg
