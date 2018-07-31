@@ -666,6 +666,14 @@ class _Dict(dict):
 
         return self.get(key, default)
 
+    def __setitem__(self, k, v):
+        # Validate "publish" data member to always be boolean
+        if k == "publish":
+            msg = "\"publish\" data member has to be boolean."
+            assert isinstance(v, bool), msg
+
+        dict.__setitem__(self, k, v)
+
 
 class AbstractEntity(list):
     """Superclass for Context and Instance
