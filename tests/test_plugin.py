@@ -941,7 +941,7 @@ def test_validate_publish_data_member_type():
     instance = cxt.create_instance(name="A")
     try:
         instance.data["publish"] = 1.0
-    except AssertionError:
+    except TypeError:
         instance.data["publish"] = True
 
     msg = "\"publish\" data member on \"{0}\" is not a boolean.".format(

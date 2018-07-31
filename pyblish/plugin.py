@@ -668,9 +668,8 @@ class _Dict(dict):
 
     def __setitem__(self, k, v):
         # Validate "publish" data member to always be boolean
-        if k == "publish":
-            msg = "\"publish\" data member has to be boolean."
-            assert isinstance(v, bool), msg
+        if k == "publish" and not isinstance(v, bool):
+            raise TypeError("\"publish\" data member has to be boolean.")
 
         dict.__setitem__(self, k, v)
 
