@@ -45,11 +45,16 @@ Intersection = 1 << 0
 Subset = 1 << 1
 Exact = 1 << 2
 
-# Check for duplicate plugin names. This is to preserve
-# backwards compatility.
-ALLOW_DUPLICATES = bool(
-    os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES")
-)
+# Check for duplicate plugin names. This is to preserve backwards compatility.
+ALLOW_DUPLICATES = bool(os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES"))
+
+# Check for strict data types. This is to preserve backwards compatility
+STRICT_DATATYPES = bool(os.getenv("PYBLISH_STRICT_DATATYPES"))
+
+# Check for early adopters.
+EARLY_ADOPTER = bool(os.getenv("PYBLISH_EARLY_ADOPTER"))
+ALLOW_DUPLICATE_PLUGINS = EARLY_ADOPTER or ALLOW_DUPLICATES
+STRICT_DATATYPES = EARLY_ADOPTER or STRICT_DATATYPES
 
 
 class Provider():
@@ -665,6 +670,15 @@ class _Dict(dict):
             default = self._parent.name
 
         return self.get(key, default)
+
+    def __setitem__(self, k, v):
+        # Backwards incompatible data validation.
+        if STRICT_DATATYPES:
+            # Validate "publish" data member to always be boolean
+            if k == "publish" and not isinstance(v, bool):
+                raise TypeError("\"publish\" data member has to be boolean.")
+
+        dict.__setitem__(self, k, v)
 
 
 class AbstractEntity(list):

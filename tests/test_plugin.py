@@ -931,3 +931,27 @@ def test_duplicate_plugin_names():
     # NOTE: This assumes the test succeeds. If it fails, then
     # subsequent tests can fail because of it.
     pyblish.plugin.ALLOW_DUPLICATES = False
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_validate_publish_data_member_type():
+    """Validate publish data member type works."""
+
+    pyblish.plugin.STRICT_DATATYPES = True
+
+    cxt = pyblish.api.Context()
+    instance = cxt.create_instance(name="A")
+    try:
+        instance.data["publish"] = 1.0
+    except TypeError:
+        instance.data["publish"] = True
+
+    msg = "\"publish\" data member on \"{0}\" is not a boolean.".format(
+        instance
+    )
+    assert isinstance(instance.data.get("publish", True), bool), msg
+
+    # Restore state, for subsequent tests
+    # NOTE: This assumes the test succeeds. If it fails, then
+    # subsequent tests can fail because of it.
+    pyblish.plugin.STRICT_DATATYPES = False
