@@ -12,7 +12,7 @@ after_success:
 deploy:
   provider: pypi
   user: mottosso
-  distributions: "sdist"
+  distributions: "sdist bdist_wheel"
   password:
     secure: fwXIOGKn38gJFNkzlpvholQBhSBzNorOnMvs04JT3+Fdq6ys2TiUV6tlXHDwo6DkMY++USI19oD9NWlvg8gQaRJq4g2V/taazn8XDv1XnyKLzb6DnAT1ALilJtbIgotH/0QNOvkDP40a8UDwbelE0aR4AptNO1Ts7n1eERygENA=
   on:
