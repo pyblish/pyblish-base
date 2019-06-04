@@ -523,6 +523,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
                  instance=instance, error=error)
         lib.extract_traceback(error)
         result["error"] = error
+        result["error_info"] = sys.exc_info()
 
     __end = time.time()
 
