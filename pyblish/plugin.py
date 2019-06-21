@@ -31,12 +31,14 @@ from . import (
     _registered_hosts,
     _registered_paths,
     _registered_targets,
+    _registered_plugin_filters
 )
 
 from . import lib
 from .vendor import iscompatible, six
 
 log = logging.getLogger("pyblish.plugin")
+from pprint import pprint
 
 __metaclass__ = type  # Make all classes new-style
 
@@ -1194,6 +1196,78 @@ def registered_targets():
     return list(_registered_targets)
 
 
+def register_discovery_filter(callback):
+    """Register a new plugin filter
+
+    Arguments:
+        callback (func): Function to execute on filter during discovery
+
+    Raises:
+        ValueError if `callback` is not callable.
+
+    """
+
+    if not hasattr(callback, "__call__"):
+        raise ValueError("%s is not callable" % callback)
+
+    _registered_plugin_filters.append(callback)
+
+
+def deregister_discovery_filter(callback):
+    """Deregister a plugin filter
+
+    Arguments:
+        callback (func): filtering function.
+
+    Raises:
+        ValueError on missing callback
+    """
+
+    _registered_plugin_filters.remove(callback)
+
+
+def deregister_all_discovery_filters():
+    """Deregisters all plugin filters"""
+
+    _registered_plugin_filters.clear()
+
+
+def registered_discovery_filters():
+    """Returns registered plugin filter callbacks"""
+
+    return _registered_plugin_filters
+
+
+def filter_plugin(plugin):
+    """Trigger registered plugin filters
+
+    Keyword arguments are passed from caller to callee.
+
+    Arguments:
+        plugin (Object): plugin to be filtered
+
+    Returns:
+        tuple with plugin instance and bool if plugin should be filtered or
+        not.
+
+    """
+
+    if not _registered_plugin_filters:
+        return plugin, False
+
+    print(_registered_plugin_filters)
+
+    filtered = False
+    for callback in _registered_plugin_filters:
+        try:
+            plugin, filtered = callback(plugin)
+        except Exception:
+            log.error("Plugin filter failed.", exc_info=True)
+            filtered = True
+
+        return plugin, filtered
+
+
 def environment_paths():
     """Return paths added via environment variable"""
 
@@ -1326,7 +1400,13 @@ def discover(type=None, regex=None, paths=None):
 
         plugins[plugin.__name__] = plugin
 
-    plugins = list(plugins.values())
+    filtered_plugins = {}
+    for name, plugin in plugins.items():
+        modified, filtered = filter_plugin(plugin)
+        if not filtered:
+            filtered_plugins[name] = modified
+
+    plugins = list(filtered_plugins.values())
     sort(plugins)  # In-place
 
     return plugins
