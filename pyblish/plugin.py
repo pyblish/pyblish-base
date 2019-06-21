@@ -1229,7 +1229,7 @@ def deregister_discovery_filter(callback):
 def deregister_all_discovery_filters():
     """Deregisters all plugin filters"""
 
-    _registered_plugin_filters.clear()
+    del _registered_plugin_filters[:]
 
 
 def registered_discovery_filters():
