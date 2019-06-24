@@ -955,3 +955,54 @@ def test_validate_publish_data_member_type():
     # NOTE: This assumes the test succeeds. If it fails, then
     # subsequent tests can fail because of it.
     pyblish.plugin.STRICT_DATATYPES = False
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_discovery_filter():
+    """Plugins can be filtered and modified"""
+
+    class MyFilteredPlugin(pyblish.plugin.Collector):
+        pass
+
+    class MyModifiedPlugin(pyblish.plugin.Validator):
+        optional = False
+
+    def my_plugin_filter(plugins):
+        for plugin in list(plugins):
+
+            # Plug-ins can be removed..
+            if plugin.__name__ == "MyFilteredPlugin":
+                plugins.remove(plugin)
+
+            # ..and modified
+            if plugin.__name__ == "MyModifiedPlugin":
+                plugin.optional = True
+
+    pyblish.api.register_plugin(MyFilteredPlugin)
+    pyblish.api.register_plugin(MyModifiedPlugin)
+    pyblish.api.register_discovery_filter(my_plugin_filter)
+    plugins = pyblish.api.discover()
+    assert len(plugins) == 1, plugins
+    assert plugins[0].__name__ == MyModifiedPlugin.__name__
+    assert plugins[0].optional is True
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_deregister_discovery():
+    """Test discovery filters can be deregistered"""
+    class MyFilteredPlugin(pyblish.plugin.Collector):
+        pass
+
+    def my_plugin_filter(plugins):
+        for plugin in list(plugins):
+            if plugin.__name__ == "MyFilteredPlugin":
+                plugins.remove(plugin)
+
+    pyblish.api.register_plugin(MyFilteredPlugin)
+    pyblish.api.register_discovery_filter(my_plugin_filter)
+    plugins = pyblish.api.discover()
+    assert len(plugins) == 0, plugins
+    pyblish.api.register_plugin(MyFilteredPlugin)
+    pyblish.api.deregister_discovery_filter(my_plugin_filter)
+    plugins = pyblish.api.discover()
+    assert len(plugins) == 1, plugins

@@ -17,6 +17,7 @@ _registered_test = dict()
 _registered_hosts = list()
 _registered_targets = list()
 _registered_gui = list()
+_registered_plugin_filters = list()
 
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "_registered_hosts",
     "_registered_targets",
     "_registered_gui",
+    "_registered_plugin_filters"
 ]
