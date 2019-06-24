@@ -31,6 +31,7 @@ from . import (
     _registered_hosts,
     _registered_paths,
     _registered_targets,
+    _registered_plugin_filters
 )
 
 from . import lib
@@ -1195,6 +1196,48 @@ def registered_targets():
     return list(_registered_targets)
 
 
+def register_discovery_filter(callback):
+    """Register a new plugin filter
+
+    Arguments:
+        callback (func): Function to execute on filter during discovery,
+            takes the original of plugins to be edited in-place
+
+    Raises:
+        ValueError if `callback` is not callable.
+
+    """
+
+    if not callable(callback):
+        raise ValueError("%s is not callable" % callback)
+
+    _registered_plugin_filters.append(callback)
+
+
+def deregister_discovery_filter(callback):
+    """Deregister a plugin filter
+
+    Arguments:
+        callback (func): filtering function.
+
+    Raises:
+        ValueError on missing callback
+    """
+
+    _registered_plugin_filters.remove(callback)
+
+
+def deregister_all_discovery_filters():
+    """Deregisters all plugin filters"""
+    _registered_plugin_filters[:] = []
+
+
+def registered_discovery_filters():
+    """Returns registered plugin filter callbacks"""
+
+    return _registered_plugin_filters
+
+
 def environment_paths():
     """Return paths added via environment variable"""
 
@@ -1329,6 +1372,10 @@ def discover(type=None, regex=None, paths=None):
 
     plugins = list(plugins.values())
     sort(plugins)  # In-place
+
+    # In-place user-defined filter
+    for filter_ in _registered_plugin_filters:
+        filter_(plugins)
 
     return plugins
 

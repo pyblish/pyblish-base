@@ -80,6 +80,11 @@ from .plugin import (
     deregister_all_callbacks,
     registered_callbacks,
 
+    register_discovery_filter,
+    deregister_discovery_filter,
+    deregister_all_discovery_filters,
+    registered_discovery_filters,
+
     sort as sort_plugins,
 
     registered_paths,
