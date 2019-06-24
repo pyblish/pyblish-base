@@ -1199,14 +1199,15 @@ def register_discovery_filter(callback):
     """Register a new plugin filter
 
     Arguments:
-        callback (func): Function to execute on filter during discovery
+        callback (func): Function to execute on filter during discovery,
+            takes the original of plugins to be edited in-place
 
     Raises:
         ValueError if `callback` is not callable.
 
     """
 
-    if not hasattr(callback, "__call__"):
+    if not callable(callback):
         raise ValueError("%s is not callable" % callback)
 
     _registered_plugin_filters.append(callback)
@@ -1227,35 +1228,13 @@ def deregister_discovery_filter(callback):
 
 def deregister_all_discovery_filters():
     """Deregisters all plugin filters"""
-
-    del _registered_plugin_filters[:]
+    _registered_plugin_filters[:] = []
 
 
 def registered_discovery_filters():
     """Returns registered plugin filter callbacks"""
 
     return _registered_plugin_filters
-
-
-def filter_plugins(plugins):
-    """Trigger registered plugin filters
-
-    Keyword arguments are passed from caller to callee.
-
-    Arguments:
-        plugins (Dict): dictionary of plugins to be filtered
-
-    """
-
-    if not _registered_plugin_filters:
-        return
-
-    filtered = False
-    for callback in _registered_plugin_filters:
-        try:
-            plugin, filtered = callback(plugins)
-        except Exception:
-            log.error("Plugin filter failed.", exc_info=True)
 
 
 def environment_paths():
@@ -1390,9 +1369,12 @@ def discover(type=None, regex=None, paths=None):
 
         plugins[plugin.__name__] = plugin
 
-    filter_plugins(plugins)
     plugins = list(plugins.values())
     sort(plugins)  # In-place
+
+    # In-place user-defined filter
+    for filter_ in _registered_plugin_filters:
+        filter_(plugins)
 
     return plugins
 
