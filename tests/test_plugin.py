@@ -968,15 +968,14 @@ def test_discovery_filter():
         optional = False
         pass
 
-    def my_plugin_filter(plugin):
-        if plugin.__name__ == "MyFilteredPlugin":
-            return plugin, True
+    def my_plugin_filter(plugins):
+        for name, plugin in list(plugins.items()):
+            if plugin.__name__ == "MyFilteredPlugin":
+                del plugins[name]
 
-        if plugin.__name__ == "MyModifiedPlugin":
-            plugin.optional = True
-            return plugin, False
-
-        return plugin, False
+            if plugin.__name__ == "MyModifiedPlugin":
+                plugin.optional = True
+        pass
 
     pyblish.api.register_plugin(MyFilteredPlugin)
     pyblish.api.register_plugin(MyModifiedPlugin)
@@ -993,11 +992,12 @@ def test_deregister_discovery():
     class MyFilteredPlugin(pyblish.plugin.Collector):
         pass
 
-    def my_plugin_filter(plugin):
-        if plugin.__name__ == "MyFilteredPlugin":
-            return plugin, True
+    def my_plugin_filter(plugins):
+        for name, plugin in list(plugins.items()):
+            if plugin.__name__ == "MyFilteredPlugin":
+                del plugins[name]
 
-        return plugin, False
+        pass
 
     pyblish.api.register_plugin(MyFilteredPlugin)
     pyblish.api.register_discovery_filter(my_plugin_filter)

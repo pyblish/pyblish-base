@@ -38,7 +38,6 @@ from . import lib
 from .vendor import iscompatible, six
 
 log = logging.getLogger("pyblish.plugin")
-from pprint import pprint
 
 __metaclass__ = type  # Make all classes new-style
 
@@ -1238,34 +1237,25 @@ def registered_discovery_filters():
     return _registered_plugin_filters
 
 
-def filter_plugin(plugin):
+def filter_plugins(plugins):
     """Trigger registered plugin filters
 
     Keyword arguments are passed from caller to callee.
 
     Arguments:
-        plugin (Object): plugin to be filtered
-
-    Returns:
-        tuple with plugin instance and bool if plugin should be filtered or
-        not.
+        plugins (Dict): dictionary of plugins to be filtered
 
     """
 
     if not _registered_plugin_filters:
-        return plugin, False
-
-    print(_registered_plugin_filters)
+        return
 
     filtered = False
     for callback in _registered_plugin_filters:
         try:
-            plugin, filtered = callback(plugin)
+            plugin, filtered = callback(plugins)
         except Exception:
             log.error("Plugin filter failed.", exc_info=True)
-            filtered = True
-
-        return plugin, filtered
 
 
 def environment_paths():
@@ -1400,13 +1390,8 @@ def discover(type=None, regex=None, paths=None):
 
         plugins[plugin.__name__] = plugin
 
-    filtered_plugins = {}
-    for name, plugin in plugins.items():
-        modified, filtered = filter_plugin(plugin)
-        if not filtered:
-            filtered_plugins[name] = modified
-
-    plugins = list(filtered_plugins.values())
+    filter_plugins(plugins)
+    plugins = list(plugins.values())
     sort(plugins)  # In-place
 
     return plugins
