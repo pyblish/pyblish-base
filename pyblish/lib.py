@@ -57,8 +57,18 @@ def extract_traceback(exception):
     """Inject current traceback and store in exception"""
     exc_type, exc_value, exc_traceback = sys.exc_info()
     exception.traceback = traceback.extract_tb(exc_traceback)[-1]
-    del(exc_type, exc_value, exc_traceback)
 
+    trc_lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    fname, line_no, func, exc = exception.traceback
+    error_info = {
+        'msg': str(exception),
+        'filename': str(fname),
+        'lineno': str(line_no),
+        'func': str(func),
+        'traceback': ''.join(trc_lines)
+    }
+    del(exc_type, exc_value, exc_traceback)
+    return error_info
 
 def time():
     """Return ISO formatted string representation of current UTC time."""
