@@ -20,6 +20,8 @@ import inspect
 import warnings
 import contextlib
 import uuid
+import json
+import tempfile
 
 # Local library
 from . import (
@@ -56,6 +58,40 @@ STRICT_DATATYPES = bool(os.getenv("PYBLISH_STRICT_DATATYPES"))
 EARLY_ADOPTER = bool(os.getenv("PYBLISH_EARLY_ADOPTER"))
 ALLOW_DUPLICATE_PLUGINS = EARLY_ADOPTER or ALLOW_DUPLICATES
 STRICT_DATATYPES = EARLY_ADOPTER or STRICT_DATATYPES
+
+
+class ProfilingTimer():
+    """Providing context manager timing and memory usage
+
+       TODO: find a way to do memory profiling on windows without additional
+       external dependency.
+    """
+
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        # resource module is supported only on POSIX platforms
+        if sys.platform.startswith('linux') or sys.platform == 'darwin':
+            import resource
+            self.initial_shared_memory = resource.getrusage(
+                resource.RUSAGE_SELF).ru_ixrss
+            self.initial_private_memory = resource.getrusage(
+                resource.RUSAGE_SELF).ru_idrss
+        self.start = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end = time.time()
+        self.runtime = self.end - self.start
+        if sys.platform.startswith('linux') or sys.platform == 'darwin':
+            import resource
+            self.final_shared_memory = resource.getrusage(
+                resource.RUSAGE_SELF).ru_ixrss
+            self.final_private_memory = resource.getrusage(
+                resource.RUSAGE_SELF).ru_idrss
+            self.max_memory = resource.getrusage(
+                resource.RUSAGE_SELF).ru_maxrss
 
 
 class Provider():
@@ -462,10 +498,39 @@ def process(plugin, context, instance=None, action=None):
 
     """
 
-    if issubclass(plugin, (ContextPlugin, InstancePlugin)):
-        result = __explicit_process(plugin, context, instance, action)
-    else:
-        result = __implicit_process(plugin, context, instance, action)
+    if not context.get('profiling'):
+        context.data['profiling'] = {}
+
+    profiler = ProfilingTimer()
+    with profiler:
+        if issubclass(plugin, (ContextPlugin, InstancePlugin)):
+            result = __explicit_process(plugin, context, instance, action)
+        else:
+            result = __implicit_process(plugin, context, instance, action)
+
+    profiling_data = {
+        "runtime": profiler.runtime,
+    }
+
+    # memory usage data aren't easily available on windows platform
+    if sys.platform.startswith('linux') or sys.platform == 'darwin':
+        profiling_data['max_memory'] = profiler.max_memory
+        shared_memory = profiler.final_shared_memory - profiler.initial_shared_memory  # noqa: E501
+        profiling_data['shared_memory_change'] = shared_memory
+        private_memory = profiler.final_private_memory - profiler.initial_private_memory  # noqa: E501
+        profiling_data['private_memory_change'] = private_memory
+        profiling_data['max_memory_usage'] = profiler.max_memory
+
+    context.data['profiling'][plugin] = profiling_data
+    profiling_data["snapshot"] = {
+        "timestamp": int(time.time()),
+        "context": json.dumps(context, default=lambda o: '<not serializable>')
+    }
+
+    profiling_path = os.path.join(tempfile.gettempdir(),
+                                  "{}-pyblish_profile.json".format(context.id))
+
+    append_to_json(profiling_data, profiling_path)
 
     lib.emit("pluginProcessed", result=result)
     return result
@@ -1527,3 +1592,28 @@ def sort(plugins):
 
     plugins.sort(key=lambda p: p.order)
     return plugins
+
+
+def append_to_json(data, path):
+    """Append data to json file
+
+    This appends data to file `path` without reparsing whole file.
+    It manually append to array, handling separator comma and array
+    termination.
+
+    Arguments:
+        data (dict): Data to append
+        path (str): path to json file
+
+    """
+
+    with open(path, 'ab+') as output:
+        output.seek(0, 2)
+        if output.tell() == 0:
+            output.write(json.dumps([data]).encode())
+        else:
+            output.seek(-1, 2)
+            output.truncate()
+            output.write(', '.encode())
+            output.write(json.dumps(data).encode())
+            output.write(']'.encode())
