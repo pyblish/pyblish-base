@@ -63,35 +63,40 @@ STRICT_DATATYPES = EARLY_ADOPTER or STRICT_DATATYPES
 class ProfilingTimer():
     """Providing context manager timing and memory usage
 
-       TODO: find a way to do memory profiling on windows without additional
-       external dependency.
+    If `psutil` module is found, it will add memory consumption information
+    to profile data. You can install it with `pip install psutil` - on linux
+    it might require python headers and dev tools (on Centos for example).
     """
 
     def __init__(self):
         pass
 
     def __enter__(self):
-        # resource module is supported only on POSIX platforms
-        if sys.platform.startswith('linux') or sys.platform == 'darwin':
-            import resource
-            self.initial_shared_memory = resource.getrusage(
-                resource.RUSAGE_SELF).ru_ixrss
-            self.initial_private_memory = resource.getrusage(
-                resource.RUSAGE_SELF).ru_idrss
+        try:
+            import psutil
+        except ImportError:
+            # psutil not found, memory information will be missing
+            pass
+        else:
+            process = psutil.Process(os.getpid())
+            # in MB
+            self.initial_mem = process.get_memory_info()[0] / float(2 ** 20)
+
         self.start = time.time()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.end = time.time()
         self.runtime = self.end - self.start
-        if sys.platform.startswith('linux') or sys.platform == 'darwin':
-            import resource
-            self.final_shared_memory = resource.getrusage(
-                resource.RUSAGE_SELF).ru_ixrss
-            self.final_private_memory = resource.getrusage(
-                resource.RUSAGE_SELF).ru_idrss
-            self.max_memory = resource.getrusage(
-                resource.RUSAGE_SELF).ru_maxrss
+        try:
+            import psutil
+        except ImportError:
+            # psutil not found, memory information will be missing
+            pass
+        else:
+            process = psutil.Process(os.getpid())
+            # in MB
+            self.final_mem = process.get_memory_info()[0] / float(2 ** 20)
 
 
 class Provider():
@@ -512,14 +517,13 @@ def process(plugin, context, instance=None, action=None):
         "runtime": profiler.runtime,
     }
 
-    # memory usage data aren't easily available on windows platform
-    if sys.platform.startswith('linux') or sys.platform == 'darwin':
-        profiling_data['max_memory'] = profiler.max_memory
-        shared_memory = profiler.final_shared_memory - profiler.initial_shared_memory  # noqa: E501
-        profiling_data['shared_memory_change'] = shared_memory
-        private_memory = profiler.final_private_memory - profiler.initial_private_memory  # noqa: E501
-        profiling_data['private_memory_change'] = private_memory
-        profiling_data['max_memory_usage'] = profiler.max_memory
+    # collected using psutil module, None if it is not installed
+    try:
+        profiling_data['initial_memory_sage'] = profiler.initial_mem
+        profiling_data['final_memory_usage'] = profiler.final_mem
+    except AttributeError:
+        # no memory information collected
+        pass
 
     context.data['profiling'][plugin] = profiling_data
     profiling_data["snapshot"] = {
