@@ -369,7 +369,8 @@ def Iterator(plugins, context, state=None):
 
         message = test(**state)
         if message:
-            raise StopIteration("Stopped due to %s" % message)
+            log.error("Stopped due to %s" % message)
+            return
 
         instances = instances_by_plugin(context, plugin)
         if plugin.__instanceEnabled__:
