@@ -53,18 +53,33 @@ class MessageHandler(logging.Handler):
             self.records.append(record)
 
 
-def extract_traceback(exception):
-    """Inject current traceback and store in exception"""
+def extract_traceback(exception, plugin):
+    """Inject current traceback and store in exception.exception
+
+    Arguments:
+        exception (Exception): Exception object
+        plugin (pyblish.api.Plugin): Plugin class that caused the exception.
+            This is necessary to inject the correct file path in the traceback.
+            If plugins are registered through `api.plugin.discover`, they only
+            show "<string>" instead of the actual source file.
+    """
     exc_type, exc_value, exc_traceback = sys.exc_info()
     exception.traceback = traceback.extract_tb(exc_traceback)[-1]
     filename, lineno, func, exc = exception.traceback
+
+    tb = ''.join(traceback.format_exception(
+        exc_type, exc_value, exc_traceback))
+    if 'File "<string>", line ' in tb:
+        filename = plugin.__module__
+        tb = tb.replace(
+            'File "<string>", line ',
+            'File "{0}", line'.format(plugin.__module__))
     error_info = {
         'msg': str(exception),
         'filename': str(filename),
         'lineno': str(lineno),
         'func': str(func),
-        'traceback': ''.join(traceback.format_exception(
-            exc_type, exc_value, exc_traceback))
+        'traceback': tb
     }
     del(exc_type, exc_value, exc_traceback)
     return error_info

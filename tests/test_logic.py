@@ -187,29 +187,45 @@ def test_plugins_by_families():
         [ClassD, ClassE, ClassF], ["a", "b", "c"]) == [ClassD, ClassE]
 
 
+REGISTERED_PATHS = []
+
+
+def setup_deregister():
+    """Store the current paths and then deregister all paths."""
+    global REGISTERED_PATHS
+    REGISTERED_PATHS = api.registered_paths
+    api.deregister_all_paths()
+
+
+def teardown_reregister():
+    """Restore the currently registered paths."""
+    global REGISTERED_PATHS
+    api.deregister_all_paths()
+    for path in REGISTERED_PATHS:
+        api.register_plugin_path(path)
+
+
+@with_setup(setup_deregister, teardown_reregister)
 def test_extracted_traceback_contains_correct_backtrace():
-
-    class FailingExplicitPlugin(api.InstancePlugin):
-
-        def process(self, instance):
-            raise Exception("A test exception")
-
-    class FailingImplicitPlugin(api.Validator):
-
-        def process(self, instance):
-            raise Exception("A test exception")
+    api.register_plugin_path(os.path.dirname(__file__))
 
     context = api.Context()
-    context.create_instance("test instance")
-    util.publish(context, [FailingExplicitPlugin, FailingImplicitPlugin])
+    context.create_instance('test instance')
 
-    for result in context.data["results"]:
-        error_info = result["error_info"]
-        assert error_info["msg"] == "A test exception"
-        assert error_info["traceback"].startswith(
-            "Traceback (most recent call last):\n")
-        assert error_info["traceback"].endswith(
-            "\nException: A test exception\n")
-        assert "lineno" in error_info
-        assert error_info["func"] == "process"
-        assert error_info["filename"] == __file__
+    plugins = api.discover()
+    plugins = [p for p in plugins if p.__name__ in
+               ('FailingExplicitPlugin', 'FailingImplicitPlugin')]
+    util.publish(context, plugins)
+
+    for result in context.data['results']:
+        error_info = result['error_info']
+        assert error_info['msg'] == 'A test exception'
+
+        assert error_info['traceback'].startswith(
+            'Traceback (most recent call last):\n')
+        assert error_info['traceback'].endswith(
+            '\nException: A test exception\n')
+        assert 'File "{0}",'.format(plugins[0].__module__) in error_info['traceback']
+        assert 'lineno' in error_info
+        assert error_info['func'] == 'process'
+        assert error_info['filename'] == plugins[0].__module__
