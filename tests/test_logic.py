@@ -193,7 +193,7 @@ REGISTERED_PATHS = []
 def setup_deregister():
     """Store the current paths and then deregister all paths."""
     global REGISTERED_PATHS
-    REGISTERED_PATHS = api.registered_paths
+    REGISTERED_PATHS = api.registered_paths()
     api.deregister_all_paths()
 
 
