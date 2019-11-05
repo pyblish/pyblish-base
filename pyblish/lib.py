@@ -71,6 +71,8 @@ def extract_traceback(exception, plugin):
     formatted_traceback = ''.join(traceback.format_exception(
         exc_type, exc_value, exc_traceback))
     if 'File "<string>", line ' in formatted_traceback:
+        fname, lineno, func, msg = exception.traceback
+        exception.traceback = (plugin.__module__, lineno, func, msg)
         formatted_traceback = formatted_traceback.replace(
             'File "<string>", line ',
             'File "{0}", line'.format(plugin.__module__))

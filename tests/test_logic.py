@@ -200,6 +200,7 @@ def test_extracted_traceback_contains_correct_backtrace():
     util.publish(context, plugins)
 
     for result in context.data['results']:
+        assert result["error"].traceback[0] == plugins[0].__module__
         formatted_tb = result['error'].formatted_traceback
         assert formatted_tb.startswith('Traceback (most recent call last):\n')
         assert formatted_tb.endswith('\nException: A test exception\n')
