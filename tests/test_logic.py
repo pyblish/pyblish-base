@@ -187,25 +187,7 @@ def test_plugins_by_families():
         [ClassD, ClassE, ClassF], ["a", "b", "c"]) == [ClassD, ClassE]
 
 
-REGISTERED_PATHS = []
-
-
-def setup_deregister():
-    """Store the current paths and then deregister all paths."""
-    global REGISTERED_PATHS
-    REGISTERED_PATHS = api.registered_paths()
-    api.deregister_all_paths()
-
-
-def teardown_reregister():
-    """Restore the currently registered paths."""
-    global REGISTERED_PATHS
-    api.deregister_all_paths()
-    for path in REGISTERED_PATHS:
-        api.register_plugin_path(path)
-
-
-@with_setup(setup_deregister, teardown_reregister)
+@with_setup(lib.setup_empty, lib.teardown)
 def test_extracted_traceback_contains_correct_backtrace():
     api.register_plugin_path(os.path.dirname(__file__))
 

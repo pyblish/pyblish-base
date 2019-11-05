@@ -1,6 +1,6 @@
 """Plugins for testing purposes.
 
-Soruce them like this from within a test function:
+Source them like this from within a test function:
 
 api.deregister_all_paths()
 api.register_plugin_path(os.path.dirname(__file__))
