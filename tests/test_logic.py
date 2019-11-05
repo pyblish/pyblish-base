@@ -218,14 +218,7 @@ def test_extracted_traceback_contains_correct_backtrace():
     util.publish(context, plugins)
 
     for result in context.data['results']:
-        error_info = result['error_info']
-        assert error_info['msg'] == 'A test exception'
-
-        assert error_info['traceback'].startswith(
-            'Traceback (most recent call last):\n')
-        assert error_info['traceback'].endswith(
-            '\nException: A test exception\n')
-        assert 'File "{0}",'.format(plugins[0].__module__) in error_info['traceback']
-        assert 'lineno' in error_info
-        assert error_info['func'] == 'process'
-        assert error_info['filename'] == plugins[0].__module__
+        formatted_tb = result['error'].formatted_traceback
+        assert formatted_tb.startswith('Traceback (most recent call last):\n')
+        assert formatted_tb.endswith('\nException: A test exception\n')
+        assert 'File "{0}",'.format(plugins[0].__module__) in formatted_tb

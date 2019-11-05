@@ -54,7 +54,9 @@ class MessageHandler(logging.Handler):
 
 
 def extract_traceback(exception, plugin):
-    """Inject current traceback and store in exception.exception
+    """Inject current traceback and store in exception.traceback.
+
+    Also storing the formatted traceback on exception.formtatted_traceback.
 
     Arguments:
         exception (Exception): Exception object
@@ -65,24 +67,16 @@ def extract_traceback(exception, plugin):
     """
     exc_type, exc_value, exc_traceback = sys.exc_info()
     exception.traceback = traceback.extract_tb(exc_traceback)[-1]
-    filename, lineno, func, exc = exception.traceback
 
-    tb = ''.join(traceback.format_exception(
+    formatted_traceback = ''.join(traceback.format_exception(
         exc_type, exc_value, exc_traceback))
-    if 'File "<string>", line ' in tb:
-        filename = plugin.__module__
-        tb = tb.replace(
+    if 'File "<string>", line ' in formatted_traceback:
+        formatted_traceback = formatted_traceback.replace(
             'File "<string>", line ',
             'File "{0}", line'.format(plugin.__module__))
-    error_info = {
-        'msg': str(exception),
-        'filename': str(filename),
-        'lineno': str(lineno),
-        'func': str(func),
-        'traceback': tb
-    }
+    exception.formatted_traceback = formatted_traceback
+
     del(exc_type, exc_value, exc_traceback)
-    return error_info
 
 
 def time():
