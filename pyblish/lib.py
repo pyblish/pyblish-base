@@ -53,14 +53,14 @@ class MessageHandler(logging.Handler):
             self.records.append(record)
 
 
-def extract_traceback(exception, plugin):
+def extract_traceback(exception, fname=None):
     """Inject current traceback and store in exception.traceback.
 
     Also storing the formatted traceback on exception.formtatted_traceback.
 
     Arguments:
         exception (Exception): Exception object
-        plugin (pyblish.api.Plugin): Plugin class that caused the exception.
+        fname (str): Optionally provide a file name for the exception.
             This is necessary to inject the correct file path in the traceback.
             If plugins are registered through `api.plugin.discover`, they only
             show "<string>" instead of the actual source file.
@@ -70,9 +70,9 @@ def extract_traceback(exception, plugin):
 
     formatted_traceback = ''.join(traceback.format_exception(
         exc_type, exc_value, exc_traceback))
-    if 'File "<string>", line ' in formatted_traceback:
-        fname, lineno, func, msg = exception.traceback
-        fname = os.path.abspath(plugin.__module__)
+    if 'File "<string>", line ' in formatted_traceback and fname is not None:
+        _, lineno, func, msg = exception.traceback
+        fname = os.path.abspath(fname)
         exception.traceback = (fname, lineno, func, msg)
         formatted_traceback = formatted_traceback.replace(
             'File "<string>", line ',
