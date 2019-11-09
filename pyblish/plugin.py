@@ -522,8 +522,9 @@ def __explicit_process(plugin, context, instance=None, action=None):
         # http://stackoverflow.com/a/11417308/478949
         lib.emit("pluginFailed", plugin=plugin, context=context,
                  instance=instance, error=error)
-        lib.extract_traceback(error)
+        lib.extract_traceback(error, plugin.__module__)
         result["error"] = error
+        log.exception(result["error"].formatted_traceback)
 
     __end = time.time()
 
@@ -588,8 +589,9 @@ def __implicit_process(plugin, context, instance=None, action=None):
     except Exception as error:
         lib.emit("pluginFailed", plugin=plugin, context=context,
                  instance=instance, error=error)
-        lib.extract_traceback(error)
+        lib.extract_traceback(error, plugin.__module__)
         result["error"] = error
+        log.exception(result["error"].formatted_traceback)
 
     __end = time.time()
 
