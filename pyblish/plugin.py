@@ -1338,7 +1338,7 @@ def discover(type=None, regex=None, paths=None):
 
             try:
                 with open(abspath) as f:
-                    six.exec_(f.read(), module.__dict__)
+                    six.exec_(f.read().replace('\r', ''), module.__dict__)
 
                 # Store reference to original module, to avoid
                 # garbage collection from collecting it's global
