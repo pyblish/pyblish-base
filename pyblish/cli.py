@@ -355,7 +355,7 @@ def gui(ctx, package):
 
     with _cli_plugin(data=context.data) as plugin_path:
         environ["PYBLISHPLUGINPATH"] = os.pathsep.join(
-            ctx.obj["plugin_paths"] + [plugin_path]
+            list(ctx.obj["plugin_paths"]) + [plugin_path]
         )
 
         process = subprocess.Popen(
