@@ -12,3 +12,4 @@ build
 playground.py
 *.sublime-*
 __pycache__
+venv/

@@ -23,7 +23,10 @@ def no_guis():
 
 @with_setup(lib.setup, lib.teardown)
 def test_iterator():
-    """Iterator skips inactive plug-ins and instances"""
+    """Iterator skips inactive plug-ins and instances.
+
+    Also processes plugins in order.
+    """
 
     count = {"#": 0}
 
@@ -47,24 +50,36 @@ def test_iterator():
             count["#"] += 10
 
     class MyValidatorB(api.InstancePlugin):
+        order = api.ValidatorOrder + 0.1
+
+        def process(self, instance):
+            count["#"] += 100
+
+    class MyValidatorC(api.InstancePlugin):
         order = api.ValidatorOrder
 
         def process(self, instance):
             count["#"] += 100
 
     context = api.Context()
-    plugins = [MyCollector, MyValidatorA, MyValidatorB]
+    plugins = [MyCollector, MyValidatorA, MyValidatorB, MyValidatorC]
 
     assert count["#"] == 0, count
+
+    order = []
 
     for Plugin, instance in logic.Iterator(plugins, context):
         assert instance.name != "Inactive" if instance else True
         assert Plugin.__name__ != "MyValidatorA"
+        order.append(Plugin)
 
         plugin.process(Plugin, context, instance)
 
-    # Collector runs once, one Validator runs once
-    assert count["#"] == 101, count
+    # Collector runs once, the two Validators run once
+    assert count["#"] == 201, count
+
+    # Plugins are processed in correct order
+    assert order == [MyCollector, MyValidatorC, MyValidatorB]
 
 
 def test_register_gui():

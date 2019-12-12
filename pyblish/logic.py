@@ -14,7 +14,9 @@ from .plugin import (
     Subset,
     Exact,
 
-    registered_targets
+    registered_targets,
+
+    sort
 )
 
 _algorithms = {
@@ -358,7 +360,7 @@ def Iterator(plugins, context, state=None):
     # when running the Iterator directly without registering any targets.
     targets = registered_targets() or ["default"]
 
-    plugins = plugins_by_targets(plugins, targets)
+    plugins = sort(plugins_by_targets(plugins, targets))
 
     for plugin in plugins:
         if not plugin.active:
