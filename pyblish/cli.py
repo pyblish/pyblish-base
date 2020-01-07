@@ -198,6 +198,11 @@ def main(ctx,
     global _ctx
     _ctx = ctx
 
+    # Convert multi-arguments from tuple to list, see #357
+    plugin_paths = list(plugin_paths)
+    add_plugin_paths = list(add_plugin_paths)
+    data = list(data)
+
     level = LOG_LEVEL[logging_level]
     log.setLevel(level)
 
@@ -308,6 +313,10 @@ def publish(ctx,
         $ pyblish publish my_file.txt --all
 
     """
+
+    # Convert multi-arguments from tuple to list, see #357
+    targets = list(targets)
+    instances = list(instances)
 
     _start = time.time()  # Benchmark
 
