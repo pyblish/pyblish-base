@@ -20,6 +20,8 @@ import inspect
 import warnings
 import contextlib
 import uuid
+import json
+import tempfile
 
 # Local library
 from . import (
@@ -56,6 +58,45 @@ STRICT_DATATYPES = bool(os.getenv("PYBLISH_STRICT_DATATYPES"))
 EARLY_ADOPTER = bool(os.getenv("PYBLISH_EARLY_ADOPTER"))
 ALLOW_DUPLICATE_PLUGINS = EARLY_ADOPTER or ALLOW_DUPLICATES
 STRICT_DATATYPES = EARLY_ADOPTER or STRICT_DATATYPES
+
+
+class ProfilingTimer():
+    """Providing context manager timing and memory usage
+
+    If `psutil` module is found, it will add memory consumption information
+    to profile data. You can install it with `pip install psutil` - on linux
+    it might require python headers and dev tools (on Centos for example).
+    """
+
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        try:
+            import psutil
+        except ImportError:
+            # psutil not found, memory information will be missing
+            pass
+        else:
+            process = psutil.Process(os.getpid())
+            # in MB
+            self.initial_mem = process.get_memory_info()[0] / float(2 ** 20)
+
+        self.start = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end = time.time()
+        self.runtime = self.end - self.start
+        try:
+            import psutil
+        except ImportError:
+            # psutil not found, memory information will be missing
+            pass
+        else:
+            process = psutil.Process(os.getpid())
+            # in MB
+            self.final_mem = process.get_memory_info()[0] / float(2 ** 20)
 
 
 class Provider():
@@ -462,10 +503,38 @@ def process(plugin, context, instance=None, action=None):
 
     """
 
-    if issubclass(plugin, (ContextPlugin, InstancePlugin)):
-        result = __explicit_process(plugin, context, instance, action)
-    else:
-        result = __implicit_process(plugin, context, instance, action)
+    if not context.get('profiling'):
+        context.data['profiling'] = {}
+
+    profiler = ProfilingTimer()
+    with profiler:
+        if issubclass(plugin, (ContextPlugin, InstancePlugin)):
+            result = __explicit_process(plugin, context, instance, action)
+        else:
+            result = __implicit_process(plugin, context, instance, action)
+
+    profiling_data = {
+        "runtime": profiler.runtime,
+    }
+
+    # collected using psutil module, None if it is not installed
+    try:
+        profiling_data['initial_memory_sage'] = profiler.initial_mem
+        profiling_data['final_memory_usage'] = profiler.final_mem
+    except AttributeError:
+        # no memory information collected
+        pass
+
+    context.data['profiling'][plugin] = profiling_data
+    profiling_data["snapshot"] = {
+        "timestamp": int(time.time()),
+        "context": json.dumps(context, default=lambda o: '<not serializable>')
+    }
+
+    profiling_path = os.path.join(tempfile.gettempdir(),
+                                  "{}-pyblish_profile.json".format(context.id))
+
+    append_to_json(profiling_data, profiling_path)
 
     lib.emit("pluginProcessed", result=result)
     return result
@@ -1529,3 +1598,28 @@ def sort(plugins):
 
     plugins.sort(key=lambda p: p.order)
     return plugins
+
+
+def append_to_json(data, path):
+    """Append data to json file
+
+    This appends data to file `path` without reparsing whole file.
+    It manually append to array, handling separator comma and array
+    termination.
+
+    Arguments:
+        data (dict): Data to append
+        path (str): path to json file
+
+    """
+
+    with open(path, 'ab+') as output:
+        output.seek(0, 2)
+        if output.tell() == 0:
+            output.write(json.dumps([data]).encode())
+        else:
+            output.seek(-1, 2)
+            output.truncate()
+            output.write(', '.encode())
+            output.write(json.dumps(data).encode())
+            output.write(']'.encode())

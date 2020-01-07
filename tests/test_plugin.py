@@ -1,5 +1,6 @@
 import os
 import logging
+import tempfile
 
 from pyblish.vendor import mock
 import pyblish.api
@@ -1006,3 +1007,26 @@ def test_deregister_discovery():
     pyblish.api.deregister_discovery_filter(my_plugin_filter)
     plugins = pyblish.api.discover()
     assert len(plugins) == 1, plugins
+
+
+def test_append_to_json():
+    """Test if we can append to json file"""
+    import json
+
+    tn = tempfile.mktemp()
+    data_a = {"foo1": "bar1", "foo2": "bar2"}
+    pyblish.plugin.append_to_json(data_a, tn)
+    with open(tn, "r") as t:
+        test_a = json.load(t)
+    assert len(test_a) == 1
+    assert test_a[0].get("foo1") == "bar1"
+
+    data_b = {"foo3": "bar3", "foo4": "bar4"}
+    pyblish.plugin.append_to_json(data_b, tn)
+    with open(tn, "r") as t:
+        test_b = json.load(t)
+    assert len(test_b) == 2
+    assert test_b[0].get("foo2") == "bar2"
+    assert test_b[1].get("foo3") == "bar3"
+    t.close()
+    os.unlink(tn)
