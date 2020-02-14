@@ -87,7 +87,13 @@ def publish_iter(context=None, plugins=None, targets=None):
                print result
 
     """
+    for result in _publish_iter(context, plugins, targets):
+        yield result
 
+    api.emit("published", context=context)
+
+
+def _publish_iter(context=None, plugins=None, targets=None):
     # Include "default" target when no targets are requested.
     targets = targets or ["default"]
 
@@ -171,8 +177,6 @@ def publish_iter(context=None, plugins=None, targets=None):
             print(error)
 
         yield result
-
-    api.emit("published", context=context)
 
     # Deregister targets
     for target in targets:
@@ -297,7 +301,7 @@ def _convenience_iter(order, context=None, plugins=None, targets=None):
         if lib.inrange(Plugin.order, order)
     )
 
-    for result in publish_iter(context, plugins, targets):
+    for result in _publish_iter(context, plugins, targets):
         yield result
 
 
