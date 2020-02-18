@@ -87,13 +87,25 @@ def publish_iter(context=None, plugins=None, targets=None):
                print result
 
     """
+    for result in _convenience_iter(context, plugins, targets):
+        yield result
 
+    api.emit("published", context=context)
+
+
+def _convenience_iter(context=None, plugins=None, targets=None, order=None):
     # Include "default" target when no targets are requested.
     targets = targets or ["default"]
 
     # Must check against None, as objects be emptys
     context = api.Context() if context is None else context
     plugins = api.discover() if plugins is None else plugins
+
+    if order is not None:
+        plugins = list(
+            Plugin for Plugin in plugins
+            if lib.inrange(Plugin.order, order)
+        )
 
     # Register targets
     for target in targets:
@@ -172,8 +184,6 @@ def publish_iter(context=None, plugins=None, targets=None):
 
         yield result
 
-    api.emit("published", context=context)
-
     # Deregister targets
     for target in targets:
         api.deregister_target(target)
@@ -248,57 +258,44 @@ def integrate(context=None, plugins=None, targets=None):
 
 
 def collect_iter(context=None, plugins=None, targets=None):
-    for result in _convenience_iter(api.CollectorOrder,
-                                    context, plugins, targets):
+    for result in _convenience_iter(context, plugins, targets,
+                                    order=api.CollectorOrder):
         yield result
 
     api.emit("collected", context=context)
 
 
 def validate_iter(context=None, plugins=None, targets=None):
-    for result in _convenience_iter(api.ValidatorOrder,
-                                    context, plugins, targets):
+    for result in _convenience_iter(context, plugins, targets,
+                                    order=api.ValidatorOrder):
         yield result
 
     api.emit("validated", context=context)
 
 
 def extract_iter(context=None, plugins=None, targets=None):
-    for result in _convenience_iter(api.ExtractorOrder,
-                                    context, plugins, targets):
+    for result in _convenience_iter(context, plugins, targets,
+                                    order=api.ExtractorOrder):
         yield result
 
     api.emit("extracted", context=context)
 
 
 def integrate_iter(context=None, plugins=None, targets=None):
-    for result in _convenience_iter(api.IntegratorOrder,
-                                    context, plugins, targets):
+    for result in _convenience_iter(context, plugins, targets,
+                                    order=api.IntegratorOrder):
         yield result
 
     api.emit("integrated", context=context)
 
 
-def _convenience(order, context=None, plugins=None, targets=None):
+def _convenience(context=None, plugins=None, targets=None, order=None):
     context = context if context is not None else api.Context()
 
-    for result in _convenience_iter(order, context, plugins, targets):
+    for result in _convenience_iter(context, plugins, targets, order):
         pass
 
     return context
-
-
-def _convenience_iter(order, context=None, plugins=None, targets=None):
-    targets = targets or ["default"]
-    plugins = plugins or api.discover()
-    plugins = list(
-        Plugin
-        for Plugin in plugins
-        if lib.inrange(Plugin.order, order)
-    )
-
-    for result in publish_iter(context, plugins, targets):
-        yield result
 
 
 # Backwards compatibility
