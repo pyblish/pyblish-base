@@ -78,3 +78,18 @@ def tempdir():
         yield tempdir
     finally:
         shutil.rmtree(tempdir)
+
+
+@contextlib.contextmanager
+def env_override(overrides):
+    """Temporarily override environment variables"""
+    assert isinstance(overrides, dict)
+    original = os.environ.copy()
+    os.environ.update(overrides)
+
+    try:
+        yield
+    finally:
+        # Reset
+        os.environ.clear()
+        os.environ.update(original)
