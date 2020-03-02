@@ -76,7 +76,7 @@ def extract_traceback(exception, fname=None):
         exception.traceback = (fname, lineno, func, msg)
         formatted_traceback = formatted_traceback.replace(
             'File "<string>", line ',
-            'File "{0}", line'.format(fname))
+            'File "{0}", line '.format(fname))
     exception.formatted_traceback = formatted_traceback
 
     del(exc_type, exc_value, exc_traceback)
