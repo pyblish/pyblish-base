@@ -70,13 +70,13 @@ def extract_traceback(exception, fname=None):
 
     formatted_traceback = ''.join(traceback.format_exception(
         exc_type, exc_value, exc_traceback))
-    if 'File "<string>", line ' in formatted_traceback and fname is not None:
+    if 'File "<string>", line' in formatted_traceback and fname is not None:
         _, lineno, func, msg = exception.traceback
         fname = os.path.abspath(fname)
         exception.traceback = (fname, lineno, func, msg)
         formatted_traceback = formatted_traceback.replace(
-            'File "<string>", line ',
-            'File "{0}", line '.format(fname))
+            'File "<string>", line',
+            'File "{0}", line'.format(fname))
     exception.formatted_traceback = formatted_traceback
 
     del(exc_type, exc_value, exc_traceback)
