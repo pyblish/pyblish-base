@@ -67,6 +67,48 @@ def test_iterator():
     assert count["#"] == 101, count
 
 
+@with_setup(lib.setup, lib.teardown)
+def test_iterator_with_explicit_targets():
+    """Iterator skips non-targeted plug-ins"""
+
+    count = {"#": 0}
+
+    class MyCollectorA(api.ContextPlugin):
+        order = api.CollectorOrder
+        targets = ["studio"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    class MyCollectorB(api.ContextPlugin):
+        order = api.CollectorOrder
+
+        def process(self, context):
+            count["#"] += 10
+
+    class MyCollectorC(api.ContextPlugin):
+        order = api.CollectorOrder
+        targets = ["studio"]
+
+        def process(self, context):
+            count["#"] += 100
+
+    context = api.Context()
+    plugins = [MyCollectorA, MyCollectorB, MyCollectorC]
+
+    assert count["#"] == 0, count
+
+    for Plugin, instance in logic.Iterator(
+        plugins, context, targets=["studio"]
+    ):
+        assert Plugin.__name__ != "MyCollectorB"
+
+        plugin.process(Plugin, context, instance)
+
+    # Collector runs once, one Validator runs once
+    assert count["#"] == 101, count
+
+
 def test_register_gui():
     """Registering at run-time takes precedence over those from environment"""
 
