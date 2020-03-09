@@ -261,15 +261,22 @@ def test_publishing_explicit_targets_with_global():
 
     count = {"#": 0}
 
-    class plugin(api.ContextPlugin):
+    class Plugin1(api.ContextPlugin):
         targets = ["custom"]
 
         def process(self, context):
             count["#"] += 1
 
+    class Plugin2(api.ContextPlugin):
+        targets = ["foo"]
+
+        def process(self, context):
+            count["#"] += 10
+
     api.register_target("foo")
     api.register_target("custom")
-    api.register_plugin(plugin)
+    api.register_plugin(Plugin1)
+    api.register_plugin(Plugin2)
 
     util.publish(targets=["custom"])
 
