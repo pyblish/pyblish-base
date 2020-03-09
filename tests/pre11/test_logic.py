@@ -227,6 +227,7 @@ def test_inmemory_svec():
     assert_equals(_server["assets"][0].metadata, "123")
 
 
+@with_setup(setup_empty, teardown)
 def test_failing_context_processing():
     """Plug-in should not skip processing of Instance if Context fails"""
 

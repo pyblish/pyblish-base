@@ -41,6 +41,7 @@ def test_simple_discover():
     assert_equals(count["#"], 2)
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_simple_manual():
     """Simple plug-ins work well"""
 
@@ -57,6 +58,7 @@ def test_simple_manual():
     assert_equals(count["#"], 1)
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_simple_instance():
     """Simple plug-ins process instances as usual
 

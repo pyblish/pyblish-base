@@ -490,6 +490,7 @@ def test_register_old_plugin():
     pyblish.plugin.register_plugin(MyPlugin)
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 @mock.patch("pyblish.plugin.__explicit_process")
 def test_implicit_explicit_branching(func):
     """Explicit plug-ins are processed by the appropriate function"""
@@ -504,6 +505,7 @@ def test_implicit_explicit_branching(func):
     assert func.call_count == 1, func.call_count
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 @mock.patch("pyblish.plugin.__implicit_process")
 def test_implicit_branching(func):
     """Implicit plug-ins are processed by the appropriate function"""
@@ -515,6 +517,7 @@ def test_implicit_branching(func):
     assert func.call_count == 1, func.call_count
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_explicit_plugin():
     """ContextPlugin works as advertised"""
 
@@ -600,6 +603,7 @@ def test_explicit_action():
         action=MyAction.id)
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_explicit_results():
     """Explicit plug-ins contain results"""
 
@@ -616,6 +620,7 @@ def test_explicit_results():
     assert result["records"][0].msg == "logged"
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_cooperative_collection():
     """Cooperative collection works
 

@@ -211,6 +211,7 @@ def test_custom_test():
     assert_equals(count["#"], 1)
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_logic_process():
     """logic.process works fine"""
 
@@ -359,6 +360,7 @@ def test_decrementing_order():
     assert_equals(count["#"], 111.1)
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_test():
     """The test halts an invalid publish"""
 

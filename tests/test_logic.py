@@ -114,6 +114,7 @@ def test_subset_match():
                   ["included_1", "included_2"])
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_subset_exact():
     """Plugin.match = api.Exact works as expected"""
 

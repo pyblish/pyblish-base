@@ -8,6 +8,7 @@ from nose.tools import (
 )
 
 
+@with_setup(lib.setup_empty, lib.teardown)
 def test_convenience_plugins_argument():
     """util._convenience() `plugins` argument works
 
