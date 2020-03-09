@@ -356,10 +356,12 @@ def Iterator(plugins, context, state=None, targets=None):
     }
 
     # Include "default" target when no targets are requested.
-    targets = targets or ["default"]
-    targets += registered_targets()
+    _targets = targets or ["default"]
 
-    plugins = plugins_by_targets(plugins, targets)
+    if targets is None:
+        _targets += registered_targets()
+
+    plugins = plugins_by_targets(plugins, _targets)
 
     for plugin in plugins:
         if not plugin.active:
