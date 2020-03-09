@@ -334,7 +334,7 @@ def _extract_traceback(exception):
         del(exc_type, exc_value, exc_traceback)
 
 
-def Iterator(plugins, context, state=None):
+def Iterator(plugins, context, state=None, targets=None):
     """Primary iterator
 
     This is the brains of publishing. It handles logic related
@@ -345,6 +345,7 @@ def Iterator(plugins, context, state=None):
         plugins (list): Plug-ins to consider
         context (list): Instances to consider
         state (dict): Mutable state
+        targets (list, optional): Targets to include for publish session.
 
     """
 
@@ -356,7 +357,7 @@ def Iterator(plugins, context, state=None):
 
     # We'll add "default" target if no targets are registered. This happens
     # when running the Iterator directly without registering any targets.
-    targets = registered_targets() or ["default"]
+    targets = targets or registered_targets() or ["default"]
 
     plugins = plugins_by_targets(plugins, targets)
 
