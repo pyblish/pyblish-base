@@ -237,8 +237,8 @@ def test_environment_host_registration():
 
 
 @with_setup(lib.setup, lib.teardown)
-def test_publishing_targets():
-    """Publishing with targets works"""
+def test_publishing_explicit_targets():
+    """Publishing with explicit targets works"""
 
     count = {"#": 0}
 
@@ -253,6 +253,28 @@ def test_publishing_targets():
     util.publish(targets=["custom"])
 
     assert count["#"] == 1, count
+
+
+@with_setup(lib.setup, lib.teardown)
+def test_publishing_explicit_targets_with_global():
+    """Publishing with explicit and globally registered targets works"""
+
+    count = {"#": 0}
+
+    class plugin(api.ContextPlugin):
+        targets = ["custom"]
+
+        def process(self, context):
+            count["#"] += 1
+
+    api.register_target("foo")
+    api.register_target("custom")
+    api.register_plugin(plugin)
+
+    util.publish(targets=["custom"])
+
+    assert count["#"] == 1, count
+    assert api.registered_targets() == ["foo", "custom"]
 
 
 @with_setup(lib.setup, lib.teardown)
