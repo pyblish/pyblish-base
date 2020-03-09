@@ -355,9 +355,9 @@ def Iterator(plugins, context, state=None, targets=None):
         "ordersWithError": set()
     }
 
-    # We'll add "default" target if no targets are registered. This happens
-    # when running the Iterator directly without registering any targets.
-    targets = targets or registered_targets() or ["default"]
+    # Include "default" target when no targets are requested.
+    targets = targets or ["default"]
+    targets += registered_targets()
 
     plugins = plugins_by_targets(plugins, targets)
 
