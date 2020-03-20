@@ -67,7 +67,6 @@ def test_iterator():
     assert count["#"] == 101, count
 
 
-@with_setup(lib.setup, lib.teardown)
 def test_iterator_with_explicit_targets():
     """Iterator skips non-targeted plug-ins"""
 
@@ -156,7 +155,6 @@ def test_subset_match():
                   ["included_1", "included_2"])
 
 
-@with_setup(lib.setup_empty, lib.teardown)
 def test_subset_exact():
     """Plugin.match = api.Exact works as expected"""
 

@@ -8,7 +8,6 @@ from nose.tools import (
 )
 
 
-@with_setup(lib.setup_empty, lib.teardown)
 def test_convenience_plugins_argument():
     """util._convenience() `plugins` argument works
 
@@ -255,7 +254,6 @@ def test_publishing_explicit_targets():
     assert count["#"] == 1, count
 
 
-@with_setup(lib.setup, lib.teardown)
 def test_publishing_explicit_targets_with_global():
     """Publishing with explicit and globally registered targets works"""
 
@@ -282,6 +280,8 @@ def test_publishing_explicit_targets_with_global():
 
     assert count["#"] == 1, count
     assert api.registered_targets() == ["foo", "custom"]
+
+    api.deregister_all_targets()
 
 
 @with_setup(lib.setup, lib.teardown)

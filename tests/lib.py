@@ -13,8 +13,7 @@ from pyblish.vendor import six
 HOST = 'python'
 FAMILY = 'test.family'
 
-REGISTERED_PATHS = pyblish.plugin.registered_paths()
-REGISTERED_TARGETS = pyblish.plugin.registered_targets()
+REGISTERED = pyblish.plugin.registered_paths()
 PACKAGEPATH = pyblish.lib.main_package_path()
 ENVIRONMENT = os.environ.get("PYBLISHPLUGINPATH", "")
 PLUGINPATH = os.path.join(PACKAGEPATH, '..', 'tests', 'plugins')
@@ -23,7 +22,6 @@ PLUGINPATH = os.path.join(PACKAGEPATH, '..', 'tests', 'plugins')
 def setup():
     """Disable default plugins and only use test plugins"""
     pyblish.plugin.deregister_all_paths()
-    pyblish.plugin.deregister_all_targets()
 
 
 def setup_empty():
@@ -41,12 +39,8 @@ def teardown():
     """Restore previously REGISTERED paths"""
 
     pyblish.plugin.deregister_all_paths()
-    for path in REGISTERED_PATHS:
+    for path in REGISTERED:
         pyblish.plugin.register_plugin_path(path)
-
-    pyblish.plugin.deregister_all_targets()
-    for target in REGISTERED_TARGETS:
-        pyblish.plugin.register_target(target)
 
     os.environ["PYBLISHPLUGINPATH"] = ENVIRONMENT
     pyblish.api.deregister_all_plugins()
