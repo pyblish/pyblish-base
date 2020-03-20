@@ -120,9 +120,9 @@ def _convenience_iter(context=None, plugins=None, targets=None, order=None):
 
     # First pass, collection
     tasks_processed_count = 1
-    for Plugin, instance in logic.Iterator(
-        collectors, context, targets=targets
-    ):
+    for Plugin, instance in logic.Iterator(collectors,
+                                           context,
+                                           targets=targets):
         result = plugin.process(Plugin, context, instance)
 
         # Inject additional member for results here.
@@ -148,9 +148,10 @@ def _convenience_iter(context=None, plugins=None, targets=None, order=None):
     }
 
     # Second pass, the remainder
-    for Plugin, instance in logic.Iterator(
-        plugins, context, state, targets=targets
-    ):
+    for Plugin, instance in logic.Iterator(plugins,
+                                           context,
+                                           state,
+                                           targets=targets):
         try:
             result = plugin.process(Plugin, context, instance)
             result["progress"] = (
