@@ -94,9 +94,6 @@ def publish_iter(context=None, plugins=None, targets=None):
 
 
 def _convenience_iter(context=None, plugins=None, targets=None, order=None):
-    # Include "default" target when no targets are requested.
-    targets = targets or ["default"]
-
     # Must check against None, as objects be emptys
     context = api.Context() if context is None else context
     plugins = api.discover() if plugins is None else plugins
@@ -106,10 +103,6 @@ def _convenience_iter(context=None, plugins=None, targets=None, order=None):
             Plugin for Plugin in plugins
             if lib.inrange(Plugin.order, order)
         )
-
-    # Register targets
-    for target in targets:
-        api.register_target(target)
 
     # Do not consider inactive plug-ins
     plugins = list(p for p in plugins if p.active)
@@ -123,11 +116,13 @@ def _convenience_iter(context=None, plugins=None, targets=None, order=None):
     # dynamically determined at run-time by contents of
     # the context and families of contained instances;
     # each of which may differ between task.
-    task_count = len(list(logic.Iterator(plugins, context)))
+    task_count = len(list(logic.Iterator(plugins, context, targets=targets)))
 
     # First pass, collection
     tasks_processed_count = 1
-    for Plugin, instance in logic.Iterator(collectors, context):
+    for Plugin, instance in logic.Iterator(collectors,
+                                           context,
+                                           targets=targets):
         result = plugin.process(Plugin, context, instance)
 
         # Inject additional member for results here.
@@ -153,7 +148,10 @@ def _convenience_iter(context=None, plugins=None, targets=None, order=None):
     }
 
     # Second pass, the remainder
-    for Plugin, instance in logic.Iterator(plugins, context, state):
+    for Plugin, instance in logic.Iterator(plugins,
+                                           context,
+                                           state,
+                                           targets=targets):
         try:
             result = plugin.process(Plugin, context, instance)
             result["progress"] = (
@@ -183,10 +181,6 @@ def _convenience_iter(context=None, plugins=None, targets=None, order=None):
             print(error)
 
         yield result
-
-    # Deregister targets
-    for target in targets:
-        api.deregister_target(target)
 
 
 def collect(context=None, plugins=None, targets=None):
