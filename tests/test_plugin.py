@@ -1006,3 +1006,22 @@ def test_deregister_discovery():
     pyblish.api.deregister_discovery_filter(my_plugin_filter)
     plugins = pyblish.api.discover()
     assert len(plugins) == 1, plugins
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_discovering_unicode_contained_plugin():
+    unicode_plugin = b"""
+import pyblish.api
+
+class UnicodePlugin(pyblish.api.InstancePlugin):
+    label = "\xf0\x9f\xa4\xa8"
+"""
+
+    with lib.tempdir() as d:
+        pyblish.api.register_plugin_path(d)
+
+        with open(os.path.join(d, "unicode_plugin.py"), "wb") as f:
+            f.write(unicode_plugin)
+
+        plugins = [p.__name__ for p in pyblish.api.discover()]
+        assert plugins == ["UnicodePlugin"]
