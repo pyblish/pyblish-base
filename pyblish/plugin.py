@@ -1337,7 +1337,7 @@ def discover(type=None, regex=None, paths=None):
             module.__file__ = abspath
 
             try:
-                with open(abspath) as f:
+                with open(abspath, "rb") as f:
                     six.exec_(f.read(), module.__dict__)
 
                 # Store reference to original module, to avoid
