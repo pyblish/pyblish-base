@@ -1025,3 +1025,19 @@ class UnicodePlugin(pyblish.api.InstancePlugin):
 
         plugins = [p.__name__ for p in pyblish.api.discover()]
         assert plugins == ["UnicodePlugin"]
+
+
+def test_sort_plugins():
+    """Ensure that plugins order is correct."""
+    class Plugin1(pyblish.plugin.ContextPlugin):
+        order = 1
+
+    class Plugin2(pyblish.plugin.InstancePlugin):
+        order = 1
+
+    class Plugin3(pyblish.plugin.ContextPlugin):
+        order = 2
+
+    plugins = [Plugin3, Plugin1, Plugin2]
+    pyblish.plugin.sort(plugins)
+    assert plugins == [Plugin1, Plugin2, Plugin3]
