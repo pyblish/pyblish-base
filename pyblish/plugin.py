@@ -1519,6 +1519,9 @@ def sort(plugins):
 
     *But may be overridden.
 
+    For plug-ins with the same order, ContextPlugin will always be sorted before
+    InstancePlugin.
+
     Arguments:
         plugins (list): Plug-ins to sort
 
@@ -1527,5 +1530,9 @@ def sort(plugins):
     if not isinstance(plugins, list):
         raise TypeError("plugins must be of type list")
 
-    plugins.sort(key=lambda p: p.order)
+    def _sort_by_type(plugin):
+        """Return 1 if plugin operates on instances, 0 otherwise."""
+        return 1 if plugin.__instanceEnabled__ else 0
+
+    plugins.sort(key=lambda p: (p.order, _sort_by_type(p)))
     return plugins
