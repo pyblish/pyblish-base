@@ -1029,15 +1029,23 @@ class UnicodePlugin(pyblish.api.InstancePlugin):
 
 def test_sort_plugins():
     """Ensure that plugins order is correct."""
-    class Plugin1(pyblish.plugin.ContextPlugin):
-        order = 1
+    pyblish.plugin.SORT_PER_ORDER_AND_TYPE = True
 
     class Plugin2(pyblish.plugin.InstancePlugin):
+        order = 1
+
+    class Plugin1(pyblish.plugin.ContextPlugin):
         order = 1
 
     class Plugin3(pyblish.plugin.ContextPlugin):
         order = 2
 
-    plugins = [Plugin3, Plugin1, Plugin2]
+    plugins = [Plugin3, Plugin2, Plugin1]
     pyblish.plugin.sort(plugins)
     assert plugins == [Plugin1, Plugin2, Plugin3]
+
+    # Restore state, for subsequent tests
+    # NOTE: This assumes the test succeeds. If it fails, then
+    # subsequent tests can fail because of it.
+    pyblish.plugin.SORT_PER_ORDER_AND_TYPE = False
+
