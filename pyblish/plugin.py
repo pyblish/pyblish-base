@@ -364,6 +364,8 @@ class MetaAction(type):
                           "notProcessed",
                           "processed",
                           "failed",
+                          "warning",
+                          "failedOrWarning",
                           "succeeded"):
             cls.__error__ = (
                 "Action had an unrecognised value "
@@ -391,6 +393,9 @@ class Action():
             - "processed": The plug-in has been processed
             - "succeeded": The plug-in has been processed, and succeeded
             - "failed": The plug-in has been processed, and failed
+            - "warning": The plug-in has been processed, and had a warning
+            - "failedOrWarning": The plug-in has been processed, and failed or
+              had a warning
         icon: Name, relative path or absolute path to image for
             use as an icon of this action. For relative paths,
             the current working directory of the host is used and
