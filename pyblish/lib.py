@@ -50,7 +50,7 @@ class MessageHandler(logging.Handler):
 
     def emit(self, record):
         if record.name.startswith("pyblish"):
-            self.records.append(record)
+            self.records.append(str(record))
 
 
 def extract_traceback(exception, fname=None):
