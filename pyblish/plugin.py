@@ -1324,37 +1324,12 @@ def discover(type=None, regex=None, paths=None):
         if not os.path.isdir(path):
             continue
 
+        # register plugins from modules in folder
         for fname in os.listdir(path):
-            if fname.startswith("_"):
-                continue
-
-            abspath = os.path.join(path, fname)
-
-            if not os.path.isfile(abspath):
-                continue
-
-            mod_name, mod_ext = os.path.splitext(fname)
-
-            if not mod_ext == ".py":
-                continue
-
-            module = types.ModuleType(mod_name)
-            module.__file__ = abspath
-
-            try:
-                with open(abspath, "rb") as f:
-                    six.exec_(f.read(), module.__dict__)
-
-                # Store reference to original module, to avoid
-                # garbage collection from collecting it's global
-                # imports, such as `import os`.
-                sys.modules[abspath] = module
-
-            except Exception as err:
-                log.debug("Skipped: \"%s\" (%s)", mod_name, err)
-                continue
-
-            _register_plugins_helper(plugins_from_module(module), plugin_names, plugins, module=module)
+            module = _valid_plugin_module(abspath)
+            if module:
+                plugins_in_module = plugins_from_module(module)
+                _register_plugins_helper(plugins_in_module, plugin_names, plugins, module=module)
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
@@ -1368,6 +1343,45 @@ def discover(type=None, regex=None, paths=None):
         filter_(plugins)
 
     return plugins
+
+
+def _valid_plugin_module(abspath):
+    """load any"""
+
+    if '/' in abspath:
+        split_char = '/'
+    elif '\\' in abspath:
+        split_char = '\\'
+    path, fname = abspath.rsplit(split_char, 1)
+
+    if fname.startswith("_"):
+        return
+
+    if not os.path.isfile(abspath):
+        return
+
+    mod_name, mod_ext = os.path.splitext(fname)
+
+    if not mod_ext == ".py":
+        return
+
+    module = types.ModuleType(mod_name)
+    module.__file__ = abspath
+
+    try:
+        with open(abspath, "rb") as f:
+            six.exec_(f.read(), module.__dict__)
+
+        # Store reference to original module, to avoid
+        # garbage collection from collecting it's global
+        # imports, such as `import os`.
+        sys.modules[abspath] = module
+
+    except Exception as err:
+        log.debug("Skipped: \"%s\" (%s)", mod_name, err)
+        return
+
+    return module
 
 
 def _register_plugins_helper(plugins_to_register, plugin_names, plugins, module=None):
