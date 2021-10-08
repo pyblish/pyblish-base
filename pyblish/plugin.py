@@ -1321,12 +1321,22 @@ def discover(type=None, regex=None, paths=None):
     # Include plug-ins from registered paths
     for path in paths or plugin_paths():
         path = os.path.normpath(path)
-        if not os.path.isdir(path):
+
+        if not os.path.exists(path):
             continue
 
+        # check if folder or file
+        if os.path.isdir(path):
+            file_paths = [os.path.join(path, fname) for fname in os.listdir(path)]
+        elif os.path.isfile(path):
+            # todo check if valid path?
+            file_paths = [path]
+
         # register plugins from modules in folder
-        for fname in os.listdir(path):
+        for abspath in file_paths:
+
             module = _valid_plugin_module(abspath)
+
             if module:
                 plugins_in_module = plugins_from_module(module)
                 _register_plugins_helper(plugins_in_module, plugin_names, plugins, module=module)
