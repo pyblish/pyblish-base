@@ -1354,27 +1354,11 @@ def discover(type=None, regex=None, paths=None):
                 log.debug("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
 
-            for plugin in plugins_from_module(module):
-                if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
-                    log.debug("Duplicate plug-in found: %s", plugin)
-                    continue
-
-                plugin_names.append(plugin.__name__)
-
-                plugin.__module__ = module.__file__
-                key = "{0}.{1}".format(plugin.__module__, plugin.__name__)
-                plugins[key] = plugin
+            _register_plugins_helper(plugins_from_module(module), plugin_names, plugins, module=module)
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
-    for plugin in registered_plugins():
-        if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
-            log.debug("Duplicate plug-in found: %s", plugin)
-            continue
-
-        plugin_names.append(plugin.__name__)
-
-        plugins[plugin.__name__] = plugin
+    _register_plugins_helper(registered_plugins(), plugin_names, plugins, module=None)
 
     plugins = list(plugins.values())
     sort(plugins)  # In-place
@@ -1384,6 +1368,34 @@ def discover(type=None, regex=None, paths=None):
         filter_(plugins)
 
     return plugins
+
+
+def _register_plugins_helper(plugins_to_register, plugin_names, plugins, module=None):
+    """
+    add the plugin to the dict with the correct key
+    append the plugin name to plugin_names
+
+    arguments:
+    plugins_to_register: new plugins to register
+    plugin_names:        list of plugin names to append to
+    plugins:             dict of registered plugins
+
+    module=None:         optional module when importing a plugin from a module instead of a file
+    """
+    for plugin in plugins_to_register:
+        if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
+            log.debug("Duplicate plug-in found: %s", plugin)
+            continue
+
+        plugin_names.append(plugin.__name__)
+
+        if module:
+            plugin.__module__ = module.__file__
+            key = "{0}.{1}".format(plugin.__module__, plugin.__name__)
+        else:
+            key = plugin.__name__
+
+        plugins[key] = plugin
 
 
 def plugins_from_module(module):
