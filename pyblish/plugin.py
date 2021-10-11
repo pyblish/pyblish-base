@@ -1365,14 +1365,17 @@ def _valid_plugin_module(abspath):
     path, fname = abspath.rsplit(split_char, 1)
 
     if fname.startswith("_"):
+        log.debug('Skipped: private module: "%s"', fname)
         return
 
     if not os.path.isfile(abspath):
+        log.debug('Skipped: "%s" is not a file', abspath)
         return
 
     mod_name, mod_ext = os.path.splitext(fname)
 
     if not mod_ext == ".py":
+        log.debug('Skipped: "%s" is not a python file', fname)
         return
 
     module = types.ModuleType(mod_name)
