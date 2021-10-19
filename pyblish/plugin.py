@@ -770,8 +770,7 @@ class Context(AbstractEntity):
 
         """
 
-        instance = Instance(name, parent=self)
-        instance.data.update(kwargs)
+        instance = Instance(name, parent=self, **kwargs)
         return instance
 
     def __getitem__(self, item):
@@ -820,10 +819,11 @@ class Instance(AbstractEntity):
 
     """
 
-    def __init__(self, name, parent=None):
+    def __init__(self, name, parent=None, **kwargs):
         super(Instance, self).__init__(name, parent)
         self._data["family"] = "default"
         self._data["name"] = name
+        self._data.update(kwargs)
 
     def __eq__(self, other):
         return self._id == getattr(other, "id", None)

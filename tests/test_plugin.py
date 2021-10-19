@@ -651,6 +651,14 @@ def test_cooperative_collection():
     assert count["#"] == 11, count
 
 
+def test_instance_kwarg_init():
+    # check if all kwargs get passed to the metadata dict of the instance
+    mock_families = ['mock_family1', 'mock_family2']
+    inst = pyblish.api.Instance(name='test', madeup_kwarg=13, families=mock_families)
+    assert inst.data['madeup_kwarg'] == 13
+    assert inst.data['families'] == mock_families
+
+
 def test_actions_and_explicit_plugins():
     """Actions work with explicit plug-ins"""
 
