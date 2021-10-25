@@ -1045,6 +1045,8 @@ def register_plugin_path(path):
         Actual path added, including any post-processing
 
     """
+    if path and not isinstance(path, str):
+        path = str(path)
 
     normpath = os.path.normpath(path)
     if normpath in _registered_paths:
