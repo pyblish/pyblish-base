@@ -1051,7 +1051,7 @@ def register_plugin_path(path):
         import pathlib
         if isinstance(path, pathlib.PurePath):
             path = str(path)
-    except ModuleNotFoundError:
+    except ImportError:
         pass
 
     normpath = os.path.normpath(path)

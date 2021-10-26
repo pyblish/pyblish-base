@@ -520,7 +520,7 @@ def test_register_plugin_path():
     for path_type in path_types:
         try:
             input_to_test.append(path_type('test/folder/path'))  # create pathlib input
-        except ImportError:  # PosixPath can't be instantiated on windows and raises NotImplementedError
+        except NotImplementedError:  # PosixPath can't be instantiated on windows and raises NotImplementedError
             pass
     input_to_test.append(u"c:\some\special\södär\path".encode('utf-8'))  # create unicode input
     input_to_test.append(b"c:\\bytes\\are/cool")  # create bytestring input
