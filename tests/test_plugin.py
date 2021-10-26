@@ -510,7 +510,8 @@ def test_register_plugin_path():
     def helper_test_register_plugin_path(path):
         pyblish.plugin.register_plugin_path(path)
         registered_paths = pyblish.api.registered_paths()
-        assert str(path) in registered_paths, str(path) + ' not in ' + str(registered_paths) # check if path in here
+        path = os.path.normpath(str(path))
+        assert path in registered_paths, path + ' not in ' + str(registered_paths) # check if path in here
 
     # create input
     input_to_test = []
