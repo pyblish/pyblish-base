@@ -509,10 +509,15 @@ def test_register_plugin_path():
         assert str(path) in pyblish.api.registered_paths()  # check if path in here
 
     # create input
+    input_to_test = []
     from pathlib import Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath
     path_types = [Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath]
-    input_to_test = [path_type('test/folder/path') for path_type in path_types]  # create pathlib input
-    input_to_test.append(u"c:\some\special\södär\path")  # create unicode input
+    for path_type in path_types:
+        try:
+            input_to_test.append(path_type('test/folder/path'))  # create pathlib input
+        except NotImplementedError:  # PosixPath can't be instantiated on windows and raises NotImplementedError
+            pass
+    input_to_test.append(u"c:\some\special\södär\path".encode('utf-8'))  # create unicode input
     input_to_test.append(b"c:\\bytes\\are/cool")  # create bytestring input
 
     # test all paths from input
