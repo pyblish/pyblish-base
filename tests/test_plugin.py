@@ -503,7 +503,7 @@ def helper_test_register_plugin_path(path):
     assert str(path) in pyblish.api.registered_paths()  # check if path in here
 
 
-@unittest.skipIf(pathlib is None)
+@unittest.skipIf(pathlib is None, "skip when pathlib is not available")
 def test_register_plugin_path_pathlib():
     from pathlib import Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath
     path_types = [Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath]
