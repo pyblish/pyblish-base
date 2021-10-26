@@ -497,19 +497,26 @@ def test_register_old_plugin():
     pyblish.plugin.register_plugin(MyPlugin)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def helper_test_register_plugin_path(path):
-    pyblish.plugin.register_plugin_path(path)
-    assert str(path) in pyblish.api.registered_paths()  # check if path in here
-
 
 @unittest.skipIf(pathlib is None, "skip when pathlib is not available")
-def test_register_plugin_path_pathlib():
+def test_register_plugin_path():
+    """test various types of input for plugin path registration"""
+
+    # helper function
+    @with_setup(lib.setup_empty, lib.teardown)
+    def helper_test_register_plugin_path(path):
+        pyblish.plugin.register_plugin_path(path)
+        assert str(path) in pyblish.api.registered_paths()  # check if path in here
+
+    # create input
     from pathlib import Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath
     path_types = [Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath]
+    input_to_test = [path_type('test/folder/path') for path_type in path_types]  # create pathlib input
+    input_to_test.append(u"c:\some\special\södär\path")  # create unicode input
+    input_to_test.append(b"c:\\bytes\\are/cool")  # create bytestring input
 
-    for path_type in path_types:
-        path = path_type('test/folder/path')
+    # test all paths from input
+    for path in input_to_test:
         helper_test_register_plugin_path(path)
 
 
