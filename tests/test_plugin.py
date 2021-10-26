@@ -20,6 +20,8 @@ except:
 
 from . import lib
 
+import unittest
+
 
 @with_setup(lib.setup_empty, lib.teardown)
 def test_unique_id():
