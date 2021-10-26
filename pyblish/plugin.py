@@ -1046,6 +1046,14 @@ def register_plugin_path(path):
 
     """
 
+    # accept pathlib paths and convert to string
+    try:
+        import pathlib
+        if isinstance(path, pathlib.PurePath):
+            path = str(path)
+    except ModuleNotFoundError:
+        pass
+
     normpath = os.path.normpath(path)
     if normpath in _registered_paths:
         return log.warning("Path already registered: {0}".format(path))
