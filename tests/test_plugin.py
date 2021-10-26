@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import os
 import logging
 
@@ -518,8 +521,7 @@ def test_register_plugin_path():
             input_to_test.append(path_type('test/folder/path'))  # create pathlib input
         except NotImplementedError:  # PosixPath can't be instantiated on windows and raises NotImplementedError
             pass
-    # commented out since this is not working in python2 test for some reason, issue with encoding
-    # input_to_test.append(u"c:\some\special\södär\path".encode('utf-8'))  # create unicode input
+    input_to_test.append(u"c:\some\special\södär\path".encode('utf-8'))  # create unicode input
     input_to_test.append(b"c:\\bytes\\are/cool")  # create bytestring input
 
     # test all paths from input
