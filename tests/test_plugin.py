@@ -13,6 +13,11 @@ from nose.tools import (
     raises,
 )
 
+try:
+    import pathlib
+except:
+    pathlib = None
+
 from . import lib
 
 
@@ -488,6 +493,22 @@ def test_register_old_plugin():
         requires = "pyblish==0"
 
     pyblish.plugin.register_plugin(MyPlugin)
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def helper_test_register_plugin_path(path):
+    pyblish.plugin.register_plugin_path(path)
+    assert str(path) in pyblish.api.registered_paths()  # check if path in here
+
+
+@unittest.skipIf(pathlib is None)
+def test_register_plugin_path_pathlib():
+    from pathlib import Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath
+    path_types = [Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath]
+
+    for path_type in path_types:
+        path = path_type('test/folder/path')
+        helper_test_register_plugin_path(path)
 
 
 @mock.patch("pyblish.plugin.__explicit_process")
