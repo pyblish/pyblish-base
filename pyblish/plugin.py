@@ -1047,12 +1047,8 @@ def register_plugin_path(path):
     """
 
     # accept pathlib paths and convert to string
-    try:
-        import pathlib
-        if isinstance(path, pathlib.PurePath):
-            path = str(path)
-    except ImportError:
-        pass
+    if hasattr(path, "as_posix"):
+        path = path.as_posix()
 
     normpath = os.path.normpath(path)
     if normpath in _registered_paths:

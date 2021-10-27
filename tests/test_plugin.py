@@ -500,7 +500,6 @@ def test_register_old_plugin():
     pyblish.plugin.register_plugin(MyPlugin)
 
 
-
 @unittest.skipIf(pathlib is None, "skip when pathlib is not available")
 def test_register_plugin_path():
     """test various types of input for plugin path registration"""
