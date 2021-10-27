@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import os
 import logging
 
@@ -13,7 +16,14 @@ from nose.tools import (
     raises,
 )
 
+try:
+    import pathlib
+except:
+    pathlib = None
+
 from . import lib
+
+import unittest
 
 
 @with_setup(lib.setup_empty, lib.teardown)
@@ -488,6 +498,35 @@ def test_register_old_plugin():
         requires = "pyblish==0"
 
     pyblish.plugin.register_plugin(MyPlugin)
+
+
+@unittest.skipIf(pathlib is None, "skip when pathlib is not available")
+def test_register_plugin_path():
+    """test various types of input for plugin path registration"""
+
+    # helper function
+    @with_setup(lib.setup_empty, lib.teardown)
+    def helper_test_register_plugin_path(path):
+        pyblish.plugin.register_plugin_path(path)
+        registered_paths = pyblish.api.registered_paths()
+        path = os.path.normpath(str(path))
+        assert path in registered_paths, path + ' not in ' + str(registered_paths) # check if path in here
+
+    # create input
+    input_to_test = []
+    from pathlib import Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath
+    path_types = [Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath]
+    for path_type in path_types:
+        try:
+            input_to_test.append(path_type('test/folder/path'))  # create pathlib input
+        except NotImplementedError:  # PosixPath can't be instantiated on windows and raises NotImplementedError
+            pass
+    # input_to_test.append(u"c:\some\special\södär\testpath".encode('utf-8'))  # create unicode input
+    # input_to_test.append(b"c:\\bytes\\are/cool")  # create bytestring input
+
+    # test all paths from input
+    for path in input_to_test:
+        helper_test_register_plugin_path(path)
 
 
 @mock.patch("pyblish.plugin.__explicit_process")
