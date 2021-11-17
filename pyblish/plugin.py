@@ -46,16 +46,21 @@ Intersection = 1 << 0
 Subset = 1 << 1
 Exact = 1 << 2
 
-# Check for duplicate plugin names. This is to preserve backwards compatility.
+# Check for duplicate plugin names. This is to preserve backwards compatibility.
 ALLOW_DUPLICATES = bool(os.getenv("PYBLISH_ALLOW_DUPLICATE_PLUGIN_NAMES"))
 
-# Check for strict data types. This is to preserve backwards compatility
+# Check for strict data types. This is to preserve backwards compatibility
 STRICT_DATATYPES = bool(os.getenv("PYBLISH_STRICT_DATATYPES"))
+
+# Sort plugins per order and per type (Context Plugin before Instance plugin).
+# This is to preserve backwards compatibility
+SORT_PER_ORDER_AND_TYPE = bool(os.getenv("PYBLISH_SORT_PER_ORDER_AND_TYPE"))
 
 # Check for early adopters.
 EARLY_ADOPTER = bool(os.getenv("PYBLISH_EARLY_ADOPTER"))
 ALLOW_DUPLICATE_PLUGINS = EARLY_ADOPTER or ALLOW_DUPLICATES
 STRICT_DATATYPES = EARLY_ADOPTER or STRICT_DATATYPES
+SORT_PER_ORDER_AND_TYPE = EARLY_ADOPTER or SORT_PER_ORDER_AND_TYPE
 
 
 class Provider():
@@ -1528,6 +1533,10 @@ def sort(plugins):
 
     *But may be overridden.
 
+    If the PYBLISH_SORT_PER_ORDER_AND_TYPE or PYBLISH_EARLY_ADOPTER environment
+    variable is set to "1, ContextPlugin will always be sorted before
+    InstancePlugin for the same order.
+
     Arguments:
         plugins (list): Plug-ins to sort
 
@@ -1536,5 +1545,12 @@ def sort(plugins):
     if not isinstance(plugins, list):
         raise TypeError("plugins must be of type list")
 
-    plugins.sort(key=lambda p: p.order)
+    def _sort_by_type(plugin):
+        """Return 1 if plugin operates on instances, 0 otherwise."""
+        return 1 if plugin.__instanceEnabled__ else 0
+
+    if SORT_PER_ORDER_AND_TYPE:
+        plugins.sort(key=lambda p: (p.order, _sort_by_type(p)))
+    else:
+        plugins.sort(key=lambda p: p.order)
     return plugins
