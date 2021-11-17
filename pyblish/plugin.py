@@ -1325,60 +1325,29 @@ def discover(type=None, regex=None, paths=None):
     # Include plug-ins from registered paths
     for path in paths or plugin_paths():
         path = os.path.normpath(path)
-        if not os.path.isdir(path):
+
+        if not os.path.exists(path):
             continue
 
-        for fname in os.listdir(path):
-            if fname.startswith("_"):
-                continue
+        # check if folder or file
+        if os.path.isdir(path):
+            file_paths = [os.path.join(path, fname) for fname in os.listdir(path)]
+        elif os.path.isfile(path):
+            # todo check if valid path?
+            file_paths = [path]
 
-            abspath = os.path.join(path, fname)
+        # register plugins from modules in folder
+        for abspath in file_paths:
 
-            if not os.path.isfile(abspath):
-                continue
+            module = _valid_plugin_module(abspath)
 
-            mod_name, mod_ext = os.path.splitext(fname)
-
-            if not mod_ext == ".py":
-                continue
-
-            module = types.ModuleType(mod_name)
-            module.__file__ = abspath
-
-            try:
-                with open(abspath, "rb") as f:
-                    six.exec_(f.read(), module.__dict__)
-
-                # Store reference to original module, to avoid
-                # garbage collection from collecting it's global
-                # imports, such as `import os`.
-                sys.modules[abspath] = module
-
-            except Exception as err:
-                log.debug("Skipped: \"%s\" (%s)", mod_name, err)
-                continue
-
-            for plugin in plugins_from_module(module):
-                if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
-                    log.debug("Duplicate plug-in found: %s", plugin)
-                    continue
-
-                plugin_names.append(plugin.__name__)
-
-                plugin.__module__ = module.__file__
-                key = "{0}.{1}".format(plugin.__module__, plugin.__name__)
-                plugins[key] = plugin
+            if module:
+                plugins_in_module = plugins_from_module(module)
+                _register_plugins_helper(plugins_in_module, plugin_names, plugins, module=module)
 
     # Include plug-ins from registration.
     # Directly registered plug-ins take precedence.
-    for plugin in registered_plugins():
-        if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
-            log.debug("Duplicate plug-in found: %s", plugin)
-            continue
-
-        plugin_names.append(plugin.__name__)
-
-        plugins[plugin.__name__] = plugin
+    _register_plugins_helper(registered_plugins(), plugin_names, plugins, module=None)
 
     plugins = list(plugins.values())
     sort(plugins)  # In-place
@@ -1388,6 +1357,76 @@ def discover(type=None, regex=None, paths=None):
         filter_(plugins)
 
     return plugins
+
+
+def _valid_plugin_module(abspath):
+    """load any"""
+
+    if '/' in abspath:
+        split_char = '/'
+    elif '\\' in abspath:
+        split_char = '\\'
+    path, fname = abspath.rsplit(split_char, 1)
+
+    if fname.startswith("_"):
+        log.debug('Skipped: private module: "%s"', fname)
+        return
+
+    if not os.path.isfile(abspath):
+        log.debug('Skipped: "%s" is not a file', abspath)
+        return
+
+    mod_name, mod_ext = os.path.splitext(fname)
+
+    if not mod_ext == ".py":
+        log.debug('Skipped: "%s" is not a python file', fname)
+        return
+
+    module = types.ModuleType(mod_name)
+    module.__file__ = abspath
+
+    try:
+        with open(abspath, "rb") as f:
+            six.exec_(f.read(), module.__dict__)
+
+        # Store reference to original module, to avoid
+        # garbage collection from collecting it's global
+        # imports, such as `import os`.
+        sys.modules[abspath] = module
+
+    except Exception as err:
+        log.debug("Skipped: \"%s\" (%s)", mod_name, err)
+        return
+
+    return module
+
+
+def _register_plugins_helper(plugins_to_register, plugin_names, plugins, module=None):
+    """
+    add the plugin to the dict with the correct key
+    append the plugin name to plugin_names
+
+    arguments:
+    plugins_to_register: new plugins to register
+    plugin_names:        list of plugin names to append to
+    plugins:             dict of registered plugins
+
+    module=None:         optional module when importing a plugin from a module instead of a file
+    """
+    for plugin in plugins_to_register:
+        if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
+            log.debug("Duplicate plug-in found: %s", plugin)
+            continue
+
+        plugin_names.append(plugin.__name__)
+
+        if module:
+            plugin.__module__ = module.__file__
+            key = "{0}.{1}".format(plugin.__module__, plugin.__name__)
+        else:
+            key = plugin.__name__
+
+        plugins[key] = plugin
 
 
 def plugins_from_module(module):
