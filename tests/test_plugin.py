@@ -1072,3 +1072,43 @@ class UnicodePlugin(pyblish.api.InstancePlugin):
 
         plugins = [p.__name__ for p in pyblish.api.discover()]
         assert plugins == ["UnicodePlugin"]
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_discover_private():
+    """Test plugin modules are skipped during discovery if starts with _"""
+    failing_path = os.path.join(lib.PLUGINPATH, '..', 'pre11', 'plugins', 'private')
+    pyblish.plugin.register_plugin_path(failing_path)
+    plugins = pyblish.api.discover()
+    assert len(plugins) == 0
+    # DEBUG - Skipped: "_start_with_underscore.py", starts with _
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_discover_py_extension():
+    """Test plugin modules are skipped during discovery if extension is not .py"""
+    failing_path = os.path.join(lib.PLUGINPATH, '..', 'pre11', 'plugins', 'missing_extension')
+    pyblish.plugin.register_plugin_path(failing_path)
+    plugins = pyblish.api.discover()
+    assert len(plugins) == 0
+    # DEBUG - Skipped: "myCollector","", not end in .py
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_discover_invalid_path():
+    """Test plugin modules are skipped during discovery if path is invalid"""
+    pyblish.api.register_plugin_path('not/a/valid/path')
+    plugins = pyblish.api.discover()
+    assert len(plugins) == 0
+    # DEBUG - Skipped: "not\a\valid\path", path is not a valid folder
+
+
+@with_setup(lib.setup_empty, lib.teardown)
+def test_discover_missing_host():
+    """Test plugin modules are skipped during discovery if host is missing"""
+    failing_path = os.path.join(lib.PLUGINPATH, '..', 'pre11', 'plugins', 'missing_host')
+    pyblish.plugin.register_plugin_path(failing_path)
+    pyblish.plugin.register_host(lib.HOST)
+    plugins = pyblish.api.discover()
+    assert len(plugins) == 0
+    # DEBUG - No supported host found for plugin:<class 'missing_host.CollectMissingHosts'>

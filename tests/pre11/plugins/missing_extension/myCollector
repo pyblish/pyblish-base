@@ -1,0 +1,8 @@
+import pyblish.plugin
+
+class MyCollectorWithoutExtension(pyblish.plugin.Collector):
+    hosts = ["*"]
+    version = (0, 1, 0)
+
+    def process_context(self, context):
+        pass

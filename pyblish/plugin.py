@@ -1517,8 +1517,6 @@ def host_is_compatible(plugin):
     if "*" in plugin.hosts:
         return True
 
-    if not  any(host in plugin.hosts for host in registered_hosts()):
-        log.debug("missing hosts: %s" % plugin.hosts)
     return any(host in plugin.hosts for host in registered_hosts())
 
 
