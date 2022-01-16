@@ -1067,6 +1067,10 @@ def deregister_plugin_path(path):
 
     """
 
+    # accept pathlib paths and convert to string
+    if hasattr(path, "as_posix"):
+        path = path.as_posix()
+
     normpath = os.path.normpath(path)
     try:
         _registered_paths.remove(normpath)
