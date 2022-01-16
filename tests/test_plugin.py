@@ -1077,7 +1077,7 @@ class UnicodePlugin(pyblish.api.InstancePlugin):
 @with_setup(lib.setup_empty, lib.teardown)
 def test_discover_private():
     """Test plugin modules are skipped during discovery if starts with _"""
-    failing_path = os.path.join(lib.PLUGINPATH, '..', 'pre11', 'plugins', 'private')
+    failing_path = os.path.join(lib.PLUGINPATH, 'private')
     pyblish.plugin.register_plugin_path(failing_path)
     plugins = pyblish.api.discover()
     assert len(plugins) == 0
@@ -1087,7 +1087,7 @@ def test_discover_private():
 @with_setup(lib.setup_empty, lib.teardown)
 def test_discover_py_extension():
     """Test plugin modules are skipped during discovery if extension is not .py"""
-    failing_path = os.path.join(lib.PLUGINPATH, '..', 'pre11', 'plugins', 'missing_extension')
+    failing_path = os.path.join(lib.PLUGINPATH, 'missing_extension')
     pyblish.plugin.register_plugin_path(failing_path)
     plugins = pyblish.api.discover()
     assert len(plugins) == 0
@@ -1106,7 +1106,7 @@ def test_discover_invalid_path():
 @with_setup(lib.setup_empty, lib.teardown)
 def test_discover_missing_host():
     """Test plugin modules are skipped during discovery if host is missing"""
-    failing_path = os.path.join(lib.PLUGINPATH, '..', 'pre11', 'plugins', 'missing_host')
+    failing_path = os.path.join(lib.PLUGINPATH, 'missing_host')
     pyblish.plugin.register_plugin_path(failing_path)
     pyblish.plugin.register_host(lib.HOST)
     plugins = pyblish.api.discover()
