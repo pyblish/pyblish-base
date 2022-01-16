@@ -547,6 +547,29 @@ def test_deregister_plugin_path_pathlib():
     for path in input_to_test:
         helper_deregister_plugin_path(path)
 
+def helper_create_path_input():
+    input_to_test = []
+    input_to_test.append(u"c:\some\special\södär\testpath".encode('utf-8'))  # unicode input
+    input_to_test.append(b'c:\some\special\s\xc3\xb6d\xc3\xa4r\testpath')  # bytestring input
+    input_to_test.append(b"c:\\bytes\\are/cool")  # bytestring input
+    input_to_test.append("c:/just/a/average/path")  # string input
+    input_to_test.append(r"c:\just\a\average\path\v2")  # raw string input with different slashes
+    return input_to_test
+
+
+def test_register_plugin_path():
+    """test various types of input for plugin path registration"""
+    input_to_test = helper_create_path_input()
+    for path in input_to_test:
+        helper_register_plugin_path(path)
+
+
+def test_deregister_plugin_path_pathlib():
+    """test various types of input for plugin path registration"""
+    input_to_test = helper_create_path_input()
+    for path in input_to_test:
+        helper_deregister_plugin_path(path)
+
 
 @mock.patch("pyblish.plugin.__explicit_process")
 def test_implicit_explicit_branching(func):
