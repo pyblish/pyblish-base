@@ -502,6 +502,7 @@ def test_register_old_plugin():
 
 @with_setup(lib.setup_empty, lib.teardown)
 def helper_register_plugin_path(path):
+    """helper function to register a plugin path"""
     pyblish.plugin.register_plugin_path(path)
     registered_paths = pyblish.api.registered_paths()
     path = os.path.normpath(str(path))
@@ -510,6 +511,7 @@ def helper_register_plugin_path(path):
 
 @with_setup(lib.setup_empty, lib.teardown)
 def helper_deregister_plugin_path(path):
+    """helper function to deregister a plugin path"""
     pyblish.plugin.register_plugin_path(path)
     pyblish.plugin.deregister_plugin_path(path)
     registered_paths = pyblish.api.registered_paths()
@@ -518,6 +520,7 @@ def helper_deregister_plugin_path(path):
 
 
 def helper_create_pathlib_input():
+    """helper function to create pathlib test input"""
     input_to_test = []
     from pathlib import Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath
     path_types = [Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath]
@@ -531,7 +534,7 @@ def helper_create_pathlib_input():
 
 @unittest.skipIf(pathlib is None, "skip when pathlib is not available")
 def test_register_plugin_path_pathlib():
-    """test pathlib supprot for plugin path registration"""
+    """test pathlib support for plugin path registration"""
     input_to_test = helper_create_pathlib_input()
     for path in input_to_test:
         helper_register_plugin_path(path)
@@ -539,7 +542,7 @@ def test_register_plugin_path_pathlib():
 
 @unittest.skipIf(pathlib is None, "skip when pathlib is not available")
 def test_deregister_plugin_path_pathlib():
-    """test pathlib supprot for plugin path deregistration"""
+    """test pathlib support for plugin path deregistration"""
     input_to_test = helper_create_pathlib_input()
     for path in input_to_test:
         helper_deregister_plugin_path(path)
