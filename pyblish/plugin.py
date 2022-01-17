@@ -1326,20 +1326,24 @@ def discover(type=None, regex=None, paths=None):
     for path in paths or plugin_paths():
         path = os.path.normpath(path)
         if not os.path.isdir(path):
+            log.debug("Skipped: \"%s\", path is not a valid folder", path)
             continue
 
         for fname in os.listdir(path):
             if fname.startswith("_"):
+                log.debug("Skipped: \"%s\", starts with _", fname)
                 continue
 
             abspath = os.path.join(path, fname)
 
             if not os.path.isfile(abspath):
+                log.debug("Skipped: \"%s\", not a valid file", abspath)
                 continue
 
             mod_name, mod_ext = os.path.splitext(fname)
 
             if not mod_ext == ".py":
+                log.debug("Skipped: \"%s\",\"%s\", not end in .py", mod_name, mod_ext)
                 continue
 
             module = types.ModuleType(mod_name)
@@ -1355,7 +1359,7 @@ def discover(type=None, regex=None, paths=None):
                 sys.modules[abspath] = module
 
             except Exception as err:
-                log.debug("Skipped: \"%s\" (%s)", mod_name, err)
+                log.error("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
 
             for plugin in plugins_from_module(module):
@@ -1428,6 +1432,7 @@ def plugins_from_module(module):
             continue
 
         if not host_is_compatible(obj):
+            log.debug("No supported host found for plugin:%s",  obj)
             continue
 
         plugins.append(obj)
