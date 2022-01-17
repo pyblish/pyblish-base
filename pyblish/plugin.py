@@ -938,34 +938,8 @@ def register_plugin(plugin):
 
     """
 
-    if not hasattr(plugin, "__call__"):
-        raise TypeError("Plug-in must be callable "
-                        "returning an instance of a class")
-
     if not plugin_is_valid(plugin):
         raise TypeError("Plug-in invalid: %s", plugin)
-
-    if not version_is_compatible(plugin):
-        raise TypeError(
-            "Plug-in %s not compatible with "
-            "this version (%s) of Pyblish." % (
-                plugin, __version__))
-
-    if not host_is_compatible(plugin):
-
-        hosts = registered_hosts()
-        required_hosts = plugin.hosts
-
-        err = """Plug-in %s is not compatible with available host(s).
-
-Required host(s): %s
-Registered host(s): %s
-
-Make sure the integration for your host is correctly setup
-or register a new host using `pyblish.api.register_host("%s")`
-""" % (plugin, repr(required_hosts), repr(hosts), required_hosts[0])
-
-        raise TypeError(err)
 
     _registered_plugins[plugin.__name__] = plugin
 
@@ -1429,16 +1403,6 @@ def plugins_from_module(module):
             log.debug("Plug-in invalid: %s", obj)
             continue
 
-        if not version_is_compatible(obj):
-            log.debug("Plug-in %s not compatible with "
-                      "this version (%s) of Pyblish." % (
-                          obj, __version__))
-            continue
-
-        if not host_is_compatible(obj):
-            log.debug("No supported host found for plugin:%s",  obj)
-            continue
-
         plugins.append(obj)
 
     return plugins
@@ -1451,6 +1415,11 @@ def plugin_is_valid(plugin):
         plugin (Plugin): Plug-in to assess
 
     """
+
+    if not hasattr(plugin, "__call__"):
+        log.debug("Plug-in must be callable "
+                  "returning an instance of a class")
+        return False
 
     if not isinstance(plugin.requires, six.string_types):
         log.debug("Plug-in requires must be of type string: %s", plugin)
@@ -1489,6 +1458,27 @@ def plugin_is_valid(plugin):
                   "pyblish.api.Intersection, "
                   "pyblish.api.Subset and"
                   "pyblish.api.Exact")
+        return False
+
+    if not version_is_compatible(plugin):
+        log.debug("Plug-in %s not compatible with "
+                  "this version (%s) of Pyblish." % (plugin, __version__))
+        return False
+
+    if not host_is_compatible(plugin):
+        hosts = registered_hosts()
+        required_hosts = plugin.hosts
+
+        err = """Plug-in %s is not compatible with available host(s).
+
+Required host(s): %s
+Registered host(s): %s
+
+Make sure the integration for your host is correctly setup
+or register a new host using `pyblish.api.register_host("%s")`
+""" % (plugin, repr(required_hosts), repr(hosts), required_hosts[0])
+
+        log.debug(err)
         return False
 
     return True
