@@ -387,6 +387,9 @@ class Plugin():
 
         pass
 
+    def repair(self):
+        """DEPRECATED"""
+        pass
 
 
 class Collector(Plugin):
