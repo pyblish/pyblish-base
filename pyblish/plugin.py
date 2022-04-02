@@ -282,7 +282,7 @@ class MetaPlugin(type):
         for _f_name, _f_obj in inspect.getmembers(cls, predicate=inspect.isfunction):
 
             new_action_class = None
-            new_action_name = f"{cls.__name__}_{_f_name}"
+            new_action_name = "{}_{}".format(cls.__name__,_f_name)
 
             # bind repair action
             if _f_name == "repair":
