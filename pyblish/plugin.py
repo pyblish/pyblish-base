@@ -37,6 +37,11 @@ from . import (
 from . import lib
 from .vendor import iscompatible, six
 
+if six.PY2:
+    get_arg_spec = inspect.getargspec
+else:
+    get_arg_spec = inspect.getfullargspec
+
 log = logging.getLogger("pyblish.plugin")
 
 __metaclass__ = type  # Make all classes new-style
@@ -87,7 +92,7 @@ class Provider():
 
     @classmethod
     def args(cls, func):
-        return [a for a in inspect.getargspec(func)[0]
+        return [a for a in get_arg_spec(func)[0]
                 if a not in ("self", "cls")]
 
     def invoke(self, func):
@@ -147,7 +152,7 @@ def evaluate_enabledness(plugin):
     plugin.__contextEnabled__ = False
     plugin.__instanceEnabled__ = False
 
-    args_ = inspect.getargspec(plugin.process).args
+    args_ = get_arg_spec(plugin.process).args
 
     if "instance" in args_:
         plugin.__instanceEnabled__ = True
@@ -314,7 +319,7 @@ IntegratorOrder = 3
 
 def validate_argument_signature(plugin):
     """Ensure plug-in processes either 'instance' or 'context'"""
-    if not any(arg in inspect.getargspec(plugin.process).args
+    if not any(arg in get_arg_spec(plugin.process).args
                for arg in ("instance", "context")):
         plugin.__invalidSignature__ = True
 
