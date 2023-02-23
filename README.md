@@ -34,7 +34,7 @@ You may use this project as-is, or in conjunction with surrounding projects - su
 
 ### Installation
 
-pyblish-base is avaialble on PyPI.
+pyblish-base is available on PyPI.
 
 ```bash
 $ pip install pyblish-base
