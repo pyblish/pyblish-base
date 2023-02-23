@@ -12,3 +12,5 @@ build
 playground.py
 *.sublime-*
 __pycache__
+*.p4env
+*pyrightconfig.json

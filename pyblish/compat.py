@@ -4,6 +4,12 @@ import re
 import inspect
 import warnings
 from . import plugin, lib, logic
+from .vendor import six
+
+if six.PY2:
+    get_arg_spec = inspect.getargspec
+else:
+    get_arg_spec = inspect.getfullargspec
 
 # Aliases
 Selector = plugin.Collector
@@ -216,7 +222,7 @@ def process(func, plugins, context, test=None):
             if hasattr(__context, "__call__"):
                 context = __context()
 
-            args = inspect.getargspec(Plugin.process).args
+            args = get_arg_spec(Plugin.process).args
 
             # Backwards compatibility with `asset`
             if "asset" in args:
