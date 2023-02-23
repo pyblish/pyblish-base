@@ -74,3 +74,15 @@ Refer to the [getting started guide](http://learn.pyblish.com) for a gentle intr
 [landscape-image]: https://landscape.io/github/pyblish/pyblish-base/master/landscape.png
 [landscape-repo]: https://landscape.io/github/pyblish/pyblish-base/master
 [gitter-image]: https://badges.gitter.im/Join%20Chat.svg
+
+<br>
+
+### Upload to PyPI
+
+To make a new release onto PyPI, you'll need to be mottosso and type this.
+
+```bash
+cd pyblish-base
+python .\setup.py sdist bdist_wheel
+python -m twine upload .\dist\*
+```
