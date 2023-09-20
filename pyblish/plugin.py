@@ -20,6 +20,7 @@ import inspect
 import warnings
 import contextlib
 import uuid
+import traceback
 
 # Local library
 from . import (
@@ -36,11 +37,6 @@ from . import (
 
 from . import lib
 from .vendor import iscompatible, six
-
-if six.PY2:
-    get_arg_spec = inspect.getargspec
-else:
-    get_arg_spec = inspect.getfullargspec
 
 log = logging.getLogger("pyblish.plugin")
 
@@ -92,7 +88,7 @@ class Provider():
 
     @classmethod
     def args(cls, func):
-        return [a for a in get_arg_spec(func)[0]
+        return [a for a in inspect.getargspec(func)[0]
                 if a not in ("self", "cls")]
 
     def invoke(self, func):
@@ -152,7 +148,7 @@ def evaluate_enabledness(plugin):
     plugin.__contextEnabled__ = False
     plugin.__instanceEnabled__ = False
 
-    args_ = get_arg_spec(plugin.process).args
+    args_ = inspect.getargspec(plugin.process).args
 
     if "instance" in args_:
         plugin.__instanceEnabled__ = True
@@ -319,7 +315,7 @@ IntegratorOrder = 3
 
 def validate_argument_signature(plugin):
     """Ensure plug-in processes either 'instance' or 'context'"""
-    if not any(arg in get_arg_spec(plugin.process).args
+    if not any(arg in inspect.getargspec(plugin.process).args
                for arg in ("instance", "context")):
         plugin.__invalidSignature__ = True
 
@@ -369,8 +365,6 @@ class MetaAction(type):
                           "notProcessed",
                           "processed",
                           "failed",
-                          "warning",
-                          "failedOrWarning",
                           "succeeded"):
             cls.__error__ = (
                 "Action had an unrecognised value "
@@ -398,9 +392,6 @@ class Action():
             - "processed": The plug-in has been processed
             - "succeeded": The plug-in has been processed, and succeeded
             - "failed": The plug-in has been processed, and failed
-            - "warning": The plug-in has been processed, and had a warning
-            - "failedOrWarning": The plug-in has been processed, and failed or
-              had a warning
         icon: Name, relative path or absolute path to image for
             use as an icon of this action. For relative paths,
             the current working directory of the host is used and
@@ -471,6 +462,7 @@ def process(plugin, context, instance=None, action=None):
         Dictionary of result
 
     """
+    print(f'issubclass: {issubclass(plugin, (ContextPlugin, InstancePlugin))}')
 
     if issubclass(plugin, (ContextPlugin, InstancePlugin)):
         result = __explicit_process(plugin, context, instance, action)
@@ -501,6 +493,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
         "instance": instance,
         "action": action,
         "error": None,
+        "traceback": None,
         "records": list(),
         "duration": None,
         "progress": 0,
@@ -527,6 +520,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
             runner(*args)
             result["success"] = True
     except Exception as error:
+        full_traceback = traceback.format_exc()
         # FIXME: This is apparently not very healthy,
         # as it creates a circular reference.
         # http://stackoverflow.com/a/11417308/478949
@@ -534,6 +528,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
                  instance=instance, error=error)
         lib.extract_traceback(error, plugin.__module__)
         result["error"] = error
+        result["traceback"] = full_traceback
         log.exception(result["error"].formatted_traceback)
 
     __end = time.time()
@@ -568,6 +563,7 @@ def __implicit_process(plugin, context, instance=None, action=None):
         "instance": instance,
         "action": action,
         "error": None,
+        "traceback": None,
         "records": list(),
         "duration": None,
         "progress": 0,
@@ -634,8 +630,9 @@ def repair(plugin, context, instance=None):
         "plugin": plugin,
         "instance": instance,
         "error": None,
+        "traceback": None,
         "records": list(),
-        "duration": None
+        "duration": None,
     }
 
     plugin = plugin()
@@ -775,7 +772,8 @@ class Context(AbstractEntity):
 
         """
 
-        instance = Instance(name, parent=self, **kwargs)
+        instance = Instance(name, parent=self)
+        instance.data.update(kwargs)
         return instance
 
     def __getitem__(self, item):
@@ -824,11 +822,10 @@ class Instance(AbstractEntity):
 
     """
 
-    def __init__(self, name, parent=None, **kwargs):
+    def __init__(self, name, parent=None):
         super(Instance, self).__init__(name, parent)
         self._data["family"] = "default"
         self._data["name"] = name
-        self._data.update(kwargs)
 
     def __eq__(self, other):
         return self._id == getattr(other, "id", None)
@@ -1051,10 +1048,6 @@ def register_plugin_path(path):
 
     """
 
-    # accept pathlib paths and convert to string
-    if hasattr(path, "as_posix"):
-        path = path.as_posix()
-
     normpath = os.path.normpath(path)
     if normpath in _registered_paths:
         return log.warning("Path already registered: {0}".format(path))
@@ -1071,10 +1064,6 @@ def deregister_plugin_path(path):
         ValueError if `path` isn't registered
 
     """
-
-    # accept pathlib paths and convert to string
-    if hasattr(path, "as_posix"):
-        path = path.as_posix()
 
     normpath = os.path.normpath(path)
     try:
@@ -1335,24 +1324,20 @@ def discover(type=None, regex=None, paths=None):
     for path in paths or plugin_paths():
         path = os.path.normpath(path)
         if not os.path.isdir(path):
-            log.debug("Skipped: \"%s\", path is not a valid folder", path)
             continue
 
         for fname in os.listdir(path):
             if fname.startswith("_"):
-                log.debug("Skipped: \"%s\", starts with _", fname)
                 continue
 
             abspath = os.path.join(path, fname)
 
             if not os.path.isfile(abspath):
-                log.debug("Skipped: \"%s\", not a valid file", abspath)
                 continue
 
             mod_name, mod_ext = os.path.splitext(fname)
 
             if not mod_ext == ".py":
-                log.debug("Skipped: \"%s\",\"%s\", not end in .py", mod_name, mod_ext)
                 continue
 
             module = types.ModuleType(mod_name)
@@ -1368,7 +1353,7 @@ def discover(type=None, regex=None, paths=None):
                 sys.modules[abspath] = module
 
             except Exception as err:
-                log.error("Skipped: \"%s\" (%s)", mod_name, err)
+                log.debug("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
 
             for plugin in plugins_from_module(module):
@@ -1441,7 +1426,6 @@ def plugins_from_module(module):
             continue
 
         if not host_is_compatible(obj):
-            log.debug("No supported host found for plugin:%s",  obj)
             continue
 
         plugins.append(obj)
