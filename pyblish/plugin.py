@@ -462,7 +462,6 @@ def process(plugin, context, instance=None, action=None):
         Dictionary of result
 
     """
-    print(f'issubclass: {issubclass(plugin, (ContextPlugin, InstancePlugin))}')
 
     if issubclass(plugin, (ContextPlugin, InstancePlugin)):
         result = __explicit_process(plugin, context, instance, action)
