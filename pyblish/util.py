@@ -87,6 +87,7 @@ def publish_iter(context=None, plugins=None, targets=None):
                print result
 
     """
+    context = api.Context() if context is None else context
     for result in _convenience_iter(context, plugins, targets):
         yield result
 
@@ -252,6 +253,7 @@ def integrate(context=None, plugins=None, targets=None):
 
 
 def collect_iter(context=None, plugins=None, targets=None):
+    context = api.Context() if context is None else context
     for result in _convenience_iter(context, plugins, targets,
                                     order=api.CollectorOrder):
         yield result
@@ -260,6 +262,7 @@ def collect_iter(context=None, plugins=None, targets=None):
 
 
 def validate_iter(context=None, plugins=None, targets=None):
+    context = api.Context() if context is None else context
     for result in _convenience_iter(context, plugins, targets,
                                     order=api.ValidatorOrder):
         yield result
@@ -268,6 +271,7 @@ def validate_iter(context=None, plugins=None, targets=None):
 
 
 def extract_iter(context=None, plugins=None, targets=None):
+    context = api.Context() if context is None else context
     for result in _convenience_iter(context, plugins, targets,
                                     order=api.ExtractorOrder):
         yield result
@@ -276,6 +280,7 @@ def extract_iter(context=None, plugins=None, targets=None):
 
 
 def integrate_iter(context=None, plugins=None, targets=None):
+    context = api.Context() if context is None else context
     for result in _convenience_iter(context, plugins, targets,
                                     order=api.IntegratorOrder):
         yield result
