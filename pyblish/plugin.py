@@ -504,6 +504,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
         "records": list(),
         "duration": None,
         "progress": 0,
+        "context": context,
     }
 
     if not action:
@@ -571,6 +572,7 @@ def __implicit_process(plugin, context, instance=None, action=None):
         "records": list(),
         "duration": None,
         "progress": 0,
+        "context": context,
     }
 
     if not action:
