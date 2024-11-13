@@ -2,7 +2,6 @@ import os
 import sys
 import logging
 import datetime
-import warnings
 import traceback
 import functools
 
@@ -84,7 +83,7 @@ def extract_traceback(exception, fname=None):
 
 def time():
     """Return ISO formatted string representation of current UTC time."""
-    return '%sZ' % datetime.datetime.utcnow().isoformat()
+    return '%sZ' % datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
 class ItemList(list):
