@@ -21,6 +21,7 @@ import warnings
 import contextlib
 import uuid
 
+
 # Local library
 from . import (
     __version__,
@@ -38,8 +39,10 @@ from . import lib
 from .vendor import iscompatible, six
 
 if six.PY2:
+    import imp
     get_arg_spec = inspect.getargspec
 else:
+    import importlib.machinery
     get_arg_spec = inspect.getfullargspec
 
 log = logging.getLogger("pyblish.plugin")
@@ -1357,12 +1360,18 @@ def discover(type=None, regex=None, paths=None):
                 log.debug("Skipped: \"%s\",\"%s\", not end in .py", mod_name, mod_ext)
                 continue
 
-            module = types.ModuleType(mod_name)
-            module.__file__ = abspath
-
+            
+            
             try:
-                with open(abspath, "rb") as f:
-                    six.exec_(f.read(), module.__dict__)
+                if six.PY2:
+                    module = imp.load_module(mod_name)
+                    module.__file__ = abspath
+                else:
+                    loader = importlib.machinery.SourceFileLoader(mod_name,abspath)
+                    module = types.ModuleType(mod_name)
+                    module.__file__ = abspath
+                    # exec might cause issues with python < 3.4
+                    loader.exec_module(module)
 
                 # Store reference to original module, to avoid
                 # garbage collection from collecting it's global
