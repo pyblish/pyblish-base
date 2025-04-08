@@ -1362,7 +1362,8 @@ def discover(type=None, regex=None, paths=None):
 
             try:
                 with open(abspath, "rb") as f:
-                    six.exec_(f.read(), module.__dict__)
+                    code = compile(f.read(),abspath,"exec")
+                    six.exec_(code, module.__dict__)
 
                 # Store reference to original module, to avoid
                 # garbage collection from collecting it's global
