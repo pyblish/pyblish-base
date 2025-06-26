@@ -1337,7 +1337,7 @@ def discover(type=None, regex=None, paths=None):
     for path in paths or plugin_paths():
         path = os.path.normpath(path)
         if not os.path.isdir(path):
-            log.debug("Skipped: \"%s\", path is not a valid folder", path)
+            log.warning("Skipped: \"%s\", path is not a valid folder", path)
             continue
 
         for fname in os.listdir(path):
@@ -1374,7 +1374,7 @@ def discover(type=None, regex=None, paths=None):
 
             for plugin in plugins_from_module(module):
                 if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
-                    log.debug("Duplicate plug-in found: %s", plugin)
+                    log.warning("Duplicate plug-in found: %s", plugin)
                     continue
 
                 plugin_names.append(plugin.__name__)
@@ -1387,7 +1387,7 @@ def discover(type=None, regex=None, paths=None):
     # Directly registered plug-ins take precedence.
     for plugin in registered_plugins():
         if not ALLOW_DUPLICATES and plugin.__name__ in plugin_names:
-            log.debug("Duplicate plug-in found: %s", plugin)
+            log.warning("Duplicate plug-in found: %s", plugin)
             continue
 
         plugin_names.append(plugin.__name__)
@@ -1420,29 +1420,32 @@ def plugins_from_module(module):
 
     for name in dir(module):
         if name.startswith("_"):
+            log.debug("skipping plugins start with _ %s", obj)
             continue
 
         # It could be anything at this point
         obj = getattr(module, name)
 
         if not inspect.isclass(obj):
+            log.debug("Plug-in is not a class %s", obj)
             continue
 
         if not issubclass(obj, Plugin):
+            log.debug("Plug-in is not a subclass of Plugin %s", obj)
             continue
 
         if not plugin_is_valid(obj):
-            log.debug("Plug-in invalid: %s", obj)
+            log.warning("Plug-in invalid: %s", obj)
             continue
 
         if not version_is_compatible(obj):
-            log.debug("Plug-in %s not compatible with "
+            log.warning("Plug-in %s not compatible with "
                       "this version (%s) of Pyblish." % (
                           obj, __version__))
             continue
 
         if not host_is_compatible(obj):
-            log.debug("No supported host found for plugin:%s",  obj)
+            log.warning("No supported host found for plugin:%s",  obj)
             continue
 
         plugins.append(obj)
