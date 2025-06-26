@@ -185,6 +185,84 @@ def append_logger(plugin):
     plugin.log.propagate = True
 
 
+class MetaAction(type):
+    """Inject additional metadata into Action"""
+
+    def __init__(cls, *args, **kwargs):
+        cls._id = str(uuid.uuid4())
+        cls.id = lib.classproperty(lambda self: cls._id)
+
+        cls.__error__ = None
+
+        if cls.on not in ("all",
+                          "notProcessed",
+                          "processed",
+                          "failed",
+                          "warning",
+                          "failedOrWarning",
+                          "succeeded"):
+            cls.__error__ = (
+                "Action had an unrecognised value "
+                "for `on`: \"%s\"" % cls.on
+            )
+
+        return super(MetaAction, cls).__init__(*args, **kwargs)
+
+
+@lib.log
+@six.add_metaclass(MetaAction)
+class Action():
+    """User-supplied interactive action
+
+    Subclass this class and append to Plugin.actions in order
+    to provide your users with optional, context sensitive
+    functionality.
+
+    Attributes:
+        label: Optional label to display in place of class name.
+        active: Whether or not to allow execution of action.
+        on: When to enable this action; available options are:
+            - "all": Always available (default).
+            - "notProcessed": The plug-in has not yet been processed
+            - "processed": The plug-in has been processed
+            - "succeeded": The plug-in has been processed, and succeeded
+            - "failed": The plug-in has been processed, and failed
+            - "warning": The plug-in has been processed, and had a warning
+            - "failedOrWarning": The plug-in has been processed, and failed or
+              had a warning
+        icon: Name, relative path or absolute path to image for
+            use as an icon of this action. For relative paths,
+            the current working directory of the host is used and
+            names represent icons available via Awesome Icons.
+            fortawesome.github.io/Font-Awesome/icons/
+
+    """
+
+    __type__ = "action"
+
+    label = None
+    active = True
+    on = "all"
+    icon = None
+
+    def __init__(self, instance=None, context=None):
+        self.instance = instance
+        self.context = context
+
+    def __str__(self):
+        return self.label or type(self).__name__
+
+    def __repr__(self):
+        return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
+
+    def process(self):
+        pass
+
+
+class Separator(Action):
+    __type__ = "separator"
+
+
 class MetaPlugin(type):
     """Rewrite plug-ins written prior to 1.1
 
@@ -202,6 +280,34 @@ class MetaPlugin(type):
         # Compute once
         cls._id = str(uuid.uuid4())
         cls.id = lib.classproperty(lambda self: self._id)
+
+        # bind custom action method into cls.actions
+        cls.actions = []
+
+        for _f_name, _f_obj in inspect.getmembers(cls, predicate=inspect.isfunction):
+
+            new_action_class = None
+            new_action_name = "{}_{}".format(cls.__name__,_f_name)
+
+            # bind repair action
+            if _f_name == "repair":
+                new_action_class = type(new_action_name, (Action,), dict())
+                setattr(new_action_class, "label", "Repair Action")
+                setattr(new_action_class, "icon", "wrench")
+                setattr(new_action_class, "process", _f_obj)
+                setattr(new_action_class, "on", "failed")
+            
+            # scan all custom method except those start with "_"
+            elif not _f_name.startswith("_"):
+                new_action_class = type(new_action_name, (Action,), dict())
+                setattr(new_action_class, "label", new_action_name)
+                setattr(new_action_class, "icon", "wrench")
+                setattr(new_action_class, "process", _f_obj)
+                setattr(new_action_class, "on", "all")
+
+            # append to current new_action_class to new_plugin_cls.actions
+            if new_action_class:
+                cls.actions.append(new_action_class)
 
         return super(MetaPlugin, cls).__init__(*args, **kwargs)
 
@@ -253,6 +359,10 @@ class Plugin():
     actions = []
     id = None  # Defined by metaclass
     match = Intersection  # Default matching algorithm
+
+    def __init__(self, instance=None, context=None):
+        self.instance = instance
+        self.context = context
 
     def __str__(self):
         return self.label or type(self).__name__
@@ -356,80 +466,6 @@ class InstancePlugin(Plugin):
         """
 
 
-class MetaAction(type):
-    """Inject additional metadata into Action"""
-
-    def __init__(cls, *args, **kwargs):
-        cls._id = str(uuid.uuid4())
-        cls.id = lib.classproperty(lambda self: cls._id)
-
-        cls.__error__ = None
-
-        if cls.on not in ("all",
-                          "notProcessed",
-                          "processed",
-                          "failed",
-                          "warning",
-                          "failedOrWarning",
-                          "succeeded"):
-            cls.__error__ = (
-                "Action had an unrecognised value "
-                "for `on`: \"%s\"" % cls.on
-            )
-
-        return super(MetaAction, cls).__init__(*args, **kwargs)
-
-
-@lib.log
-@six.add_metaclass(MetaAction)
-class Action():
-    """User-supplied interactive action
-
-    Subclass this class and append to Plugin.actions in order
-    to provide your users with optional, context sensitive
-    functionality.
-
-    Attributes:
-        label: Optional label to display in place of class name.
-        active: Whether or not to allow execution of action.
-        on: When to enable this action; available options are:
-            - "all": Always available (default).
-            - "notProcessed": The plug-in has not yet been processed
-            - "processed": The plug-in has been processed
-            - "succeeded": The plug-in has been processed, and succeeded
-            - "failed": The plug-in has been processed, and failed
-            - "warning": The plug-in has been processed, and had a warning
-            - "failedOrWarning": The plug-in has been processed, and failed or
-              had a warning
-        icon: Name, relative path or absolute path to image for
-            use as an icon of this action. For relative paths,
-            the current working directory of the host is used and
-            names represent icons available via Awesome Icons.
-            fortawesome.github.io/Font-Awesome/icons/
-
-    """
-
-    __type__ = "action"
-
-    label = None
-    active = True
-    on = "all"
-    icon = None
-
-    def __str__(self):
-        return self.label or type(self).__name__
-
-    def __repr__(self):
-        return u"%s.%s(%r)" % (__name__, type(self).__name__, self.__str__())
-
-    def process(self):
-        pass
-
-
-class Separator(Action):
-    __type__ = "separator"
-
-
 def Category(label):
     return type("Category", (Action,), {"label": label,
                                         "__type__": "category"})
@@ -509,7 +545,7 @@ def __explicit_process(plugin, context, instance=None, action=None):
 
     if not action:
         args = (context if issubclass(plugin, ContextPlugin) else instance,)
-        runner = plugin().process
+        runner = plugin(context=context, instance=instance).process
     else:
         actions = dict((a.id, a) for a in plugin.actions)
         assert action in actions, ("%s did not have action: %s. This is a bug"
@@ -576,13 +612,13 @@ def __implicit_process(plugin, context, instance=None, action=None):
     }
 
     if not action:
-        runner = plugin().process
+        runner = plugin(context=context, instance=instance).process
     else:
         actions = dict((a.id, a) for a in plugin.actions)
         assert action in actions, ("%s did not have action: %s. This is a bug"
                                    % (plugin, action))
         action = actions[action]
-        runner = action().process
+        runner = action(context=context, instance=instance).process
 
     records = list()
     handler = lib.MessageHandler(records)
@@ -640,7 +676,7 @@ def repair(plugin, context, instance=None):
         "duration": None
     }
 
-    plugin = plugin()
+    plugin = plugin(context=context, instance=instance)
 
     records = list()
     handler = lib.MessageHandler(records)
