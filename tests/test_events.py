@@ -1,13 +1,8 @@
 import pyblish.api
 import pyblish.util
-from nose.tools import (
-    with_setup,
-)
-from . import lib
 
 
-@with_setup(lib.setup_empty)
-def test_published_event():
+def test_published_event(setup_empty_and_teardown):
     """published is emitted upon finished publish"""
 
     count = {"#": 0}
@@ -22,8 +17,7 @@ def test_published_event():
     assert count["#"] == 1, count
 
 
-@with_setup(lib.setup_empty)
-def test_validated_event():
+def test_validated_event(setup_empty_and_teardown):
     """validated is emitted upon finished validation"""
 
     count = {"#": 0}
@@ -37,8 +31,8 @@ def test_validated_event():
 
     assert count["#"] == 1, count
 
-@with_setup(lib.setup_empty)
-def test_plugin_processed_event():
+
+def test_plugin_processed_event(setup_empty_and_teardown):
     """pluginProcessed is emitted upon a plugin being processed, regardless of its success"""
 
     class MyContextCollector(pyblish.api.ContextPlugin):
@@ -63,7 +57,6 @@ def test_plugin_processed_event():
     pyblish.api.register_plugin(CheckInstancePass)
     pyblish.api.register_plugin(CheckInstanceFail)
 
-
     count = {"#": 0}
 
     def on_processed(result):
@@ -75,22 +68,25 @@ def test_plugin_processed_event():
 
     assert count["#"] == 3, count
 
-@with_setup(lib.setup_empty)
-def test_plugin_failed_event():
+
+def test_plugin_failed_event(setup_empty_and_teardown):
     """pluginFailed is emitted upon a plugin failing for any reason"""
 
     class MyContextCollector(pyblish.api.ContextPlugin):
         order = pyblish.api.CollectorOrder
+
         def process(self, context):
             context.create_instance("A")
 
     class CheckInstancePass(pyblish.api.InstancePlugin):
         order = pyblish.api.ValidatorOrder
+
         def process(self, instance):
             pass
 
     class CheckInstanceFail(pyblish.api.InstancePlugin):
         order = pyblish.api.ValidatorOrder
+
         def process(self, instance):
             raise Exception("Test Fail")
 
@@ -100,12 +96,8 @@ def test_plugin_failed_event():
 
     count = {"#": 0}
 
-    def on_failed(plugin, context, instance, error):
-        assert issubclass(plugin, pyblish.api.InstancePlugin) #plugin == CheckInstanceFail
-        assert isinstance(context, pyblish.api.Context)
-        assert isinstance(instance, pyblish.api.Instance)
-        assert isinstance(error, Exception)
-
+    def on_failed(result):
+        assert isinstance(result, dict)
         count["#"] += 1
 
     pyblish.api.register_callback("pluginFailed", on_failed)

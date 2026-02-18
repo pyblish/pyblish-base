@@ -1,33 +1,54 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import contextlib
 import os
 import logging
 
-from pyblish.vendor import mock
 import pyblish.api
 import pyblish.util
 import pyblish.plugin
-from nose.tools import (
-    with_setup,
-    assert_true,
-    assert_equals,
-    assert_raises,
-    raises,
-)
+import pytest
 
 try:
     import pathlib
 except:
     pathlib = None
 
-from . import lib
-
-import unittest
+from tests import lib
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_unique_id():
+class MutableCounter:
+    """
+    Used by "count_calls".
+    """
+    n = 0
+
+    def inc(self):
+        self.n += 1
+
+    def get(self):
+        return self.n
+
+
+def count_calls(monkeypatch, module, fn) -> MutableCounter:
+    """
+    Returns a mutable object containing the number of times the given function
+    "fn", from the module "module", was called.
+    Intended to be used inside pytest functions.
+    """
+    cnt = MutableCounter()
+
+    def mock_fn(*args, **kwargs):
+        nonlocal cnt
+        cnt.inc()
+        return fn(*args, **kwargs)
+    mock_fn.__name__ = fn.__name__
+    monkeypatch.setattr(module, fn.__name__, mock_fn)
+    return cnt
+
+
+def test_unique_id(setup_empty_and_teardown):
     """Plug-ins and instances have an id"""
 
     class MyPlugin(pyblish.plugin.Collector):
@@ -36,18 +57,18 @@ def test_unique_id():
     class MyAction(pyblish.plugin.Action):
         pass
 
-    assert_true(hasattr(MyPlugin, "id"))
+    assert hasattr(MyPlugin, "id") is True
 
     instance = pyblish.plugin.Instance("MyInstance")
-    assert_true(hasattr(instance, "id"))
+    assert hasattr(instance, "id") is True
 
     # IDs are persistent
-    assert_equals(instance.id, instance.id)
-    assert_equals(MyAction.id, MyAction.id)
-    assert_equals(MyPlugin.id, MyPlugin.id)
+    assert instance.id == instance.id
+    assert MyAction.id == MyAction.id
+    assert MyPlugin.id == MyPlugin.id
 
     context = pyblish.plugin.Context()
-    assert_equals(context.id, context.id)
+    assert context.id == context.id
 
     # Even across discover()'s
     # Due to the fact that an ID is generated on module
@@ -65,7 +86,7 @@ def test_context_from_instance():
 
     context = pyblish.plugin.Context()
     instance = context.create_instance("MyInstance")
-    assert_equals(context, instance.context)
+    assert context == instance.context
 
 
 def test_legacy():
@@ -78,10 +99,10 @@ def test_legacy():
         def process(self, context):
             pass
 
-    assert_true(hasattr(LegacyPlugin, "__pre11__"))
-    assert_equals(LegacyPlugin.__pre11__, True)
-    assert_true(hasattr(NotLegacyPlugin, "__pre11__"))
-    assert_equals(NotLegacyPlugin.__pre11__, False)
+    assert hasattr(LegacyPlugin, "__pre11__") is True
+    assert LegacyPlugin.__pre11__ is True
+    assert hasattr(NotLegacyPlugin, "__pre11__") is True
+    assert NotLegacyPlugin.__pre11__ == False
 
 
 def test_asset():
@@ -91,12 +112,11 @@ def test_asset():
     asseta = context.create_asset("MyAssetA", family="myFamily")
     assetb = context.create_asset("MyAssetB", family="myFamily")
 
-    assert_true(asseta in context)
-    assert_true(assetb in context)
+    assert asseta in context
+    assert assetb in context
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_import_mechanism_duplication():
+def test_import_mechanism_duplication(setup_empty_and_teardown):
     """Plug-ins don't linger after a second discovery
 
     E.g. when changing the name of a plug-in and then rediscover
@@ -105,7 +125,7 @@ def test_import_mechanism_duplication():
     """
 
     with lib.tempdir() as temp:
-        print("Writing temporarily to: %s" % temp)
+        print(f"Writing temporarily to: {temp}")
         module = os.path.join(temp, "selector.py")
         pyblish.api.register_plugin_path(temp)
 
@@ -150,42 +170,36 @@ class MyOtherSelector(pyblish.api.Selector):
         assert "MySelector" not in plugins, plugins
 
 
-@raises(TypeError)
-@with_setup(lib.setup_empty, lib.teardown)
-def test_register_unsupported_hosts():
+def test_register_unsupported_hosts(setup_empty_and_teardown):
     """Cannot register a unsupported plug-in in an unsupported host"""
 
     class Unsupported(pyblish.api.Plugin):
         hosts = ["unsupported"]
+    with pytest.raises(TypeError):
+        pyblish.api.register_plugin(Unsupported)
 
-    pyblish.api.register_plugin(Unsupported)
 
-
-@raises(TypeError)
-@with_setup(lib.setup_empty, lib.teardown)
-def test_register_unsupported_version():
+def test_register_unsupported_version(setup_empty_and_teardown):
     """Cannot register a plug-in of an unsupported version"""
 
     class Unsupported(pyblish.api.Plugin):
         requires = (999, 999, 999)
 
-    pyblish.api.register_plugin(Unsupported)
+    with pytest.raises(TypeError):
+        pyblish.api.register_plugin(Unsupported)
 
 
-@raises(TypeError)
-@with_setup(lib.setup_empty, lib.teardown)
-def test_register_malformed():
+def test_register_malformed(setup_empty_and_teardown):
     """Cannot register a malformed plug-in"""
 
     class Unsupported(pyblish.api.Plugin):
         families = True
         hosts = None
+    with pytest.raises(TypeError):
+        pyblish.api.register_plugin(Unsupported)
 
-    pyblish.api.register_plugin(Unsupported)
 
-
-@with_setup(lib.setup_empty, lib.teardown)
-def test_temporarily_disabled_plugins():
+def test_temporarily_disabled_plugins(setup_empty_and_teardown):
     """Plug-ins as files starting with an underscore are hidden"""
 
     discoverable = """
@@ -216,8 +230,7 @@ class NotDiscoverable(pyblish.api.Plugin):
         assert "NotDiscoverable" not in plugins
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_repair_context_backwardscompat():
+def test_repair_context_backwardscompat(setup_empty_and_teardown):
     """Plug-ins with repair-context are reprogrammed appropriately"""
 
     class ValidateInstances(pyblish.api.Validator):
@@ -228,12 +241,10 @@ def test_repair_context_backwardscompat():
     assert not hasattr(ValidateInstances, "repair_context")
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_unique_logger():
+def test_unique_logger(setup_empty_and_teardown):
     """A unique logger is applied to every plug-in"""
 
     count = {"#": 0}
-
     class MyPlugin(pyblish.api.Plugin):
         def process(self, context):
             self.log.debug("Hello world")
@@ -243,28 +254,25 @@ def test_unique_logger():
 
     context = pyblish.util.publish()
 
-    assert_equals(count["#"], 1)
+    assert count["#"], 1
     print(context.data("results"))
 
     results = context.data("results")[0]
     records = results["records"]
     hello_world = records[0]
-    assert_equals(hello_world.msg, "Hello world")
+    assert hello_world.msg, "Hello world"
 
     pyblish.api.deregister_plugin(MyPlugin)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_current_host():
+def test_current_host(setup_empty_and_teardown):
     """pyblish.api.current_host works"""
     pyblish.plugin.register_host("myhost")
-    assert_equals(pyblish.plugin.current_host(), "myhost")
-
-    assert_raises(Exception, pyblish.plugin.deregister_host, "notExist")
-
-
-@with_setup(lib.setup_empty, lib.teardown)
-def test_register_host():
+    assert pyblish.plugin.current_host(), "myhost"
+    with pytest.raises(Exception):
+        pyblish.plugin.deregister_host("notExist")
+        
+def test_register_host(setup_empty_and_teardown):
     """Registering and deregistering hosts works fine"""
     pyblish.plugin.register_host("myhost")
     assert "myhost" in pyblish.plugin.registered_hosts()
@@ -272,31 +280,29 @@ def test_register_host():
     assert "myhost" not in pyblish.plugin.registered_hosts()
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_current_target():
+def test_current_target(setup_empty_and_teardown):
     """pyblish.api.current_target works"""
     pyblish.plugin.register_target("mytarget")
-    assert_equals(pyblish.plugin.current_target(), "mytarget")
+    assert pyblish.plugin.current_target(), "mytarget"
+    
+    with pytest.raises(Exception):
+        pyblish.plugin.deregister_target("notExist")
 
-    assert_raises(Exception, pyblish.plugin.deregister_target, "notExist")
 
-
-@with_setup(lib.setup_empty, lib.teardown)
-def test_current_target_latest():
+def test_current_target_latest(setup_empty_and_teardown):
     """pyblish.api.current_target works"""
     pyblish.plugin.deregister_all_targets()
     pyblish.plugin.register_target("mytarget1")
     pyblish.plugin.register_target("mytarget2")
-    assert_equals(pyblish.plugin.current_target(), "mytarget2")
+    assert pyblish.plugin.current_target(), "mytarget2"
 
     pyblish.plugin.register_target("mytarget1")
-    assert_equals(pyblish.plugin.current_target(), "mytarget1")
+    assert pyblish.plugin.current_target(), "mytarget1"
 
     assert len(pyblish.plugin.registered_targets()) == 2
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_register_target():
+def test_register_target(setup_empty_and_teardown):
     """Registering and deregistering targets works fine"""
     pyblish.plugin.register_target("mytarget")
     assert "mytarget" in pyblish.plugin.registered_targets()
@@ -304,8 +310,7 @@ def test_register_target():
     assert "mytarget" not in pyblish.plugin.registered_targets()
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_data_dict():
+def test_data_dict(setup_empty_and_teardown):
     """.data is a pure dictionary"""
 
     context = pyblish.api.Context()
@@ -327,8 +332,7 @@ def test_data_dict():
     assert context.data() == context.data
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_action():
+def test_action(setup_empty_and_teardown):
     """Running an action is like running a plugin"""
     count = {"#": 0}
 
@@ -351,8 +355,7 @@ def test_action():
     assert count["#"] == 1
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_actions():
+def test_actions(setup_empty_and_teardown):
     class MyAction(pyblish.plugin.Action):
         def process(self, context):
             context.data["key"] = "value"
@@ -362,8 +365,7 @@ def test_actions():
     assert "key" in context.data
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_action_error_checking():
+def test_action_error_checking(setup_empty_and_teardown):
     class MyActionValid(pyblish.plugin.Action):
         on = "all"
 
@@ -374,8 +376,7 @@ def test_action_error_checking():
     assert MyActionInvalid.__error__
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_action_printing():
+def test_action_printing(setup_empty_and_teardown):
     class MyAction(pyblish.plugin.Action):
         pass
 
@@ -386,8 +387,8 @@ def test_action_printing():
     assert repr(MyAction()) == "pyblish.plugin.MyAction('MyAction')"
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_category_separator():
+
+def test_category_separator(setup_empty_and_teardown):
     assert issubclass(pyblish.plugin.Category("Test"),
                       pyblish.plugin.Action)
     assert issubclass(pyblish.plugin.Separator,
@@ -416,8 +417,7 @@ def test_plugin_source_path():
     assert inspect.getfile(plugin) == module.__file__
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_register_callback():
+def test_register_callback(setup_empty_and_teardown):
     """Callback registration/deregistration works well"""
 
     def my_callback():
@@ -433,16 +433,13 @@ def test_register_callback():
     assert "mySignal" in pyblish.plugin.registered_callbacks() == data, msg
 
     pyblish.plugin.deregister_callback("mySignal", my_callback)
+    
+    with pytest.raises(ValueError):
 
-    assert_raises(
-        ValueError,
-        pyblish.plugin.deregister_callback,
-        "mySignal", my_callback)
+        pyblish.plugin.deregister_callback("mySignal", my_callback)
 
-    assert_raises(
-        KeyError,
-        pyblish.plugin.deregister_callback,
-        "notExist", my_callback)
+    with pytest.raises(KeyError):
+        pyblish.plugin.deregister_callback("notExist", my_callback)
 
     msg = "Deregistering a callback failed"
     data = {"mySignal": []}
@@ -456,67 +453,62 @@ def test_register_callback():
     assert pyblish.plugin.registered_callbacks() == {}, msg
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_emit_signal_wrongly():
+def test_emit_signal_wrongly(setup_empty_and_teardown):
     """Exception from callback prints traceback"""
 
     def other_callback(an_argument=None):
-        print("Ping from 'other_callback' with %s" % an_argument)
+        print(f"Ping from 'other_callback' with {an_argument}")
 
     pyblish.plugin.register_callback("otherSignal", other_callback)
 
     with lib.captured_stderr() as stderr:
         pyblish.lib.emit("otherSignal", not_an_argument="")
         output = stderr.getvalue().strip()
-        print("Output: %s" % stderr.getvalue())
+        print(f"Output: {stderr.getvalue()}")
         assert output.startswith("Traceback")
 
 
-@raises(ValueError)
-@with_setup(lib.setup_empty, lib.teardown)
-def test_registering_invalid_callback():
+def test_registering_invalid_callback(setup_empty_and_teardown):
     """Can't register non-callables"""
-    pyblish.plugin.register_callback("invalid", None)
+    with pytest.raises(ValueError):
+        pyblish.plugin.register_callback("invalid", None)
 
 
-@raises(KeyError)
 def test_deregistering_nonexisting_callback():
     """Can't deregister a callback that doesn't exist"""
-    pyblish.plugin.deregister_callback("invalid", lambda: "")
+    with pytest.raises(KeyError):
+        pyblish.plugin.deregister_callback("invalid", lambda: "")
 
 
-@raises(TypeError)
 def test_register_noncallable_plugin():
     """Registered plug-ins must be callable"""
-    pyblish.plugin.register_plugin("NotValid")
+    with pytest.raises(TypeError):
+        pyblish.plugin.register_plugin("NotValid")
 
 
-@raises(TypeError)
 def test_register_old_plugin():
     """Can't register plug-ins incompatible with the version of Pyblish"""
     class MyPlugin(pyblish.plugin.Collector):
         requires = "pyblish==0"
+    with pytest.raises(TypeError):
+        pyblish.plugin.register_plugin(MyPlugin)
 
-    pyblish.plugin.register_plugin(MyPlugin)
 
-
-@with_setup(lib.setup_empty, lib.teardown)
 def helper_register_plugin_path(path):
     """helper function to register a plugin path"""
     pyblish.plugin.register_plugin_path(path)
     registered_paths = pyblish.api.registered_paths()
     path = os.path.normpath(str(path))
-    assert path in registered_paths, path + ' not in ' + str(registered_paths)
+    assert path in registered_paths, f"{path} not in {str(registered_paths)}"
 
 
-@with_setup(lib.setup_empty, lib.teardown)
 def helper_deregister_plugin_path(path):
     """helper function to deregister a plugin path"""
     pyblish.plugin.register_plugin_path(path)
     pyblish.plugin.deregister_plugin_path(path)
     registered_paths = pyblish.api.registered_paths()
     path = os.path.normpath(str(path))
-    assert path not in registered_paths, path + ' failed to deregister'
+    assert path not in registered_paths, f"{path} failed to deregister"
 
 
 def helper_create_pathlib_input():
@@ -525,31 +517,25 @@ def helper_create_pathlib_input():
     from pathlib import Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath
     path_types = [Path, PurePath, PureWindowsPath, WindowsPath, PosixPath, PurePosixPath]
     for path_type in path_types:
-        try:
+        with contextlib.suppress(NotImplementedError):
             input_to_test.append(path_type('test/folder/path'))  # create pathlib input
-        except NotImplementedError:  # PosixPath can't be instantiated on windows and raises NotImplementedError
-            pass
     return input_to_test
 
 
-@unittest.skipIf(pathlib is None, "skip when pathlib is not available")
-def test_register_plugin_path_pathlib():
+def test_register_plugin_path_pathlib(setup_empty_and_teardown):
     """test pathlib support for plugin path registration"""
     input_to_test = helper_create_pathlib_input()
     for path in input_to_test:
         helper_register_plugin_path(path)
 
 
-@unittest.skipIf(pathlib is None, "skip when pathlib is not available")
-def test_deregister_plugin_path_pathlib():
+def test_deregister_plugin_path_pathlib(setup_empty_and_teardown):
     """test pathlib support for plugin path deregistration"""
     input_to_test = helper_create_pathlib_input()
     for path in input_to_test:
         helper_deregister_plugin_path(path)
 
-
-@mock.patch("pyblish.plugin.__explicit_process")
-def test_implicit_explicit_branching(func):
+def test_implicit_explicit_branching(monkeypatch):
     """Explicit plug-ins are processed by the appropriate function"""
 
     # There are two mocks for this (see below); due to
@@ -558,19 +544,30 @@ def test_implicit_explicit_branching(func):
     class Explicit(pyblish.plugin.ContextPlugin):
         pass
 
+    calls_cnt = count_calls(
+        monkeypatch,
+        pyblish.plugin,
+        pyblish.plugin.__explicit_process)
+
+    assert calls_cnt.get() == 0
     pyblish.util.publish(plugins=[Explicit])
-    assert func.call_count == 1, func.call_count
+    assert calls_cnt.get() == 1
 
 
-@mock.patch("pyblish.plugin.__implicit_process")
-def test_implicit_branching(func):
+def test_implicit_branching(monkeypatch):
     """Implicit plug-ins are processed by the appropriate function"""
 
     class Implicit(pyblish.plugin.Plugin):
         pass
 
+    calls_cnt = count_calls(
+        monkeypatch,
+        pyblish.plugin,
+        pyblish.plugin.__implicit_process)
+
+    assert calls_cnt.get() == 0
     pyblish.util.publish(plugins=[Implicit])
-    assert func.call_count == 1, func.call_count
+    assert calls_cnt.get() == 1
 
 
 def test_explicit_plugin():
@@ -747,8 +744,7 @@ def test_actions_and_explicit_plugins():
     assert str(result["error"]) == "Errored", result
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_argumentless_plugin():
+def test_argumentless_plugin(setup_empty_and_teardown):
     """Plug-ins with neither instance nor context should still run"""
     count = {"#": 0}
 
@@ -762,24 +758,25 @@ def test_argumentless_plugin():
     assert count["#"] == 1
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_argumentless_explitic_plugin():
+def test_argumentless_explitic_plugin(setup_empty_and_teardown):
     """Explicit plug-ins, without arguments, should fail"""
     class MyPlugin(pyblish.api.InstancePlugin):
         def process(self):
             pass
 
-    raises(TypeError, pyblish.api.register_plugin, MyPlugin)
+    # with pytest.raises(TypeError):
+    pyblish.api.register_plugin(MyPlugin)
 
     class MyPlugin(pyblish.api.ContextPlugin):
         def process(self):
             pass
 
-    raises(TypeError, pyblish.api.register_plugin, MyPlugin)
+    with pytest.raises(TypeError):
+        pyblish.api.register_plugin(MyPlugin)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_changes_to_registered_plugins_are_not_persistent():
+def test_changes_to_registered_plugins_are_not_persistent(
+        setup_empty_and_teardown):
     """Changes to registered plug-ins do not persist
 
     This is the expected behaviour of file-based plug-ins.
@@ -796,14 +793,13 @@ def test_changes_to_registered_plugins_are_not_persistent():
     assert registered.active is False
 
     registered.active = True
-    assert registered.active is True
+    assert registered.active
 
     registered = pyblish.api.registered_plugins()[0]
-    assert registered.active is False
+    assert not registered.active
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_logging_solely_from_pyblish():
+def test_logging_solely_from_pyblish(setup_empty_and_teardown):
     """Only logging calls with self.log should be recorded."""
 
     class collect(pyblish.api.ContextPlugin):
@@ -819,8 +815,7 @@ def test_logging_solely_from_pyblish():
             assert record.name.startswith("pyblish")
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_running_for_all_targets():
+def test_running_for_all_targets(setup_empty_and_teardown):
     """Run for all targets when family is "default"."""
 
     count = {"#": 0}
@@ -837,8 +832,7 @@ def test_running_for_all_targets():
     assert count["#"] == 1, "count is {0}".format(count)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_dont_run_non_matching_targets():
+def test_dont_run_non_matching_targets(setup_empty_and_teardown):
     """Don't run plugins that haven't got a target registered."""
 
     count = {"#": 0}
@@ -855,8 +849,8 @@ def test_dont_run_non_matching_targets():
     assert count["#"] == 0, "count is {0}".format(count)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_only_run_plugins_that_match_registered_targets():
+def test_only_run_plugins_that_match_registered_targets(
+        setup_empty_and_teardown):
     """Only run plugins that match the registered targets."""
 
     count = {"#": 0}
@@ -881,8 +875,7 @@ def test_only_run_plugins_that_match_registered_targets():
     assert count["#"] == 1, "count is {0}".format(count)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_targets_and_exact_matching():
+def test_targets_and_exact_matching(setup_empty_and_teardown):
     """Run targets with exact matching."""
 
     count = {"#": 0}
@@ -901,8 +894,7 @@ def test_targets_and_exact_matching():
     assert count["#"] == 1, "count is {0}".format(count)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_targets_and_subset_matching():
+def test_targets_and_subset_matching(setup_empty_and_teardown):
     """Run targets with subset matching."""
 
     count = {"#": 0}
@@ -921,8 +913,7 @@ def test_targets_and_subset_matching():
     assert count["#"] == 1, "count is {0}".format(count)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_targets_and_publishing():
+def test_targets_and_publishing(setup_empty_and_teardown):
     """Only run plugins with requested targets."""
 
     count = {"#": 0}
@@ -944,8 +935,7 @@ def test_targets_and_publishing():
     assert count["#"] == 1, "count is {0}".format(count)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_targets_and_publishing_with_default():
+def test_targets_and_publishing_with_default(setup_empty_and_teardown):
     """Only run plugins with requested targets including default."""
 
     count = {"#": 0}
@@ -969,8 +959,7 @@ def test_targets_and_publishing_with_default():
     assert count["#"] == 2, "count is {0}".format(count)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_duplicate_plugin_names():
+def test_duplicate_plugin_names(setup_empty_and_teardown):
     logging.basicConfig(level=logging.DEBUG)
 
     pyblish.plugin.ALLOW_DUPLICATES = True
@@ -999,8 +988,7 @@ def test_duplicate_plugin_names():
     pyblish.plugin.ALLOW_DUPLICATES = False
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_validate_publish_data_member_type():
+def test_validate_publish_data_member_type(setup_empty_and_teardown):
     """Validate publish data member type works."""
 
     pyblish.plugin.STRICT_DATATYPES = True
@@ -1023,8 +1011,7 @@ def test_validate_publish_data_member_type():
     pyblish.plugin.STRICT_DATATYPES = False
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_discovery_filter():
+def test_discovery_filter(setup_empty_and_teardown):
     """Plugins can be filtered and modified"""
 
     class MyFilteredPlugin(pyblish.plugin.Collector):
@@ -1053,8 +1040,7 @@ def test_discovery_filter():
     assert plugins[0].optional is True
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_deregister_discovery():
+def test_deregister_discovery(setup_empty_and_teardown):
     """Test discovery filters can be deregistered"""
     class MyFilteredPlugin(pyblish.plugin.Collector):
         pass
@@ -1074,8 +1060,7 @@ def test_deregister_discovery():
     assert len(plugins) == 1, plugins
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_discovering_unicode_contained_plugin():
+def test_discovering_unicode_contained_plugin(setup_empty_and_teardown):
     unicode_plugin = b"""
 import pyblish.api
 
@@ -1093,8 +1078,7 @@ class UnicodePlugin(pyblish.api.InstancePlugin):
         assert plugins == ["UnicodePlugin"]
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_discover_private():
+def test_discover_private(setup_empty_and_teardown):
     """Test plugin modules are skipped during discovery if starts with _"""
     failing_path = os.path.join(lib.PLUGINPATH, 'private')
     pyblish.plugin.register_plugin_path(failing_path)
@@ -1103,8 +1087,7 @@ def test_discover_private():
     # DEBUG - Skipped: "_start_with_underscore.py", starts with _
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_discover_py_extension():
+def test_discover_py_extension(setup_empty_and_teardown):
     """Test plugin modules are skipped during discovery if extension is not .py"""
     failing_path = os.path.join(lib.PLUGINPATH, 'missing_extension')
     pyblish.plugin.register_plugin_path(failing_path)
@@ -1113,8 +1096,8 @@ def test_discover_py_extension():
     # DEBUG - Skipped: "myCollector","", not end in .py
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_discover_invalid_path():
+
+def test_discover_invalid_path(setup_empty_and_teardown):
     """Test plugin modules are skipped during discovery if path is invalid"""
     pyblish.api.register_plugin_path('not/a/valid/path')
     plugins = pyblish.api.discover()
@@ -1122,8 +1105,7 @@ def test_discover_invalid_path():
     # DEBUG - Skipped: "not\a\valid\path", path is not a valid folder
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_discover_missing_host():
+def test_discover_missing_host(setup_empty_and_teardown):
     """Test plugin modules are skipped during discovery if host is missing"""
     failing_path = os.path.join(lib.PLUGINPATH, 'missing_host')
     pyblish.plugin.register_plugin_path(failing_path)

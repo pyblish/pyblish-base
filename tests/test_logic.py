@@ -1,15 +1,7 @@
 import os
 import contextlib
 
-# Local library
-from . import lib
-
 from pyblish import api, logic, plugin, util
-
-from nose.tools import (
-    with_setup,
-    assert_equals,
-)
 
 
 @contextlib.contextmanager
@@ -21,8 +13,7 @@ def no_guis():
     yield
 
 
-@with_setup(lib.setup, lib.teardown)
-def test_iterator():
+def test_iterator(setup_and_teardown):
     """Iterator skips inactive plug-ins and instances"""
 
     count = {"#": 0}
@@ -108,7 +99,7 @@ def test_iterator_with_explicit_targets():
     assert count["#"] == 101, count
 
 
-def test_register_gui():
+def test_register_gui(setup_and_teardown):
     """Registering at run-time takes precedence over those from environment"""
 
     with no_guis():
@@ -126,8 +117,7 @@ def test_register_gui():
         assert logic.registered_guis() == ["first", "second", "third"]
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_subset_match():
+def test_subset_match(setup_empty_and_teardown):
     """Plugin.match = api.Subset works as expected"""
 
     count = {"#": 0}
@@ -148,11 +138,10 @@ def test_subset_match():
 
     util.publish(context, plugins=[MyPlugin])
 
-    assert_equals(count["#"], 2)
+    assert count["#"] == 2
 
     instances = logic.instances_by_plugin(context, MyPlugin)
-    assert_equals(list(i.name for i in instances),
-                  ["included_1", "included_2"])
+    assert list(i.name for i in instances) == ["included_1", "included_2"]
 
 
 def test_subset_exact():
@@ -174,21 +163,14 @@ def test_subset_exact():
     context.create_instance("not_included_3", families=["a", "b", "c"])
     instance = context.create_instance("included_1", families=["a", "b"])
 
-    # Discard the solo-family member, which defaults to `default`.
-    #
-    # When using multiple families, it is common not to bother modifying
-    # `family`, and in the future this member needn't be there at all and
-    # may/should be removed. But till then, for complete clarity, it might
-    # be worth removing this explicitly during the creation of instances
-    # if instead choosing to use the `families` key.
     instance.data.pop("family")
 
     util.publish(context, plugins=[MyPlugin])
 
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
     instances = logic.instances_by_plugin(context, MyPlugin)
-    assert_equals(list(i.name for i in instances), ["included_1"])
+    assert list(i.name for i in instances) == ["included_1"]
 
 
 def test_plugins_by_families():
@@ -228,8 +210,7 @@ def test_plugins_by_families():
         [ClassD, ClassE, ClassF], ["a", "b", "c"]) == [ClassD, ClassE]
 
 
-@with_setup(lib.setup_empty, lib.teardown)
-def test_extracted_traceback_contains_correct_backtrace():
+def test_extracted_traceback_contains_correct_backtrace(setup_empty_and_teardown):
     api.register_plugin_path(os.path.dirname(__file__))
 
     context = api.Context()

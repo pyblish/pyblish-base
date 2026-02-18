@@ -1,16 +1,11 @@
-
 # Standard library
 import os
 
 # Local library
+import pytest
+import pyblish.api
 import pyblish.lib
 import pyblish.plugin
-
-from . import lib
-from nose.tools import (
-    with_setup,
-    raises
-)
 
 
 package_path = pyblish.lib.main_package_path()
@@ -20,8 +15,7 @@ pyblish.plugin.deregister_all_paths()
 pyblish.plugin.register_plugin_path(plugin_path)
 
 
-@with_setup(lib.setup, lib.teardown)
-def test_data():
+def test_data(setup_and_teardown):
     """The data() interface works"""
 
     ctx = pyblish.plugin.Context()
@@ -40,16 +34,14 @@ def test_data():
     assert ctx.has_data(key=key) is False
 
 
-@with_setup(lib.setup, lib.teardown)
-def test_add_remove_instances():
+def test_add_remove_instances(setup_and_teardown):
     """Adding instances to context works"""
     ctx = pyblish.plugin.Context()
     inst = pyblish.plugin.Instance(name='Test', parent=ctx)
     ctx.remove(inst)
 
 
-@with_setup(lib.setup, lib.teardown)
-def test_instance_equality():
+def test_instance_equality(setup_and_teardown):
     """Instance equality works"""
     inst1 = pyblish.plugin.Instance('Test1')
     inst2 = pyblish.plugin.Instance('Test2')
@@ -90,23 +82,25 @@ def test_add_to_context():
     context.remove(instance)
 
 
-@raises(KeyError)
 def test_context_getitem_nonexisting():
     """Getting a nonexisting item from Context throws a KeyError"""
 
     context = pyblish.api.Context()
     context.create_instance("MyInstance")
     assert context.get("NotExist") is None
-    context["NotExist"]
+
+    with pytest.raises(KeyError):
+        context["NotExist"]
 
 
-@raises(IndexError)
 def test_context_getitem_outofrange():
     """Getting a item out of range throws an IndexError"""
 
     context = pyblish.api.Context()
     context.create_instance("MyInstance")
-    context[10000]
+
+    with pytest.raises(IndexError):
+        context[10000]
 
 
 def test_context_getitem_validrange():
