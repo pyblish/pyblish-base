@@ -4,7 +4,7 @@ version = "1.8.12"
 description = "Plug-in driven automation framework for content"
 authors = ["Abstract Factory and Contributors"]
 
-requires = ['maya']
+requires = []
 
 build_system = "cmake"
 
