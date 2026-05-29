@@ -362,26 +362,59 @@ def Iterator(plugins, context, state=None, targets=None):
 
     plugins = plugins_by_targets(plugins, targets)
 
-    for plugin in plugins:
+    i = 0
+    n = len(plugins)
+
+    while i < n:
+        plugin = plugins[i]
+
         if not plugin.active:
             log.debug("%s was inactive, skipping.." % plugin)
+            i += 1
             continue
 
-        state["nextOrder"] = plugin.order
+        if not plugin.__instanceEnabled__:
+            state["nextOrder"] = plugin.order
 
-        message = test(**state)
-        if message:
-            log.error("Stopped due to %s" % message)
-            return
+            message = test(**state)
+            if message:
+                log.error("Stopped due to %s" % message)
+                return
 
-        instances = instances_by_plugin(context, plugin)
-        if plugin.__instanceEnabled__:
-            for instance in instances:
+            yield plugin, None
+            i += 1
+            continue
+
+        # Consecutive instance plug-ins: instance-major (all plug-ins for instance
+        # I1, then for I2, …) while preserving global plug-in list order within
+        # each instance. Context plug-ins stay in their ordered slots between batches.
+        batch = []
+        while i < n and plugins[i].__instanceEnabled__:
+            batch.append(plugins[i])
+            i += 1
+
+        tested_in_batch = set()
+
+        for instance in context:
+            for p in batch:
+                if not p.active:
+                    continue
+
+                if not instances_by_plugin([instance], p):
+                    continue
+
                 if instance.data.get("publish") is False:
                     log.debug("%s was inactive, skipping.." % instance)
                     continue
 
-                yield plugin, instance
+                if p.id not in tested_in_batch:
+                    state["nextOrder"] = p.order
 
-        else:
-            yield plugin, None
+                    message = test(**state)
+                    if message:
+                        log.error("Stopped due to %s" % message)
+                        return
+
+                    tested_in_batch.add(p.id)
+
+                yield p, instance
