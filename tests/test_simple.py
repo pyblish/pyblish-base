@@ -2,15 +2,16 @@ import pyblish.api
 import pyblish.logic
 import pyblish.plugin
 
-from nose.tools import (
-    assert_equals,
-    with_setup
+from nose2.tools.decorators import (
+    with_setup,
+    with_teardown
 )
 
 from . import lib
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_simple_discover():
     """Simple plug-ins works well with discover()"""
 
@@ -31,14 +32,14 @@ def test_simple_discover():
     pyblish.api.register_plugin(SimplePlugin)
     pyblish.api.register_plugin(SimplePlugin2)
 
-    assert_equals(
-        list(p.id for p in pyblish.api.discover()),
+    assert (
+        list(p.id for p in pyblish.api.discover()) ==
         list(p.id for p in [SimplePlugin, SimplePlugin2])
     )
 
     pyblish.util.publish()
 
-    assert_equals(count["#"], 2)
+    assert count["#"] == 2
 
 
 def test_simple_manual():
@@ -54,7 +55,7 @@ def test_simple_manual():
 
     pyblish.util.publish(plugins=[SimplePlugin])
 
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
 
 def test_simple_instance():
@@ -100,7 +101,7 @@ def test_simple_instance():
                                   SimpleValidator,
                                   SimpleValidatorForB])
 
-    assert_equals(count["#"], 121)
+    assert count["#"] == 121
 
 
 def test_simple_order():
@@ -138,4 +139,4 @@ def test_simple_order():
             context=context):
         print(result)
 
-    assert_equals(order, [1, 2, 3, 4])
+    assert order == [1, 2, 3, 4]

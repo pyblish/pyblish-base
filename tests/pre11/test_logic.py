@@ -1,3 +1,4 @@
+from unittest import mock
 
 from . import lib
 
@@ -5,14 +6,9 @@ import pyblish.util
 import pyblish.plugin
 import pyblish.logic
 
-from pyblish.vendor import mock
-from nose.tools import (
+from nose2.tools.decorators import (
     with_setup,
-    assert_true,
-    assert_false,
-    assert_equal,
-    assert_equals,
-    assert_not_equals
+    with_teardown
 )
 from .lib import (
     teardown, FAMILY, HOST, setup_failing, setup_full,
@@ -20,7 +16,8 @@ from .lib import (
 
 
 @mock.patch('pyblish.util.log')
-@with_setup(setup_full, teardown)
+@with_setup(setup_full)
+@with_teardown(teardown)
 def test_publish_all(_):
     """publish() calls upon each convenience function"""
     plugins = pyblish.plugin.discover()
@@ -31,7 +28,7 @@ def test_publish_all(_):
     assert "ExtractInstances" in [p.__name__ for p in plugins]
 
     context = pyblish.util.publish_all()
-    assert_equals(len(context), 1)
+    assert len(context) == 1
 
     for instance in context:
         assert instance.data('selected') is True
@@ -40,11 +37,12 @@ def test_publish_all(_):
         assert instance.data('conformed') is True
 
 
-@with_setup(setup_full, teardown)
+@with_setup(setup_full)
+@with_teardown(teardown)
 def test_publish_all_no_context():
     """Not passing a context is fine"""
     context = pyblish.util.publish_all()
-    assert_equals(len(context), 1)
+    assert len(context) == 1
 
     for instance in context:
         assert instance.data('selected') is True
@@ -54,12 +52,13 @@ def test_publish_all_no_context():
 
 
 @mock.patch('pyblish.util.log')
-@with_setup(setup_full, teardown)
+@with_setup(setup_full)
+@with_teardown(teardown)
 def test_validate_all(_):
     """validate_all() calls upon two of the convenience functions"""
     context = pyblish.plugin.Context()
     pyblish.util.validate_all(context=context)
-    assert_equals(len(context), 1)
+    assert len(context) == 1
 
     for instance in context:
         assert instance.data('selected') is True
@@ -69,12 +68,13 @@ def test_validate_all(_):
 
 
 @mock.patch('pyblish.util.log')
-@with_setup(setup_full, teardown)
+@with_setup(setup_full)
+@with_teardown(teardown)
 def test_convenience(_):
     """Convenience function work"""
     context = pyblish.plugin.Context()
     pyblish.util.select(context=context)
-    assert_equals(len(context), 1)
+    assert len(context) == 1
 
     for instance in context:
         assert instance.data('selected') is True
@@ -108,7 +108,8 @@ def test_convenience(_):
 
 
 @mock.patch('pyblish.util.log')
-@with_setup(setup_failing, teardown)
+@with_setup(setup_failing)
+@with_teardown(teardown)
 def test_main_safe_processes_fail(_):
     """Failing selection, extraction or conform merely logs a message"""
     context = pyblish.plugin.Context()
@@ -123,7 +124,8 @@ def test_main_safe_processes_fail(_):
     pyblish.util.conform(context)
 
 
-@with_setup(setup_empty, teardown)
+@with_setup(setup_empty)
+@with_teardown(teardown)
 def test_process():
     """processing works well"""
 
@@ -153,7 +155,8 @@ def test_process():
     assert _disk[0] == "secret"
 
 
-@with_setup(setup_wildcard, teardown)
+@with_setup(setup_wildcard)
+@with_teardown(teardown)
 def test_wildcard_plugins():
     """Wildcard plugins process instances without family"""
     context = pyblish.plugin.Context()
@@ -165,8 +168,8 @@ def test_wildcard_plugins():
         context=context)
 
     result = next(iterator)
-    assert_equals(result["plugin"], plugin)
-    assert_equals(next(iterator, None), None)
+    assert result["plugin"] == plugin
+    assert next(iterator, None) == None
 
     plugin = [p for p in pyblish.plugin.discover()
               if issubclass(p, pyblish.api.Validator)][0]
@@ -177,10 +180,11 @@ def test_wildcard_plugins():
         context=context)
 
     result = next(iterator)
-    assert_true(isinstance(result["error"], Exception))
+    assert isinstance(result["error"], Exception)
 
 
-@with_setup(setup_empty, teardown)
+@with_setup(setup_empty)
+@with_teardown(teardown)
 def test_inmemory_svec():
     """SVEC works fine with in-memory plug-ins"""
 
@@ -199,7 +203,7 @@ def test_inmemory_svec():
 
     class ValidateInstances(pyblish.plugin.Validator):
         def process_instance(self, instance):
-            assert_equals(instance.data("family"), "MyFamily")
+            assert instance.data("family") == "MyFamily"
 
     class ExtractInstances(pyblish.plugin.Extractor):
         def process_instance(self, instance):
@@ -222,9 +226,9 @@ def test_inmemory_svec():
 
     pyblish.util.publish()
 
-    assert_equals(_disk[0].value, "MyValue")
-    assert_equals(_server["assets"][0].value, "MyValue")
-    assert_equals(_server["assets"][0].metadata, "123")
+    assert _disk[0].value == "MyValue"
+    assert _server["assets"][0].value == "MyValue"
+    assert _server["assets"][0].metadata == "123"
 
 
 def test_failing_context_processing():
@@ -249,10 +253,11 @@ def test_failing_context_processing():
     pyblish.plugin.register_plugin(MyPlugin)
     pyblish.util.publish(context=context)
 
-    assert_true(value["a"])
+    assert value["a"]
 
 
-@with_setup(setup_failing, teardown)
+@with_setup(setup_failing)
+@with_teardown(teardown)
 def test_process_context_error():
     """Processing context raises an exception"""
 
@@ -272,11 +277,12 @@ def test_process_context_error():
         context=context)
 
     result = next(iterator)
-    assert_equals(result["plugin"], SelectInstancesError)
-    assert_true(isinstance(result["error"], Exception))
+    assert result["plugin"] == SelectInstancesError
+    assert isinstance(result["error"], Exception)
 
 
-@with_setup(setup_failing, teardown)
+@with_setup(setup_failing)
+@with_teardown(teardown)
 def test_extraction_failure():
     """Extraction fails ok
 
@@ -305,10 +311,11 @@ def test_extraction_failure():
             context=context):
 
         if result["error"] is not None:
-            assert_true(isinstance(result["error"], Exception))
+            assert isinstance(result["error"], Exception)
 
 
-@with_setup(setup, teardown)
+@with_setup(setup)
+@with_teardown(teardown)
 def test_selection_appends():
     """Selectors append, rather than replace existing instances"""
 
@@ -326,7 +333,7 @@ def test_selection_appends():
             plugins=pyblish.plugin.discover(
                 'selectors', regex='SelectInstances$'),
             context=context):
-        assert_equals(result.get("error"), None)
+        assert result.get("error") == None
 
     pyblish.util.publish(context)
 
@@ -335,7 +342,8 @@ def test_selection_appends():
     assert len(context) > 1
 
 
-@with_setup(setup_empty, teardown)
+@with_setup(setup_empty)
+@with_teardown(teardown)
 def test_interface():
     """The interface of plugins works fine"""
     context = pyblish.plugin.Context()
@@ -360,7 +368,7 @@ def test_interface():
         if isinstance(result, Exception):
             raise result
 
-        assert_equals(result.get("error"), None)
+        assert result.get("error") == None
 
 
 def test_failing_context():
@@ -377,9 +385,9 @@ def test_failing_context():
             plugins=[SelectFailure],
             context=context):
         error = result.get("error")
-        assert_not_equals(error, None)
-        assert_true(hasattr(error, "traceback"))
-        assert_true(error.traceback is not None)
+        assert error is not None
+        assert hasattr(error, "traceback")
+        assert error.traceback is not None
 
 
 def test_failing_validator():
@@ -410,11 +418,12 @@ def test_failing_validator():
         context=context)
     result = next(iterator)
     error = result["error"]
-    assert_equal(str(error), "instance failed")
-    assert_true(hasattr(error, "traceback"))
+    assert str(error) == "instance failed"
+    assert hasattr(error, "traceback")
 
 
-@with_setup(setup_empty, teardown)
+@with_setup(setup_empty)
+@with_teardown(teardown)
 def test_order():
     """Ordering with util.publish works fine"""
 
@@ -457,7 +466,7 @@ def test_order():
         pyblish.plugin.register_plugin(plugin)
 
     pyblish.util.publish()
-    assert_equal(order["#"], "0123456")
+    assert order["#"] == "0123456"
 
 
 def test_plugins_by_family():
@@ -468,8 +477,8 @@ def test_plugins_by_family():
     Plugin1.families = ["a"]
     Plugin2.families = ["b"]
 
-    assert_equals(pyblish.logic.plugins_by_family(
-                  (Plugin1, Plugin2), family="a"),
+    assert (pyblish.logic.plugins_by_family(
+                  (Plugin1, Plugin2), family="a") ==
                   [Plugin1])
 
 
@@ -481,8 +490,8 @@ def test_plugins_by_host():
     Plugin1.hosts = ["a"]
     Plugin2.hosts = ["b"]
 
-    assert_equals(pyblish.logic.plugins_by_host(
-                  (Plugin1, Plugin2), host="a"),
+    assert (pyblish.logic.plugins_by_host(
+                  (Plugin1, Plugin2), host="a") == 
                   [Plugin1])
 
 
@@ -497,12 +506,13 @@ def test_plugins_by_instance():
     instance = pyblish.plugin.Instance("A")
     instance.set_data("family", "a")
 
-    assert_equals(pyblish.logic.plugins_by_instance(
-                  (Plugin1, Plugin2), instance),
+    assert (pyblish.logic.plugins_by_instance(
+                  (Plugin1, Plugin2), instance) ==
                   [Plugin1])
 
 
-@with_setup(setup, teardown)
+@with_setup(setup)
+@with_teardown(teardown)
 def test_instances_by_plugin():
     """Returns instances compatible with plugin"""
     ctx = pyblish.plugin.Context()
@@ -534,7 +544,8 @@ def test_instances_by_plugin():
     assert compatible[0].name == 'TestInstance1'
 
 
-@with_setup(setup_empty, teardown)
+@with_setup(setup_empty)
+@with_teardown(teardown)
 def test_repair():
     """Repairing works well"""
 
@@ -565,7 +576,7 @@ def test_repair():
 
         results.append(result)
 
-    assert_true(_data["broken"])
+    assert _data["broken"]
 
     repair = list()
     for result in results:
@@ -578,10 +589,11 @@ def test_repair():
             context=context):
         print(result)
 
-    assert_false(_data["broken"])
+    assert not _data["broken"]
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_context_once():
     """Context is only processed once"""
 
@@ -604,10 +616,11 @@ def test_context_once():
             context=context):
         pass
 
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_instance_every():
     """Plug-ins process each instance"""
 
@@ -630,4 +643,4 @@ def test_instance_every():
             context=context):
         pass
 
-    assert_equals(count["#"], 3)
+    assert count["#"] == 3

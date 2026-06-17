@@ -5,15 +5,14 @@ from .. import lib
 import pyblish.plugin
 import pyblish.logic
 
-from nose.tools import (
-    assert_equals,
-    assert_true,
-    assert_false,
-    with_setup
+from nose2.tools.decorators import (
+    with_setup,
+    with_teardown
 )
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_process_callables():
     """logic.process can take either data or callables"""
     count = {"#": 0}
@@ -48,7 +47,7 @@ def test_process_callables():
         if isinstance(result, Exception):
             assert False  # This would be a bug
 
-    assert_equals(count["#"], 11)
+    assert count["#"] == 11
 
     context = pyblish.plugin.Context()
 
@@ -68,10 +67,11 @@ def test_process_callables():
         if isinstance(result, Exception):
             assert False  # This would be a bug
 
-    assert_equals(count["#"], 11)
+    assert count["#"] == 11
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_repair():
     """Repairing with DI works well"""
 
@@ -103,7 +103,7 @@ def test_repair():
 
         results.append(result)
 
-    assert_true(_data["broken"])
+    assert _data["broken"]
 
     repair = list()
     for result in results:
@@ -116,10 +116,11 @@ def test_repair():
             context=context):
         print(result)
 
-    assert_false(_data["broken"])
+    assert not _data["broken"]
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_context_once():
     """Context is only processed once, with DI"""
 
@@ -138,10 +139,11 @@ def test_context_once():
             count["#"] += 1
 
     pyblish.util.publish(plugins=[SelectMany, ValidateContext])
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_incompatible_context():
     """Context is processed regardless of families"""
 
@@ -158,7 +160,7 @@ def test_incompatible_context():
             count["#"] += 1
 
     pyblish.util.publish(plugins=[SelectMany, ValidateContext])
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
     count["#"] = 0
 
@@ -171,7 +173,7 @@ def test_incompatible_context():
             count["#"] += 1
 
     pyblish.util.publish(plugins=[SelectMany, ValidateContext])
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
     count["#"] = 0
 
@@ -184,10 +186,11 @@ def test_incompatible_context():
             count["#"] += 1
 
     pyblish.util.publish(plugins=[SelectMany, ValidateContext])
-    assert_equals(count["#"], 0)
+    assert count["#"] == 0
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_custom_test():
     """Registering a custom test works fine"""
 
@@ -208,7 +211,7 @@ def test_custom_test():
 
     pyblish.api.register_test(custom_test)
     pyblish.util.publish(plugins=[MyValidator, MyExtractor])
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
 
 def test_logic_process():
@@ -242,10 +245,11 @@ def test_logic_process():
     context = pyblish.util.publish(plugins=[SelectInstance])
     assert not isinstance(context.data["results"][0]["error"],
                           pyblish.logic.TestFailed)
-    assert_equals(len(context), 1)
+    assert len(context) == 1
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_active():
     """An inactive plug-in won't be processed by default logic"""
 
@@ -278,10 +282,11 @@ def test_active():
         pyblish.api.register_plugin(plugin)
 
     pyblish.util.publish()
-    assert_equals(count["#"], 201)
+    assert count["#"] == 201
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_failing_selector():
     """Failing Selector should not abort publishing"""
 
@@ -299,10 +304,11 @@ def test_failing_selector():
     pyblish.api.register_plugin(MyExtractor)
 
     pyblish.util.publish()
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_decrementing_order():
     """Decrementing order works fine"""
 
@@ -356,7 +362,7 @@ def test_decrementing_order():
     ]
 
     pyblish.util.publish(plugins=plugins)
-    assert_equals(count["#"], 111.1)
+    assert count["#"] == 111.1
 
 
 def test_test():

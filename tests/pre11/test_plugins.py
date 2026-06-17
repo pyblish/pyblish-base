@@ -10,17 +10,17 @@ from .lib import (
     setup,
     teardown,
     setup_duplicate,
-    setup_empty
+    setup_empty,
 )
-from nose.tools import (
+from ..lib import unittest_helper
+
+from nose2.tools.decorators import (
     with_setup,
-    assert_equals,
-    assert_true,
-    assert_raises
+    with_teardown
 )
 
-
-@with_setup(setup, teardown)
+@with_setup(setup)
+@with_teardown(teardown)
 def test_print_plugin():
     """Printing plugin returns name of class"""
     plugins = pyblish.plugin.discover('validators')
@@ -29,7 +29,8 @@ def test_print_plugin():
     assert plugin.__name__ == str(plugin())
 
 
-@with_setup(setup, teardown)
+@with_setup(setup)
+@with_teardown(teardown)
 def test_name_override():
     """Instances return either a data-member of name or its native name"""
     inst = pyblish.plugin.Instance(name='my_name')
@@ -39,11 +40,12 @@ def test_name_override():
     assert inst.data('name') == 'overridden_name'
 
 
-@with_setup(setup_duplicate, teardown)
+@with_setup(setup_duplicate)
+@with_teardown(teardown)
 def test_no_duplicate_plugins():
     """Discovering plugins results in a single occurence of each plugin"""
     plugin_paths = pyblish.plugin.plugin_paths()
-    assert_equals(len(plugin_paths), 2)
+    assert len(plugin_paths) == 2
 
     plugins = pyblish.plugin.discover(type='selectors')
 
@@ -51,7 +53,7 @@ def test_no_duplicate_plugins():
     # hidden under the duplicate module name. As a result,
     # only one of them is returned. A log message is printed
     # to alert the user.
-    assert_equals(len(plugins), 1)
+    assert len(plugins) == 1
 
 
 def test_entities_prints_nicely():
@@ -118,7 +120,9 @@ def test_instances_by_plugin_invariant():
     test()
 
     compatible.reverse()
-    assert_raises(AssertionError, test)
+
+    with unittest_helper().assertRaises(AssertionError):
+        test()
 
 
 def test_plugins_by_family_wildcard():
@@ -134,7 +138,8 @@ def test_plugins_by_family_wildcard():
         [Plugin1, Plugin2], "myFamily")
 
 
-@with_setup(setup, teardown)
+@with_setup(setup)
+@with_teardown(teardown)
 def test_plugins_sorted():
     """Plug-ins are returned sorted by their `order` attribute"""
     plugins = pyblish.api.discover()
@@ -143,13 +148,14 @@ def test_plugins_sorted():
 
     order = 0
     for plugin in plugins:
-        assert_true(plugin.order >= order)
+        assert plugin.order >= order
         order = plugin.order
 
     assert order > 0, plugins
 
 
-@with_setup(setup_empty, teardown)
+@with_setup(setup_empty)
+@with_teardown(teardown)
 def test_inmemory_plugins():
     """In-memory plug-ins works fine"""
 
@@ -167,12 +173,13 @@ def test_inmemory_plugins():
             func=pyblish.plugin.process,
             plugins=pyblish.api.discover,
             context=context):
-        assert_true(result["plugin"].id == InMemoryPlugin.id)
+        assert result["plugin"].id == InMemoryPlugin.id
 
     assert context.data("workingFine") is True
 
 
-@with_setup(setup_empty, teardown)
+@with_setup(setup_empty)
+@with_teardown(teardown)
 def test_inmemory_query():
     """Asking for registered plug-ins works well"""
 
@@ -181,7 +188,8 @@ def test_inmemory_query():
     assert pyblish.api.registered_plugins()[0].id == InMemoryPlugin.id
 
 
-@with_setup(setup_empty, teardown)
+@with_setup(setup_empty)
+@with_teardown(teardown)
 def test_plugin_families_defaults():
     """Plug-ins without specific families default to wildcard"""
 
@@ -192,12 +200,12 @@ def test_plugin_families_defaults():
     instance = pyblish.api.Instance("MyInstance")
     instance.set_data("family", "SomeFamily")
 
-    assert_equals(pyblish.api.instances_by_plugin(
-        [instance], SelectInstances)[0], instance)
+    assert (pyblish.api.instances_by_plugin(
+        [instance], SelectInstances)[0] == instance)
 
     class ValidateInstances(pyblish.api.Validator):
         def process(self, instance):
             pass
 
-    assert_equals(pyblish.api.instances_by_plugin(
-        [instance], ValidateInstances)[0], instance)
+    assert (pyblish.api.instances_by_plugin(
+        [instance], ValidateInstances)[0] == instance)

@@ -3,10 +3,19 @@ import os
 from . import lib
 
 from pyblish import api, util
-from nose.tools import (
-    with_setup
+from nose2.tools.decorators import (
+    with_setup,
+    with_teardown
 )
 
+def setup():
+    lib.setup()
+    api.deregister_all_targets()
+
+
+def teardown():
+    api.deregister_all_targets()
+    lib.teardown()
 
 def test_convenience_plugins_argument():
     """util._convenience() `plugins` argument works
@@ -37,7 +46,8 @@ def test_convenience_plugins_argument():
     assert count["#"] == 10, count
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_convenience_functions():
     """convenience functions works as expected"""
 
@@ -108,7 +118,8 @@ def test_convenience_functions():
     assert count["#"] == 11111
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_multiple_instance_util_publish():
     """Multiple instances work with util.publish()
 
@@ -142,7 +153,8 @@ def test_multiple_instance_util_publish():
     assert count["#"] == 3
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_modify_context_during_CVEI():
     """Custom logic made possible via convenience members"""
 
@@ -191,7 +203,8 @@ def test_modify_context_during_CVEI():
     assert count["#"] == 11, count
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_environment_host_registration():
     """Host registration from PYBLISH_HOSTS works"""
 
@@ -235,7 +248,8 @@ def test_environment_host_registration():
     assert count["#"] == 11, count
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_publishing_explicit_targets():
     """Publishing with explicit targets works"""
 
@@ -254,6 +268,8 @@ def test_publishing_explicit_targets():
     assert count["#"] == 1, count
 
 
+@with_setup(setup)
+@with_teardown(teardown)
 def test_publishing_explicit_targets_with_global():
     """Publishing with explicit and globally registered targets works"""
 
@@ -284,7 +300,8 @@ def test_publishing_explicit_targets_with_global():
     api.deregister_all_targets()
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(setup)
+@with_teardown(teardown)
 def test_per_session_targets():
     """Register targets per session works"""
 
@@ -294,7 +311,8 @@ def test_per_session_targets():
     assert registered_targets == [], registered_targets
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_publishing_collectors():
     """Running collectors with targets works"""
 
@@ -314,7 +332,8 @@ def test_publishing_collectors():
     assert count["#"] == 1, count
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_publishing_validators():
     """Running validators with targets works"""
 
@@ -334,7 +353,8 @@ def test_publishing_validators():
     assert count["#"] == 1, count
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_publishing_extractors():
     """Running extractors with targets works"""
 
@@ -354,7 +374,8 @@ def test_publishing_extractors():
     assert count["#"] == 1, count
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_publishing_integrators():
     """Running integrators with targets works"""
 
@@ -374,7 +395,8 @@ def test_publishing_integrators():
     assert count["#"] == 1, count
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_progress_existence():
     """Progress data member exists"""
 
@@ -388,7 +410,8 @@ def test_progress_existence():
     assert "progress" in result, result
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_publish_iter_increment_progress():
     """Publish iteration increments progress"""
 

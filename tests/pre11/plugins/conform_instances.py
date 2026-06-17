@@ -1,7 +1,8 @@
 """Mockup of potential integration with 3rd-party task managment suite"""
 
+from unittest import mock
+
 import pyblish.api
-from pyblish.vendor import mock
 
 api = mock.MagicMock()
 

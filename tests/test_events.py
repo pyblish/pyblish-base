@@ -1,12 +1,14 @@
 import pyblish.api
 import pyblish.util
-from nose.tools import (
+from nose2.tools.decorators import (
     with_setup,
+    with_teardown
 )
 from . import lib
 
 
 @with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_published_event():
     """published is emitted upon finished publish"""
 
@@ -23,6 +25,7 @@ def test_published_event():
 
 
 @with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_validated_event():
     """validated is emitted upon finished validation"""
 
@@ -38,6 +41,7 @@ def test_validated_event():
     assert count["#"] == 1, count
 
 @with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_plugin_processed_event():
     """pluginProcessed is emitted upon a plugin being processed, regardless of its success"""
 
@@ -76,6 +80,7 @@ def test_plugin_processed_event():
     assert count["#"] == 3, count
 
 @with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_plugin_failed_event():
     """pluginFailed is emitted upon a plugin failing for any reason"""
 

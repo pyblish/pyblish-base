@@ -1,4 +1,5 @@
 import os
+from unittest import mock
 
 import pyblish
 import pyblish.cli
@@ -9,10 +10,10 @@ from pyblish.vendor import six
 from . import lib
 
 from pyblish.vendor.click.testing import CliRunner
-from nose.tools import (
+from nose2.tools.decorators import (
     with_setup,
+    with_teardown
 )
-from pyblish.vendor import mock
 
 
 def ctx():
@@ -84,7 +85,8 @@ def test_plugins_path():
         assert plugin.__name__ in result.output
 
 
-@with_setup(lib.setup_failing_cli, lib.teardown)
+@with_setup(lib.setup_failing_cli)
+@with_teardown(lib.teardown)
 def test_data():
     """Injecting data works"""
 

@@ -4,9 +4,9 @@ import tempfile
 
 import pyblish.api
 import pyblish.plugin
-from nose.tools import (
+from nose2.tools.decorators import (
     with_setup,
-    assert_true,
+    with_teardown
 )
 
 from pyblish.vendor import six
@@ -71,7 +71,8 @@ class BadFamilies2(pyblish.api.Plugin):
     assert [p.__name__ for p in plugins] == ["MyPlugin"], plugins
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_discover_globals():
     """Modules imported in a plug-in are preserved in it's methods"""
 
@@ -101,9 +102,9 @@ class MyPlugin(pyblish.api.Plugin):
     MyPlugin = pyblish.plugin.plugins_from_module(module)[0]
     assert MyPlugin.__name__ == "MyPlugin"
 
-    assert_true(MyPlugin().process(True))
-    assert_true(MyPlugin().module_is_present())
-    assert_true(MyPlugin().local_variable_is_present())
+    assert MyPlugin().process(True)
+    assert MyPlugin().module_is_present()
+    assert MyPlugin().local_variable_is_present()
 
     try:
         tempdir = tempfile.mkdtemp()
@@ -121,12 +122,13 @@ class MyPlugin(pyblish.api.Plugin):
 
     MyPlugin = plugins[0]
 
-    assert_true(MyPlugin().process(True))
-    assert_true(MyPlugin().module_is_present())
-    assert_true(MyPlugin().local_variable_is_present())
+    assert MyPlugin().process(True)
+    assert MyPlugin().module_is_present()
+    assert MyPlugin().local_variable_is_present()
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_multi_families():
     """Instances with multiple families works well"""
 

@@ -7,9 +7,10 @@ import pyblish.lib
 import pyblish.plugin
 
 from . import lib
-from nose.tools import (
+from .lib import raises
+from nose2.tools.decorators import (
     with_setup,
-    raises
+    with_teardown
 )
 
 
@@ -20,7 +21,8 @@ pyblish.plugin.deregister_all_paths()
 pyblish.plugin.register_plugin_path(plugin_path)
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_data():
     """The data() interface works"""
 
@@ -40,7 +42,8 @@ def test_data():
     assert ctx.has_data(key=key) is False
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_add_remove_instances():
     """Adding instances to context works"""
     ctx = pyblish.plugin.Context()
@@ -48,7 +51,8 @@ def test_add_remove_instances():
     ctx.remove(inst)
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_instance_equality():
     """Instance equality works"""
     inst1 = pyblish.plugin.Instance('Test1')

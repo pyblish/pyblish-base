@@ -1,41 +1,33 @@
 environment:
   matrix:
-    - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7.8"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python27-x64"
-      PYTHON_VERSION: "2.7.8"
+    - PYTHON: "C:\\Python310-x64"
+      PYTHON_VERSION: "3.10"
       PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python33"
-      PYTHON_VERSION: "3.3.5"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python33-x64"
-      PYTHON_VERSION: "3.3.5"
+    - PYTHON: "C:\\Python311-x64"
+      PYTHON_VERSION: "3.11"
       PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python34"
-      PYTHON_VERSION: "3.4.1"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python34-x64"
-      PYTHON_VERSION: "3.4.1"
+    - PYTHON: "C:\\Python312-x64"
+      PYTHON_VERSION: "3.12"
       PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python35"
-      PYTHON_VERSION: "3.5.1"
-      PYTHON_ARCH: "32"
+    - PYTHON: "C:\\Python313-x64"
+      PYTHON_VERSION: "3.13"
+      PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python35-x64"
-      PYTHON_VERSION: "3.5.1"
+    - PYTHON: "C:\\Python314-x64"
+      PYTHON_VERSION: "3.14"
       PYTHON_ARCH: "64"
 
 install:
+  - ps: $env:Path = $env:Path -replace '[cC]:\\[pP]ython[0-9]+[a-zA-Z0-9-_.\\]*\;'
   - SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
-  - pip install nose
-  - pip install coverage
+  - powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/0.11.17/install.ps1 | iex"
+  - ps: $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
 
 build_script:
-  - python run_coverage.py
+  - uv run --python %PYTHON_VERSION% --with nose2 --with coverage coverage erase
+  - uv run --python %PYTHON_VERSION% --with nose2 --with coverage coverage run -m nose2 --with-doctest
+  - uv run --python %PYTHON_VERSION% --with nose2 --with coverage coverage report
+  - uv run --python %PYTHON_VERSION% --with nose2 --with coverage coverage html

@@ -6,9 +6,9 @@ from . import lib
 
 from pyblish import api, logic, plugin, util
 
-from nose.tools import (
+from nose2.tools.decorators import (
     with_setup,
-    assert_equals,
+    with_teardown
 )
 
 
@@ -21,7 +21,8 @@ def no_guis():
     yield
 
 
-@with_setup(lib.setup, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_iterator():
     """Iterator skips inactive plug-ins and instances"""
 
@@ -126,7 +127,8 @@ def test_register_gui():
         assert logic.registered_guis() == ["first", "second", "third"]
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_subset_match():
     """Plugin.match = api.Subset works as expected"""
 
@@ -148,11 +150,10 @@ def test_subset_match():
 
     util.publish(context, plugins=[MyPlugin])
 
-    assert_equals(count["#"], 2)
+    assert count["#"] == 2
 
     instances = logic.instances_by_plugin(context, MyPlugin)
-    assert_equals(list(i.name for i in instances),
-                  ["included_1", "included_2"])
+    assert list(i.name for i in instances) == ["included_1", "included_2"]
 
 
 def test_subset_exact():
@@ -185,10 +186,10 @@ def test_subset_exact():
 
     util.publish(context, plugins=[MyPlugin])
 
-    assert_equals(count["#"], 1)
+    assert count["#"] == 1
 
     instances = logic.instances_by_plugin(context, MyPlugin)
-    assert_equals(list(i.name for i in instances), ["included_1"])
+    assert list(i.name for i in instances) == ["included_1"]
 
 
 def test_plugins_by_families():
@@ -228,7 +229,8 @@ def test_plugins_by_families():
         [ClassD, ClassE, ClassF], ["a", "b", "c"]) == [ClassD, ClassE]
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup)
+@with_teardown(lib.teardown)
 def test_extracted_traceback_contains_correct_backtrace():
     api.register_plugin_path(os.path.dirname(__file__))
 

@@ -3,6 +3,7 @@ import sys
 import shutil
 import tempfile
 import contextlib
+from functools import wraps
 
 import pyblish
 import pyblish.cli
@@ -78,3 +79,47 @@ def tempdir():
         yield tempdir
     finally:
         shutil.rmtree(tempdir)
+
+
+def unittest_helper():
+    """Provide unittest.Testcase instance"""
+    import unittest
+
+    class Helper(unittest.TestCase):
+        def runTest(self):
+            pass
+
+    return Helper()
+
+
+# Taken from nosetest: see file nose/tools/nontrivial.py
+def raises(*exceptions):
+    """Test must raise one of expected exceptions to pass.
+    
+    Example use::
+      @raises(TypeError, ValueError)
+      def test_raises_type_error():
+          raise TypeError("This test passes")
+
+      @raises(Exception)
+      def test_that_fails_by_passing():
+          pass
+    """
+    valid = ' or '.join([e.__name__ for e in exceptions])
+
+    def decorate(func):
+        name = func.__name__
+        @wraps(func)
+        def newfunc(*arg, **kw):
+            try:
+                func(*arg, **kw)
+            except exceptions:
+                pass
+            except:
+                raise
+            else:
+                message = "%s() did not raise %s" % (name, valid)
+                raise AssertionError(message)
+
+        return newfunc
+    return decorate

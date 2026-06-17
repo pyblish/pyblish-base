@@ -5,9 +5,9 @@ python:
 - 3.7
 - 3.8
 install:
-- pip install coveralls
+- pip install nose2 coveralls
 script:
-- nosetests -c .noserc
+- nose2 -c nose2.cfg
 - pip install git+git://github.com/pyblish/pyblish-base.git
 after_success:
 - coveralls

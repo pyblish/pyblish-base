@@ -3,16 +3,13 @@
 from .. import lib
 import pyblish.plugin
 import pyblish.logic
-from nose.tools import (
+from nose2.tools.decorators import (
     with_setup,
-    assert_equals,
-    assert_raises,
-    assert_true,
-    assert_false
+    with_teardown
 )
 
-
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_di():
     """Dependency injection works fine"""
 
@@ -53,7 +50,8 @@ def test_di():
     assert "MyInstanceB" in _disk
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_init():
     """__init__ is triggered once per process"""
 
@@ -84,10 +82,11 @@ def test_init():
         plugins=pyblish.api.discover(),
         context=pyblish.api.Context()))
 
-    assert_equals(count["#"], 21)
+    assert count["#"] == 21
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_occurence():
     """Test when and how often plug-ins process"""
 
@@ -150,10 +149,11 @@ def test_occurence():
         plugins=pyblish.api.discover(),
         context=context))
 
-    assert_equals(count["#"], 4)
+    assert count["#"] == 4
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_no_instances():
     """Run .process at least once per plug-in"""
 
@@ -189,7 +189,7 @@ def test_no_instances():
             context=context):
         pass
 
-    assert_equals(count["#"], 2)
+    assert count["#"] == 2
 
 
 def test_unavailable_service():
@@ -201,7 +201,8 @@ def test_unavailable_service():
         return True
 
     provider.inject("arg1", lambda: True)
-    assert_raises(KeyError, provider.invoke, func)
+    with lib.unittest_helper().assertRaises(KeyError):
+        provider.invoke(func)
 
 
 def test_unavailable_service_logic():
@@ -216,10 +217,11 @@ def test_unavailable_service_logic():
             func=pyblish.plugin.process,
             plugins=[SelectUnavailable],
             context=pyblish.api.Context()):
-        assert_true(isinstance(result["error"], KeyError))
+        assert isinstance(result["error"], KeyError)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_test_failure():
     """Failing the test yields an exception"""
 
@@ -245,12 +247,13 @@ def test_test_failure():
         plugins=pyblish.api.discover(),
         context=context))
 
-    assert_equals(len(triggered), 1)
-    assert_equals(type(triggered[0]).id, ValidateFailure.id)
-    assert_true(isinstance(results[-1], Exception))
+    assert len(triggered) == 1
+    assert type(triggered[0]).id == ValidateFailure.id
+    assert isinstance(results[-1], Exception)
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_when_to_trigger_process():
     """process() should be triggered whenever `context` is requested"""
 
@@ -284,7 +287,7 @@ def test_when_to_trigger_process():
         plugins=pyblish.api.discover(),
         context=context))
 
-    assert_equals(_data["error"], False)
+    assert not _data["error"]
 
 
 def test_default_services():
@@ -292,11 +295,11 @@ def test_default_services():
 
     services = ["user", "time"]
     for service in services:
-        assert_true(service in pyblish.api.registered_services())
+        assert service in pyblish.api.registered_services()
 
     # user is passed by value, as it does not change at run-time
     user = pyblish.api.registered_services()["user"]
-    assert_false(hasattr(user, "__call__"))
+    assert not hasattr(user, "__call__") 
 
     # time is passed by reference, and is callable, as it changes
     time = pyblish.api.registered_services()["time"]
@@ -328,10 +331,11 @@ def test_asset():
             context=pyblish.api.Context()):
         print(result)
 
-    assert_equals(count["#"], 3)
+    assert count["#"] == 3
 
 
-@with_setup(lib.setup_empty, lib.teardown)
+@with_setup(lib.setup_empty)
+@with_teardown(lib.teardown)
 def test_di_testing():
     """DI simplifies testing"""
 
@@ -361,7 +365,7 @@ def test_di_testing():
             func=pyblish.plugin.process,
             plugins=[SelectCharacters],
             context=pyblish.api.Context()):
-        assert_equals(result["error"], None)
+        assert result["error"] is None
 
-    assert_equals(len(instances), 2)
-    assert_equals(instances, ["bobby_char", "rocket_char"])
+    assert len(instances) == 2
+    assert instances == ["bobby_char", "rocket_char"]
