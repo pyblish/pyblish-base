@@ -1,5 +1,17 @@
 import os
-import imp
+try:
+    from imp import load_source
+except ImportError:
+    import importlib.machinery
+    import importlib.util
+    
+    def load_source(modname, filename):
+        loader = importlib.machinery.SourceFileLoader(modname, filename)
+        spec = importlib.util.spec_from_file_location(modname, filename, loader=loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+
+        return module
 
 from setuptools import setup, find_packages
 
@@ -8,7 +20,7 @@ with open("README.txt") as f:
 
 
 version_file = os.path.abspath("pyblish/version.py")
-version_mod = imp.load_source("version", version_file)
+version_mod = load_source("version", version_file)
 version = version_mod.version
 
 
@@ -26,6 +38,16 @@ classifiers = [
     "Programming Language :: Python :: 3.3",
     "Programming Language :: Python :: 3.4",
     "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities"
 ]
