@@ -1366,7 +1366,8 @@ def discover(type=None, regex=None, paths=None):
                 # imports, such as `import os`.
                 sys.modules[abspath] = module
                 with open(abspath, "rb") as f:
-                    six.exec_(f.read(), module.__dict__)
+                    code = compile(f.read(),abspath,"exec")
+                    six.exec_(code, module.__dict__)
 
             except Exception as err:
                 log.error("Skipped: \"%s\" (%s)", mod_name, err)
