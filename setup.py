@@ -40,7 +40,7 @@ setup(
     author_email="marcus@abstractfactory.io",
     url="https://github.com/pyblish/pyblish",
     license="LGPL",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests","tests.*"]),
     zip_safe=False,
     classifiers=classifiers,
     package_data={
