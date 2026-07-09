@@ -720,6 +720,12 @@ class AbstractEntity(list):
         if parent is not None:
             parent.append(self)
 
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
     @property
     def id(self):
         return self._id
