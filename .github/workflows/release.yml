@@ -1,0 +1,210 @@
+# Build and publish pyblish-base to PyPI.
+#
+# Run it from the Actions tab -> "Release" -> "Run workflow", and pick a target:
+#
+#   dry-run   Build, test and validate the package. Nothing is uploaded. (default)
+#   testpypi  Same as dry-run, then upload to https://test.pypi.org as
+#             <version>.dev<run number> so test runs never use up a real version.
+#   pypi      Same as dry-run, then upload <version> to https://pypi.org and create
+#             the matching git tag and GitHub release. Only allowed from master.
+#
+# The version is read from pyblish/version.py, so bump it (in a PR) before releasing.
+#
+# Uploading uses PyPI "Trusted Publishing" (OIDC), so there is no API token stored
+# in this repository. PyPI must be configured to trust this workflow file together
+# with the "pypi" / "testpypi" GitHub environments used below.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Where to publish"
+        type: choice
+        options:
+          - dry-run
+          - testpypi
+          - pypi
+        default: dry-run
+
+  # Dry-run whenever the packaging or this workflow changes, so a broken
+  # build is caught in review instead of at release time. Never uploads.
+  pull_request:
+    paths:
+      - "setup.py"
+      - "setup.cfg"
+      - "MANIFEST.in"
+      - "README.txt"
+      - "pyblish/version.py"
+      - ".github/workflows/release.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      # Empty on pull_request, which is treated as a dry run
+      TARGET: ${{ inputs.target || 'dry-run' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Determine version
+        id: version
+        run: |
+          version=$(python -c "exec(open('pyblish/version.py').read()); print(version)")
+
+          if [ "$TARGET" = "testpypi" ]; then
+            # TestPyPI, like PyPI, never accepts the same version twice,
+            # so give every test upload its own development version.
+            version="${version}.dev${GITHUB_RUN_NUMBER}${GITHUB_RUN_ATTEMPT}"
+            printf '\n# Set by release workflow for TestPyPI\nversion = __version__ = "%s"\n' \
+              "$version" >> pyblish/version.py
+          fi
+
+          echo "Target:  $TARGET"
+          echo "Version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Pre-flight checks for PyPI release
+        if: env.TARGET == 'pypi'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "::error::PyPI releases must be run from master, not $GITHUB_REF"
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" > /dev/null; then
+            echo "::error::Tag $VERSION already exists. Bump pyblish/version.py first."
+            exit 1
+          fi
+
+          status=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/pyblish-base/$VERSION/json")
+          if [ "$status" = "200" ]; then
+            echo "::error::pyblish-base $VERSION is already on PyPI. Bump pyblish/version.py first."
+            exit 1
+          fi
+
+      - name: Run tests
+        run: |
+          python -m pip install nose2
+          python -m nose2 --with-doctest
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install build twine
+          python -m build
+          ls -l dist
+
+      - name: Check distributions
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python -m twine check --strict dist/*
+
+          # Exactly one sdist and one wheel, both carrying the expected version
+          test -f "dist/pyblish_base-${VERSION}.tar.gz"
+          test -f "dist/pyblish_base-${VERSION}-py2.py3-none-any.whl"
+          test "$(ls dist | wc -l)" -eq 2
+
+      - name: Smoke test installed wheel
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/*.whl
+          cd /tmp
+          /tmp/smoke/bin/python -c "
+          import sys, pyblish, pyblish.api, pyblish.util
+          assert pyblish.__version__ == sys.argv[1], (pyblish.__version__, sys.argv[1])
+          pyblish.util.publish()
+          print('pyblish', pyblish.__version__, 'OK')
+          " "$VERSION"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/pyblish-base/${{ needs.build.outputs.version }}/
+    permissions:
+      id-token: write  # Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && inputs.target == 'pypi'
+      && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/pyblish-base/${{ needs.build.outputs.version }}/
+    permissions:
+      id-token: write  # Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
+
+  github-release:
+    name: Tag and create GitHub release
+    # Only after PyPI accepted the upload, so a tag always means "on PyPI"
+    needs: [build, publish-pypi]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Create tag and release
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          gh release create "$VERSION" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$VERSION" \
+            --generate-notes

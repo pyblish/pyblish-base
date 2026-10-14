@@ -1,5 +1,4 @@
 import os
-import imp
 
 from setuptools import setup, find_packages
 
@@ -7,9 +6,12 @@ with open("README.txt") as f:
     readme = f.read()
 
 
+# Read version without `imp`, which was removed in Python 3.12
 version_file = os.path.abspath("pyblish/version.py")
-version_mod = imp.load_source("version", version_file)
-version = version_mod.version
+version_mod = {}
+with open(version_file) as f:
+    exec(f.read(), version_mod)
+version = version_mod["version"]
 
 
 classifiers = [
@@ -36,6 +38,7 @@ setup(
     version=version,
     description="Plug-in driven automation framework for content",
     long_description=readme,
+    long_description_content_type="text/x-rst",
     author="Abstract Factory and Contributors",
     author_email="marcus@abstractfactory.io",
     url="https://github.com/pyblish/pyblish",
